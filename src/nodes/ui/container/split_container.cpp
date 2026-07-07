@@ -92,7 +92,7 @@ void SplitContainer::when_grabber_moved() {
         try {
             callback();
         } catch (std::bad_any_cast &) {
-            Logger::error("Mismatched signal argument types!", "revector");
+            Logger::error("Mismatched signal argument types!", "vecgui");
         }
     }
 }

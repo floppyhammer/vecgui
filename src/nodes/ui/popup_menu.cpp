@@ -200,7 +200,7 @@ void PopupMenu::when_item_selected(uint32_t item_index) {
         try {
             callback.operator()<uint32_t>(std::move(item_index));
         } catch (std::bad_any_cast &) {
-            Logger::error("Mismatched signal argument types!", "revector");
+            Logger::error("Mismatched signal argument types!", "vecgui");
         }
     }
 }
@@ -210,7 +210,7 @@ void PopupMenu::when_popup_hide() {
         try {
             callback();
         } catch (std::bad_any_cast &) {
-            Logger::error("Mismatched signal argument types!", "revector");
+            Logger::error("Mismatched signal argument types!", "vecgui");
         }
     }
 }

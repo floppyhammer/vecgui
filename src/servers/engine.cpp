@@ -60,7 +60,7 @@ void Engine::tick() {
         // Show frame time.
         std::ostringstream string_stream;
         string_stream << "Frame time: " << round(dt * 1000.f * 100.f) * 0.01f << " ms";
-        Logger::info(string_stream.str(), "revector");
+        Logger::info(string_stream.str(), "vecgui");
         last_time_updated_fps = current_time;
     }
     // ----------------------------------------

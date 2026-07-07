@@ -106,7 +106,7 @@ void TextEdit::input(InputEvent &event) {
 
                 Logger::verbose("Caret position: current " + std::to_string(current_caret_index) + ", selected " +
                                     std::to_string(selection_start_index),
-                                "revector");
+                                "vecgui");
             }
         } break;
         case InputEventType::Text: {

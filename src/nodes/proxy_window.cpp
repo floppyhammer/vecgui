@@ -75,7 +75,7 @@ void ProxyWindow::pre_draw_propagation() {
 
             std::ostringstream ss;
             ss << "Vector target of the primary window resized to " << physical_size;
-            Logger::info(ss.str(), "revector");
+            Logger::info(ss.str(), "vecgui");
         }
     }
 

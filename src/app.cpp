@@ -24,7 +24,7 @@ namespace vecgui {
 App::App(Vec2I primary_window_size, const bool dark_mode, bool use_vulkan) {
     // Set logger level.
     Logger::set_global_level(Logger::Level::Info);
-    Logger::set_module_level("revector", Logger::Level::Info);
+    Logger::set_module_level("vecgui", Logger::Level::Info);
 
     dark_mode_ = dark_mode;
 
@@ -57,7 +57,7 @@ App::App(Vec2I primary_window_size, const bool dark_mode, bool use_vulkan) {
 App::App(ANativeWindow* native_window, void* asset_manager, Vec2I window_size, const bool dark_mode, bool use_vulkan) {
     // Set logger level.
     Logger::set_global_level(Logger::Level::Info);
-    Logger::set_module_level("revector", Logger::Level::Info);
+    Logger::set_module_level("vecgui", Logger::Level::Info);
 
     dark_mode_ = dark_mode;
 
@@ -100,10 +100,10 @@ App::~App() {
     tree.reset();
 
     VectorServer::get_singleton()->cleanup();
-    Logger::verbose("Cleaned up VectorServer.", "revector");
+    Logger::verbose("Cleaned up VectorServer.", "vecgui");
 
     RenderServer::get_singleton()->destroy();
-    Logger::verbose("Cleaned up RenderServer.", "revector");
+    Logger::verbose("Cleaned up RenderServer.", "vecgui");
 }
 
 std::shared_ptr<Node> App::get_tree_root() const {

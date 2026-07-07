@@ -192,7 +192,7 @@ void SceneTree::process(double dt) {
     }
 
     if (get_primary_window().lock()->get_resize_flag()) {
-        Logger::info("Notify window resizing", "revector");
+        Logger::info("Notify window resizing", "vecgui");
         notify_primary_window_size_changed(get_primary_window().lock()->get_logical_size());
     }
 

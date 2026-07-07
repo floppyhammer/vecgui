@@ -230,7 +230,7 @@ void Button::notify_toggled(bool toggled) {
         try {
             callback.operator()<bool>(std::move(toggled));
         } catch (std::bad_any_cast &) {
-            Logger::error("Mismatched signal argument types!", "revector");
+            Logger::error("Mismatched signal argument types!", "vecgui");
         }
     }
 }

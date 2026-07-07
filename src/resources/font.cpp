@@ -181,7 +181,7 @@ std::shared_ptr<Font> Font::from_memory(const std::vector<char> &bytes) {
     // Prepare font info.
     font->stbtt_info = new stbtt_fontinfo;
     if (!stbtt_InitFont(font->stbtt_info, font->stbtt_buffer, 0)) {
-        Logger::error("Failed to prepare font info!", "revector");
+        Logger::error("Failed to prepare font info!", "vecgui");
         return nullptr;
     }
 
@@ -320,7 +320,7 @@ void Font::get_glyphs(const std::string &text,
         // Set paragraphs.
         ubidi_setPara(para_bidi, uchar_data, uchar_count, UBIDI_DEFAULT_LTR, nullptr, &error_code);
         if (!U_SUCCESS(error_code)) {
-            Logger::error("ubidi_setPara() failed!", "revector");
+            Logger::error("ubidi_setPara() failed!", "vecgui");
             break;
         }
 
@@ -334,7 +334,7 @@ void Font::get_glyphs(const std::string &text,
             ubidi_getParagraphByIndex(para_bidi, para_index, &para_start, &para_end, &para_level, &error_code);
 
             if (!U_SUCCESS(error_code)) {
-                Logger::error("ubidi_getParagraphByIndex() failed!", "revector");
+                Logger::error("ubidi_getParagraphByIndex() failed!", "vecgui");
                 break;
             }
 
@@ -345,7 +345,7 @@ void Font::get_glyphs(const std::string &text,
             // Set a paragraph (lines).
             ubidi_setLine(para_bidi, para_start, para_end, line_bidi, &error_code);
             if (!U_SUCCESS(error_code)) {
-                Logger::error("ubidi_setLine failed!", "revector");
+                Logger::error("ubidi_setLine failed!", "vecgui");
                 break;
             }
 

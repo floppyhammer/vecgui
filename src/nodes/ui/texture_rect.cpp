@@ -53,7 +53,7 @@ void TextureRect::draw() {
             } break;
             case StretchMode::Scale: {
                 if (texture_size.area() == 0) {
-                    Logger::error("Vector texture size is invalid!", "revector");
+                    Logger::error("Vector texture size is invalid!", "vecgui");
                     return;
                 }
                 auto scale = size / texture_size;
@@ -63,7 +63,7 @@ void TextureRect::draw() {
             case StretchMode::KeepAspect:
             case StretchMode::KeepAspectCentered: {
                 if (texture_size.area() == 0) {
-                    Logger::error("Vector texture size is invalid!", "revector");
+                    Logger::error("Vector texture size is invalid!", "vecgui");
                     return;
                 }
 
@@ -103,7 +103,7 @@ void TextureRect::draw() {
             auto render_image = static_cast<RenderImage *>(texture.get());
             vector_server->draw_render_image(*render_image, transform);
         } else {
-            Logger::error("Unsupported texture type!", "revector");
+            Logger::error("Unsupported texture type!", "vecgui");
         }
     }
 }

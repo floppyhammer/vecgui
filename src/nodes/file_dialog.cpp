@@ -6,7 +6,7 @@
 namespace vecgui {
 
 std::optional<std::string> FileDialog::show() {
-    Logger::info("Show file dialog", "revector");
+    Logger::info("Show file dialog", "vecgui");
 
     // In case of multiple files, the separator is `|`.
     // Returns NULL on cancel.
@@ -18,7 +18,7 @@ std::optional<std::string> FileDialog::show() {
                                       0);      // 0
 
     if (path) {
-        Logger::info("Selected path: " + std::string(path), "revector");
+        Logger::info("Selected path: " + std::string(path), "vecgui");
         return path;
     }
 

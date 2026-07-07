@@ -96,7 +96,7 @@ void CollapseContainer::when_collapsed(bool collapsed) {
         try {
             callback.operator()<bool>(std::move(collapsed));
         } catch (std::bad_any_cast &) {
-            Logger::error("Mismatched signal argument types!", "revector");
+            Logger::error("Mismatched signal argument types!", "vecgui");
         }
     }
 }

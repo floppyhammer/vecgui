@@ -372,7 +372,7 @@ void Theme::load_unifont() {
     if (new_font) {
         font = new_font;
     } else {
-        Logger::warn("Unifont not found", "revector");
+        Logger::warn("Unifont not found", "vecgui");
     }
 }
 

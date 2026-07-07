@@ -159,7 +159,7 @@ void Slider::notify_value_changed(float new_value) {
         try {
             callback.operator()<float>(std::move(new_value));
         } catch (std::bad_any_cast &) {
-            Logger::error("Mismatched signal argument types in Slider::notify_value_changed!", "revector");
+            Logger::error("Mismatched signal argument types in Slider::notify_value_changed!", "vecgui");
         }
     }
 }

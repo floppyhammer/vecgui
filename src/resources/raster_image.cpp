@@ -25,7 +25,7 @@ RasterImage::RasterImage(const std::string &path) {
     stbi_uc *pixels = stbi_load(path.c_str(), &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
 
     if (!pixels) {
-        Logger::warn("Failed to load image file " + path, "revector");
+        Logger::warn("Failed to load image file " + path, "vecgui");
         throw std::runtime_error("Failed to load texture image!");
     }
 

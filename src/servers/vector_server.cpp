@@ -261,7 +261,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
                                const RectF &clip_box,
                                float alpha) {
     if (glyphs.size() != glyph_positions.size()) {
-        Logger::error("Glyph count mismatches glyph position count!", "revector");
+        Logger::error("Glyph count mismatches glyph position count!", "vecgui");
         return;
     }
 

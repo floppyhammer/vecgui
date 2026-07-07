@@ -26,10 +26,10 @@ std::string get_asset_dir(const std::string &relative_path) {
 
     std::string asset_dir;
     if (resource_dir.empty()) {
-        Logger::error("Failed to get the resource directory, will use relative path", "revector");
+        Logger::error("Failed to get the resource directory, will use relative path", "vecgui");
         asset_dir = "assets/";
     } else {
-        Logger::info("Got the resource directory: " + resource_dir, "revector");
+        Logger::info("Got the resource directory: " + resource_dir, "vecgui");
         asset_dir = resource_dir + "/assets/";
     }
 

@@ -85,7 +85,7 @@ private:
 
 int main() {
     App app({800, 600}, true);
-    app.set_window_title("Revector - Anchor Flag Demo");
+    app.set_window_title("Anchor Flag Demo");
 
     auto root = app.get_tree_root();
     root->add_child(std::make_shared<AnchorDemo>());

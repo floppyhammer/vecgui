@@ -78,7 +78,7 @@ int main() {
 
 ## 🛠️ Building
 
-Revector uses CMake. Ensure you have the necessary Vulkan/OpenGL SDKs installed.
+VecGui uses CMake. Ensure you have the necessary Vulkan/OpenGL SDKs installed.
 
 ```bash
 mkdir build && cd build
