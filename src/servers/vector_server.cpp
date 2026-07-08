@@ -280,12 +280,107 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         canvas->clip_path(clip_path, Pathfinder::FillRule::Winding);
     }
 
-    auto skew_xform = Transform2::from_scale({1, 1});
-    if (text_style.italic) {
-        skew_xform = Transform2({1, 0, std::tan(-15.f * 3.1415926f / 180.f), 1}, {});
+    // 0. Draw backgrounds.
+    for (int i = 0; i < glyphs.size();) {
+        if (glyphs[i].skip_drawing || !glyphs[i].style.background_color.is_visible()) {
+            i++;
+            continue;
+        }
+
+        const TextStyle &style = glyphs[i].style;
+        float current_y = glyph_positions[i].y;
+        float current_ascent = glyphs[i].ascent;
+
+        // Find the range of glyphs on the same line with the same background style.
+        int start = i;
+        int end = i + 1;
+        while (end < glyphs.size()) {
+            if (glyphs[end].skip_drawing) {
+                // If it's just a skip_drawing glyph (like space) in the middle of the same line,
+                // we can include it in the background if the next glyph has the same style.
+                if (end + 1 < glyphs.size() &&
+                    glyph_positions[end+1].y == current_y &&
+                    glyphs[end+1].style.background_color == style.background_color) {
+                    end++;
+                    continue;
+                }
+                break;
+            }
+
+            if (glyph_positions[end].y != current_y ||
+                !(glyphs[end].style.background_color == style.background_color) ||
+                glyphs[end].style.background_corner_radius != style.background_corner_radius ||
+                glyphs[end].style.background_padding != style.background_padding) {
+                break;
+            }
+            end++;
+        }
+
+        // Calculate the union bounding box of all glyphs in this run.
+        RectF union_rect;
+        for (int k = start; k < end; ++k) {
+            if (glyphs[k].skip_drawing) continue;
+            RectF glyph_box = glyphs[k].box + glyph_positions[k];
+            union_rect = union_rect.union_rect(glyph_box);
+        }
+
+        if (union_rect.is_valid()) {
+            auto baseline_xform = Transform2::from_translation({0, current_ascent});
+            canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform * baseline_xform);
+
+            if (style.background_padding > 0) {
+                union_rect = union_rect.dilate(style.background_padding);
+            }
+
+            Pathfinder::Path2d bg_path;
+            bg_path.add_rect(union_rect, style.background_corner_radius);
+
+            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.background_color.apply_alpha(alpha)));
+            canvas->fill_path(bg_path, Pathfinder::FillRule::Winding);
+        }
+
+        i = end;
     }
 
-    // Draw glyph strokes. The strokes go below the fills.
+    // 1. Draw shadows.
+    for (int i = 0; i < glyphs.size(); i++) {
+        auto &g = glyphs[i];
+        auto &p = glyph_positions[i];
+
+        if (g.skip_drawing || !g.style.shadow_color.is_visible()) {
+            continue;
+        }
+
+        TextStyle style = g.style;
+        auto baseline_xform = Transform2::from_translation({0, g.ascent});
+
+        auto shadow_pos = p + style.shadow_offset;
+        auto glyph_global_transform =
+            dpi_scaling_xform * global_transform_offset * Transform2::from_translation(shadow_pos) * transform * baseline_xform;
+
+        auto skew_xform = Transform2::from_scale({1, 1});
+        if (style.italic) {
+            skew_xform = Transform2({1, 0, std::tan(-15.f * 3.1415926f / 180.f), 1}, {});
+        }
+
+        canvas->set_transform(glyph_global_transform * skew_xform);
+
+        if (style.shadow_radius > 0) {
+            canvas->set_shadow_color(style.shadow_color.apply_alpha(alpha));
+            canvas->set_shadow_blur(style.shadow_radius);
+            canvas->set_shadow_offset({0, 0});
+        }
+
+        canvas->set_fill_paint(Pathfinder::Paint::from_color(style.shadow_color.apply_alpha(alpha)));
+        canvas->fill_path(g.path, Pathfinder::FillRule::Winding);
+
+        if (style.shadow_radius > 0) {
+            canvas->set_shadow_color(ColorU::transparent_black());
+            canvas->set_shadow_blur(0);
+        }
+    }
+
+    // 2. Draw glyph strokes. The strokes go below the fills.
     for (int i = 0; i < glyphs.size(); i++) {
         auto &g = glyphs[i];
         auto &p = glyph_positions[i];
@@ -294,17 +389,25 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             continue;
         }
 
+        TextStyle style = g.style;
+        style.stroke_color = style.stroke_color.apply_alpha(alpha);
+
         auto baseline_xform = Transform2::from_translation({0, g.ascent});
 
         auto glyph_global_transform =
             dpi_scaling_xform * global_transform_offset * Transform2::from_translation(p) * transform * baseline_xform;
 
+        auto skew_xform = Transform2::from_scale({1, 1});
+        if (style.italic) {
+            skew_xform = Transform2({1, 0, std::tan(-15.f * 3.1415926f / 180.f), 1}, {});
+        }
+
         canvas->set_transform(glyph_global_transform * skew_xform);
 
         // Add stroke if needed.
-        canvas->set_stroke_paint(Pathfinder::Paint::from_color(text_style.stroke_color));
-        float stroke_width = text_style.stroke_width;
-        if (text_style.bold) {
+        canvas->set_stroke_paint(Pathfinder::Paint::from_color(style.stroke_color));
+        float stroke_width = style.stroke_width;
+        if (style.bold) {
             stroke_width += STROKE_WIDTH_FOR_PSEUDO_BOLD_TEXT;
         }
         canvas->set_line_width(stroke_width);
@@ -312,7 +415,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         canvas->stroke_path(g.path);
     }
 
-    // Draw glyph fills.
+    // 3. Draw glyph fills.
     for (int i = 0; i < glyphs.size(); i++) {
         auto &g = glyphs[i];
         auto &p = glyph_positions[i];
@@ -321,22 +424,30 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             continue;
         }
 
+        TextStyle style = g.style;
+        style.color = style.color.apply_alpha(alpha);
+
         auto baseline_xform = Transform2::from_translation({0, g.ascent});
 
         // No italic for emojis and debug boxes.
         auto glyph_global_transform =
             dpi_scaling_xform * global_transform_offset * Transform2::from_translation(p) * transform * baseline_xform;
 
+        auto skew_xform = Transform2::from_scale({1, 1});
+        if (style.italic) {
+            skew_xform = Transform2({1, 0, std::tan(-15.f * 3.1415926f / 180.f), 1}, {});
+        }
+
         if (!g.emoji) {
             canvas->set_transform(glyph_global_transform * skew_xform);
 
             // Add fill.
-            canvas->set_fill_paint(Pathfinder::Paint::from_color(text_style.color));
+            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.color));
             canvas->fill_path(g.path, Pathfinder::FillRule::Winding);
 
             // Use stroke to make a pseudo bold effect.
-            if (text_style.bold) {
-                canvas->set_stroke_paint(Pathfinder::Paint::from_color(text_style.color));
+            if (style.bold) {
+                canvas->set_stroke_paint(Pathfinder::Paint::from_color(style.color));
                 canvas->set_line_width(STROKE_WIDTH_FOR_PSEUDO_BOLD_TEXT);
                 canvas->set_line_join(Pathfinder::LineJoin::Bevel);
                 canvas->stroke_path(g.path);
@@ -353,7 +464,21 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             canvas->get_scene()->append_scene(*(svg_scene->get_scene()), glyph_global_transform * emoji_scale);
         }
 
-        if (text_style.debug) {
+        if (style.debug) {
+            canvas->set_transform(glyph_global_transform);
+            canvas->set_line_width(1);
+            auto svg_scene = std::make_shared<Pathfinder::SvgScene>(g.svg, *canvas);
+
+            // The emoji's svg size is always fixed for a specific font no matter what the font size you set.
+            auto svg_size = svg_scene->get_size();
+            auto glyph_size = g.box.size();
+
+            auto emoji_scale = Transform2::from_scale(glyph_size / svg_size);
+
+            canvas->get_scene()->append_scene(*(svg_scene->get_scene()), glyph_global_transform * emoji_scale);
+        }
+
+        if (style.debug) {
             canvas->set_transform(glyph_global_transform);
             canvas->set_line_width(1);
 

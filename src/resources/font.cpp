@@ -456,6 +456,12 @@ void Font::get_glyphs(const std::string &text,
 
                     Glyph glyph;
 
+                    glyph.start = current_cluster->start;
+                    glyph.end = current_cluster->end;
+
+                    glyph.ascent = ascent;
+                    glyph.descent = descent;
+
                     glyph.codepoints = glyph_text_u32;
 
                     glyph.text = glyph_text;
@@ -779,7 +785,9 @@ void Font::get_glyphs(const std::string &text,
                         }
                     }
 
-                    para_clusters.push_back(*current_cluster);
+                    Pathfinder::Range absolute_cluster = {para_start + current_cluster->start,
+                                                          para_start + current_cluster->end};
+                    para_clusters.push_back(absolute_cluster);
 
                     std::u32string glyph_text_u32 =
                         para_text_u32.substr(current_cluster->start, current_cluster->length());
@@ -789,8 +797,8 @@ void Font::get_glyphs(const std::string &text,
 
                     Glyph glyph;
 
-                    glyph.start = current_cluster->start;
-                    glyph.end = current_cluster->end;
+                    glyph.start = para_start + current_cluster->start;
+                    glyph.end = para_start + current_cluster->end;
 
                     glyph.ascent = ascent;
                     glyph.descent = descent;
@@ -875,6 +883,51 @@ void Font::get_glyphs(const std::string &text,
 }
 
 #endif
+
+void Font::get_glyphs(const std::vector<TextSpan> &spans,
+                      uint32_t font_size,
+                      std::vector<Glyph> &glyphs,
+                      std::vector<Line> &paragraphs) {
+    std::string full_text;
+    for (const auto &span : spans) {
+        full_text += span.text;
+    }
+
+    get_glyphs(full_text, font_size, glyphs, paragraphs);
+
+    // Map glyphs back to spans.
+    // We need to know the character offset of each span.
+#ifndef VECGUI_USE_FRIBIDI
+    // ICU version uses UTF-16 offsets.
+    std::vector<size_t> span_offsets;
+    size_t current_offset = 0;
+    for (const auto &span : spans) {
+        span_offsets.push_back(current_offset);
+        std::u16string span_u16;
+        utf8_to_utf16(span.text, span_u16);
+        current_offset += span_u16.size();
+    }
+#else
+    // FriBidi version uses UTF-32 offsets.
+    std::vector<size_t> span_offsets;
+    size_t current_offset = 0;
+    for (const auto &span : spans) {
+        span_offsets.push_back(current_offset);
+        std::u32string span_u32;
+        utf8_to_utf32(span.text, span_u32);
+        current_offset += span_u32.size();
+    }
+#endif
+
+    for (auto &glyph : glyphs) {
+        for (int i = spans.size() - 1; i >= 0; --i) {
+            if (glyph.start >= span_offsets[i]) {
+                glyph.style = spans[i].style;
+                break;
+            }
+        }
+    }
+}
 
 uint16_t Font::find_glyph_index_by_codepoint(int codepoint) {
     return stbtt_FindGlyphIndex(stbtt_info, codepoint);

@@ -368,7 +368,7 @@ std::shared_ptr<Theme> Theme::from_json(const std::string& json) {
 void Theme::load_unifont() {
     font = DefaultResource::get_singleton()->get_default_font();
 
-    const auto new_font = Font::from_file(get_asset_dir("unifont-17.0.03.otf"));
+    const auto new_font = Font::from_file(get_asset_dir("zcool_qingke_huangyou.ttf"));
     if (new_font) {
         font = new_font;
     } else {

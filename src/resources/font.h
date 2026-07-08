@@ -203,11 +203,31 @@ inline std::wstring utf8_to_ws(std::string const &utf8) {
 
 struct TextStyle {
     ColorU color = ColorU::white();
-    ColorU stroke_color;
-    float stroke_width = 0;
+    uint32_t font_size = 16; // 增加字号支持
+
     bool italic = false;
     bool bold = false;
+
+    // Stroke.
+    ColorU stroke_color;
+    float stroke_width = 0;
+
+    // Shadow.
+    ColorU shadow_color = ColorU::transparent_black();
+    float shadow_radius = 0;
+    Vec2F shadow_offset;
+
+    // Background.
+    ColorU background_color = ColorU::transparent_black();
+    float background_corner_radius = 0;
+    float background_padding = 0; // 外扩距离
+
     bool debug = false;
+};
+
+struct TextSpan {
+    std::string text;
+    TextStyle style;
 };
 
 enum class Script {
@@ -269,6 +289,8 @@ struct Glyph {
     /// Glyph path's bounding box in the baseline coordinates, which has nothing to do with the glyph position in the
     /// text paragraph.
     RectF bbox;
+
+    TextStyle style; // 让每个 Glyph 携带样式
 };
 
 struct Line {
@@ -300,6 +322,11 @@ public:
     /// Paragraphs and lines are different concepts.
     /// Paragraphs are seperated by line breaks, while lines are produced by further layouting.
     /// A paragraph may contain one or more lines.
+    void get_glyphs(const std::vector<TextSpan> &spans,
+                    uint32_t font_size,
+                    std::vector<Glyph> &glyphs,
+                    std::vector<Line> &paragraphs);
+
     void get_glyphs(const std::string &text,
                     uint32_t font_size,
                     std::vector<Glyph> &glyphs,

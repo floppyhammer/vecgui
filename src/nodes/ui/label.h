@@ -36,6 +36,10 @@ public:
 
     void set_text(const std::string &new_text);
 
+    void clear_spans();
+    void add_span(const TextSpan &span);
+    const std::vector<TextSpan>& get_spans() const { return spans_; }
+
     std::string get_text() const;
 
     std::u32string get_text_u32() const;
@@ -104,6 +108,9 @@ private:
     Vec2F get_text_minimum_size() const;
 
 private:
+    // Rich text segments.
+    std::vector<TextSpan> spans_;
+
     // Raw text.
     std::string text_;
     // Codepoint-separated text.

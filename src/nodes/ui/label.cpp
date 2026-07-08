@@ -235,6 +235,25 @@ void Label::set_text(const std::string &new_text) {
     text_ = new_text;
     utf8_to_utf32(text_, text_u32_);
 
+    spans_.clear();
+    spans_.push_back({text_, text_style});
+
+    need_to_remeasure = true;
+    queue_relayout();
+}
+
+void Label::clear_spans() {
+    spans_.clear();
+    text_.clear();
+    text_u32_.clear();
+    need_to_remeasure = true;
+    queue_relayout();
+}
+
+void Label::add_span(const TextSpan &span) {
+    spans_.push_back(span);
+    text_ += span.text;
+    utf8_to_utf32(text_, text_u32_);
     need_to_remeasure = true;
     queue_relayout();
 }
@@ -334,7 +353,10 @@ std::vector<LayoutGlyph> convert_to_in_context_glyphs(const std::vector<Glyph> &
 }
 
 void Label::measure() {
-    font->get_glyphs(text_, font_size_, glyphs_, paragraphs_);
+    if (spans_.empty() && !text_.empty()) {
+        spans_.push_back({text_, text_style});
+    }
+    font->get_glyphs(spans_, font_size_, glyphs_, paragraphs_);
 
     // Add emoji data.
     if (emoji_font && emoji_font->is_valid()) {
@@ -505,6 +527,12 @@ void Label::update(double dt) {
 
 void Label::set_text_style(TextStyle _text_style) {
     text_style = _text_style;
+    if (spans_.size() <= 1) {
+        spans_.clear();
+        spans_.push_back({text_, text_style});
+    }
+    need_to_remeasure = true;
+    queue_relayout();
 }
 
 void Label::draw() {
