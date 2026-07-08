@@ -2,8 +2,8 @@
 
 #include <pathfinder/prelude.h>
 
-#include <codecvt>
-#include <locale>
+#include <stdexcept>
+#include <string>
 
 #include "../nodes/proxy_window.h"
 #include "render_server.h"
@@ -11,19 +11,26 @@
 namespace vecgui {
 
 std::string cpp11_codepoint_to_utf8(char32_t codepoint) {
-    char utf8[4];
-    char *end_of_utf8;
-
-    char32_t const *from = &codepoint;
-
-    std::mbstate_t mbs;
-    std::codecvt_utf8<char32_t> ccv;
-
-    if (ccv.out(mbs, from, from + 1, from, utf8, utf8 + 4, end_of_utf8)) {
-        throw std::runtime_error("Bad codepoint-to-utf8 conversion!");
+    std::string result;
+    uint32_t cp = static_cast<uint32_t>(codepoint);
+    if (cp <= 0x7F) {
+        result.push_back(static_cast<char>(cp));
+    } else if (cp <= 0x7FF) {
+        result.push_back(static_cast<char>(0xC0 | ((cp >> 6) & 0x1F)));
+        result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    } else if (cp <= 0xFFFF) {
+        result.push_back(static_cast<char>(0xE0 | ((cp >> 12) & 0x0F)));
+        result.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+        result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    } else if (cp <= 0x10FFFF) {
+        result.push_back(static_cast<char>(0xF0 | ((cp >> 18) & 0x07)));
+        result.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+        result.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+        result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    } else {
+        // Skip or handle invalid codepoint
     }
-
-    return {utf8, end_of_utf8};
+    return result;
 }
 
 InputServer::InputServer() {

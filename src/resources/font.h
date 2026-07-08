@@ -2,10 +2,10 @@
 
 #include <pathfinder/prelude.h>
 
-#include <codecvt>
 #include <cstdio>
 #include <cstdlib>
-#include <locale>
+#include <stdexcept>
+#include <string>
 
 #include "../common/geometry.h"
 #include "../common/utils.h"
@@ -17,67 +17,189 @@ namespace vecgui {
 
 template <typename T>
 void utf8_to_utf16(const std::string &source, std::basic_string<T> &result) {
-    std::wstring_convert<std::codecvt_utf8_utf16<T>, T> convertor;
-    result = convertor.from_bytes(source);
+    result.clear();
+    for (size_t i = 0; i < source.size();) {
+        uint32_t cp = 0;
+        unsigned char c = (unsigned char)source[i];
+        size_t len = 0;
+        if (c <= 0x7F) {
+            cp = c;
+            len = 1;
+        } else if ((c & 0xE0) == 0xC0) {
+            cp = c & 0x1F;
+            len = 2;
+        } else if ((c & 0xF0) == 0xE0) {
+            cp = c & 0x0F;
+            len = 3;
+        } else if ((c & 0xF8) == 0xF0) {
+            cp = c & 0x07;
+            len = 4;
+        } else {
+            // Skip invalid start byte
+            i++;
+            continue;
+        }
 
-    if (convertor.converted() < source.size()) {
-        throw std::runtime_error("Incomplete utf16-to-utf8 conversion!");
+        if (i + len > source.size()) break;
+
+        bool invalid_seq = false;
+        for (size_t j = 1; j < len; ++j) {
+            c = (unsigned char)source[i + j];
+            if ((c & 0xC0) != 0x80) {
+                invalid_seq = true;
+                break;
+            }
+            cp = (cp << 6) | (c & 0x3F);
+        }
+
+        if (invalid_seq) {
+            i++; // Skip only the first byte of invalid sequence
+            continue;
+        }
+        i += len;
+
+        if (cp <= 0xFFFF) {
+            result.push_back(static_cast<T>(cp));
+        } else if (cp <= 0x10FFFF) {
+            cp -= 0x10000;
+            result.push_back(static_cast<T>((cp >> 10) + 0xD800));
+            result.push_back(static_cast<T>((cp & 0x3FF) + 0xDC00));
+        } else {
+            // Skip invalid codepoint
+        }
     }
 }
 
 template <typename T>
 std::string utf16_to_utf8(const std::basic_string<T> &source) {
-    std::wstring_convert<std::codecvt_utf8_utf16<T>, T> convertor;
-    std::string result = convertor.to_bytes(source);
+    std::string result;
+    for (size_t i = 0; i < source.size(); ++i) {
+        uint32_t cp = static_cast<uint32_t>(source[i]);
+        if (cp >= 0xD800 && cp <= 0xDBFF && i + 1 < source.size()) {
+            uint32_t low = static_cast<uint32_t>(source[i + 1]);
+            if (low >= 0xDC00 && low <= 0xDFFF) {
+                cp = ((cp - 0xD800) << 10) + (low - 0xDC00) + 0x10000;
+                ++i;
+            }
+        }
 
-    if (convertor.converted() < source.size()) {
-        throw std::runtime_error("Incomplete utf8-to-utf16 conversion!");
+        if (cp <= 0x7F) {
+            result.push_back(static_cast<char>(cp));
+        } else if (cp <= 0x7FF) {
+            result.push_back(static_cast<char>(0xC0 | ((cp >> 6) & 0x1F)));
+            result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+        } else if (cp <= 0xFFFF) {
+            result.push_back(static_cast<char>(0xE0 | ((cp >> 12) & 0x0F)));
+            result.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+            result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+        } else if (cp <= 0x10FFFF) {
+            result.push_back(static_cast<char>(0xF0 | ((cp >> 18) & 0x07)));
+            result.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+            result.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+            result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+        } else {
+            // Skip invalid codepoint
+        }
     }
-
     return result;
 }
 
 template <typename T>
 void utf8_to_utf32(const std::string &source, std::basic_string<T> &result) {
-    std::wstring_convert<std::codecvt_utf8<char32_t>, T> convertor;
-    result = convertor.from_bytes(source);
+    result.clear();
+    for (size_t i = 0; i < source.size();) {
+        uint32_t cp = 0;
+        unsigned char c = (unsigned char)source[i];
+        size_t len = 0;
+        if (c <= 0x7F) {
+            cp = c;
+            len = 1;
+        } else if ((c & 0xE0) == 0xC0) {
+            cp = c & 0x1F;
+            len = 2;
+        } else if ((c & 0xF0) == 0xE0) {
+            cp = c & 0x0F;
+            len = 3;
+        } else if ((c & 0xF8) == 0xF0) {
+            cp = c & 0x07;
+            len = 4;
+        } else {
+            // Skip invalid start byte
+            i++;
+            continue;
+        }
 
-    if (convertor.converted() < source.size()) {
-        throw std::runtime_error("Incomplete utf8-to-utf32 conversion!");
+        if (i + len > source.size()) break;
+
+        bool invalid_seq = false;
+        for (size_t j = 1; j < len; ++j) {
+            c = (unsigned char)source[i + j];
+            if ((c & 0xC0) != 0x80) {
+                invalid_seq = true;
+                break;
+            }
+            cp = (cp << 6) | (c & 0x3F);
+        }
+
+        if (invalid_seq) {
+            i++; // Skip only the first byte of invalid sequence
+            continue;
+        }
+
+        if (cp <= 0x10FFFF) {
+            result.push_back(static_cast<T>(cp));
+        } else {
+            // Skip invalid codepoint
+        }
+        i += len;
     }
 }
 
 template <typename T>
 std::string utf32_to_utf8(const std::basic_string<T> &source) {
-    std::wstring_convert<std::codecvt_utf8<char32_t>, T> convertor;
-    std::string result = convertor.to_bytes(source);
-
-    if (convertor.converted() < source.size()) {
-        throw std::runtime_error("Incomplete utf32-to-utf8 conversion!");
+    std::string result;
+    for (auto cp_t : source) {
+        uint32_t cp = static_cast<uint32_t>(cp_t);
+        if (cp <= 0x7F) {
+            result.push_back(static_cast<char>(cp));
+        } else if (cp <= 0x7FF) {
+            result.push_back(static_cast<char>(0xC0 | ((cp >> 6) & 0x1F)));
+            result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+        } else if (cp <= 0xFFFF) {
+            result.push_back(static_cast<char>(0xE0 | ((cp >> 12) & 0x0F)));
+            result.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+            result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+        } else if (cp <= 0x10FFFF) {
+            result.push_back(static_cast<char>(0xF0 | ((cp >> 18) & 0x07)));
+            result.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+            result.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+            result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+        } else {
+            // Skip invalid codepoint
+        }
     }
-
     return result;
 }
 
-// // This should convert to whatever the system-wide character encoding
-// // is for the platform (UTF-32/Linux - UCS-2/Windows)
-// std::string ws_to_utf8(std::wstring const &s) {
-//     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> cnv;
-//     std::string utf8 = cnv.to_bytes(s);
-//     if (cnv.converted() < s.size()) {
-//         throw std::runtime_error("Incomplete wstring-to-utf8 conversion!");
-//     }
-//     return utf8;
-// }
-//
-// std::wstring utf8_to_ws(std::string const &utf8) {
-//     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> cnv;
-//     std::wstring s = cnv.from_bytes(utf8);
-//     if (cnv.converted() < utf8.size()) {
-//         throw std::runtime_error("Incomplete utf8-to-wstring conversion!");
-//     }
-//     return s;
-// }
+// This should convert to whatever the system-wide character encoding
+// is for the platform (UTF-32/Linux - UCS-2/Windows)
+inline std::string ws_to_utf8(std::wstring const &s) {
+    if constexpr (sizeof(wchar_t) == 2) {
+        return utf16_to_utf8(s);
+    } else {
+        return utf32_to_utf8(s);
+    }
+}
+
+inline std::wstring utf8_to_ws(std::string const &utf8) {
+    std::wstring result;
+    if constexpr (sizeof(wchar_t) == 2) {
+        utf8_to_utf16(utf8, result);
+    } else {
+        utf8_to_utf32(utf8, result);
+    }
+    return result;
+}
 
 struct TextStyle {
     ColorU color = ColorU::white();

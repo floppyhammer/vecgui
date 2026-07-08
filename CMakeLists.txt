@@ -39,6 +39,10 @@ file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 # Has to be 20 or above.
 target_compile_features(vecgui PUBLIC cxx_std_20)
 
+if (MSVC)
+    target_compile_options(vecgui PUBLIC "/utf-8")
+endif ()
+
 # Include external and third-party headers.
 target_include_directories(vecgui PUBLIC "third_party")
 
