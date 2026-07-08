@@ -342,7 +342,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         i = end;
     }
 
-    // 1. Draw shadows (Batched).
+    // 1. Draw shadows (Line-Batched).
     for (int i = 0; i < glyphs.size();) {
         if (glyphs[i].skip_drawing || !glyphs[i].style.shadow_color.is_visible()) {
             i++;
@@ -350,15 +350,17 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         }
 
         const TextStyle &style = glyphs[i].style;
+        float current_line_y = glyph_positions[i].y;
         Pathfinder::Path2d combined_shadow_path;
 
-        // Batching: Group consecutive glyphs that share identical shadow properties.
+        // Batching: Group consecutive glyphs that share identical shadow properties AND are on the same line.
         int j = i;
         while (j < glyphs.size()) {
             const auto &g = glyphs[j];
             const auto &p = glyph_positions[j];
 
-            if (g.style.shadow_color == style.shadow_color &&
+            if (p.y == current_line_y &&
+                g.style.shadow_color == style.shadow_color &&
                 g.style.shadow_radius == style.shadow_radius &&
                 g.style.shadow_offset == style.shadow_offset) {
 
