@@ -342,28 +342,49 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         i = end;
     }
 
-    // 1. Draw shadows.
-    for (int i = 0; i < glyphs.size(); i++) {
-        auto &g = glyphs[i];
-        auto &p = glyph_positions[i];
-
-        if (g.skip_drawing || !g.style.shadow_color.is_visible()) {
+    // 1. Draw shadows (Batched).
+    for (int i = 0; i < glyphs.size();) {
+        if (glyphs[i].skip_drawing || !glyphs[i].style.shadow_color.is_visible()) {
+            i++;
             continue;
         }
 
-        TextStyle style = g.style;
-        auto baseline_xform = Transform2::from_translation({0, g.ascent});
+        const TextStyle &style = glyphs[i].style;
+        Pathfinder::Path2d combined_shadow_path;
 
-        auto shadow_pos = p + style.shadow_offset;
-        auto glyph_global_transform =
-            dpi_scaling_xform * global_transform_offset * Transform2::from_translation(shadow_pos) * transform * baseline_xform;
+        // Batching: Group consecutive glyphs that share identical shadow properties.
+        int j = i;
+        while (j < glyphs.size()) {
+            const auto &g = glyphs[j];
+            const auto &p = glyph_positions[j];
 
-        auto skew_xform = Transform2::from_scale({1, 1});
-        if (style.italic) {
-            skew_xform = Transform2({1, 0, std::tan(-15.f * 3.1415926f / 180.f), 1}, {});
+            if (g.style.shadow_color == style.shadow_color &&
+                g.style.shadow_radius == style.shadow_radius &&
+                g.style.shadow_offset == style.shadow_offset) {
+
+                if (!g.skip_drawing) {
+                    auto shadow_pos = p + style.shadow_offset;
+                    auto baseline_xform = Transform2::from_translation({0, g.ascent});
+                    auto local_transform = Transform2::from_translation(shadow_pos) * baseline_xform;
+
+                    auto skew_xform = Transform2::from_scale({1, 1});
+                    if (g.style.italic) {
+                        skew_xform = Transform2({1, 0, std::tan(-15.f * 3.1415926f / 180.f), 1}, {});
+                    }
+
+                    // Merging paths at CPU level is much cheaper than a blur pass on GPU.
+                    combined_shadow_path.add_path(g.path, local_transform * skew_xform);
+                }
+                j++;
+            } else {
+                break;
+            }
         }
 
-        canvas->set_transform(glyph_global_transform * skew_xform);
+        // Execute ONE blur/fill operation for the entire batch.
+        canvas->save_state();
+        // The combined_shadow_path already has local transforms baked in.
+        canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform);
 
         if (style.shadow_radius > 0) {
             canvas->set_shadow_color(style.shadow_color.apply_alpha(alpha));
@@ -372,12 +393,10 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         }
 
         canvas->set_fill_paint(Pathfinder::Paint::from_color(style.shadow_color.apply_alpha(alpha)));
-        canvas->fill_path(g.path, Pathfinder::FillRule::Winding);
+        canvas->fill_path(combined_shadow_path, Pathfinder::FillRule::Winding);
 
-        if (style.shadow_radius > 0) {
-            canvas->set_shadow_color(ColorU::transparent_black());
-            canvas->set_shadow_blur(0);
-        }
+        canvas->restore_state();
+        i = j;
     }
 
     // 2. Draw glyph strokes. The strokes go below the fills.
