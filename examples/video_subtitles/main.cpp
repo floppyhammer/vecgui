@@ -17,12 +17,12 @@ enum class SubtitleType {
     Basic,
     Slider,  // 滑块背景随文字滑动
     Karaoke, // 逐字进度染色效果
+    Transform,
 };
 
 struct SubtitleBasic {
     TextStyle normal;
     TextStyle highlight;
-    Vec2F highlight_transform;
 };
 
 struct SubtitleSlider {
@@ -35,6 +35,14 @@ struct SubtitleKaraoke {
     TextStyle normal;
     ColorU reached;
     ColorU unreached;
+};
+
+struct SubtitleTransform {
+    TextStyle normal;
+    float alpha_start;
+    float alpha_end;
+    Transform2 highlight_transform_start;
+    Transform2 highlight_transform_end;
 };
 
 // 1. 定义与 JSON 对应的字幕数据结构
@@ -63,6 +71,19 @@ RectF lerp_rect(const RectF& a, const RectF& b, float t) {
                  Pathfinder::lerp(a.bottom, b.bottom, t));
 }
 
+// 辅助函数：Transform2 线性插值
+Transform2 lerp_transform(const Transform2& a, const Transform2& b, float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    float m11 = Pathfinder::lerp(a.m11(), b.m11(), t);
+    float m21 = Pathfinder::lerp(a.m21(), b.m21(), t);
+    float m12 = Pathfinder::lerp(a.m12(), b.m12(), t);
+    float m22 = Pathfinder::lerp(a.m22(), b.m22(), t);
+    float m13 = Pathfinder::lerp(a.m13(), b.m13(), t);
+    float m23 = Pathfinder::lerp(a.m23(), b.m23(), t);
+    float values[6] = {m11, m21, m12, m22, m13, m23};
+    return Transform2(values);
+}
+
 // 2. 自定义字幕显示节点
 class SubtitleNode : public NodeUi {
 public:
@@ -71,6 +92,7 @@ public:
     SubtitleBasic basic_style;
     SubtitleSlider slider_style;
     SubtitleKaraoke karaoke_style;
+    SubtitleTransform transform_style;
 
     void custom_ready() override {
         setup_default_styles();
@@ -97,7 +119,7 @@ public:
     void custom_input(InputEvent& event) override {
         if (event.type == InputEventType::Key && event.args.key.pressed) {
             if (event.args.key.key == KeyCode::R) { // 按 R 切换模式
-                sub_type = static_cast<SubtitleType>((static_cast<int>(sub_type) + 1) % 3);
+                sub_type = static_cast<SubtitleType>((static_cast<int>(sub_type) + 1) % 4);
                 last_phrase_idx = -1; // 强制刷新
                 printf("Switched Subtitle Mode to: %d\n", (int)sub_type);
             }
@@ -148,6 +170,8 @@ public:
             update_logic_for_slider(dt);
         } else if (sub_type == SubtitleType::Karaoke) {
             update_logic_for_karaoke(dt);
+        } else if (sub_type == SubtitleType::Transform) {
+            update_logic_for_transform(dt);
         }
 
         debug_label_->set_text("Current phrase idx: " + std::to_string(active_phrase_idx) +
@@ -198,6 +222,13 @@ private:
         karaoke_style.unreached = ColorU::white();
         karaoke_style.normal.stroke_color = ColorU::black();
         karaoke_style.normal.stroke_width = 1.5f;
+
+        // Transform
+        transform_style.normal.color = ColorU::white();
+        transform_style.alpha_start = 0.0f;
+        transform_style.alpha_end = 1.0f;
+        transform_style.highlight_transform_start = Transform2::from_translation({0, -20});
+        transform_style.highlight_transform_end = Transform2::from_scale({1.0f, 1.0f});
     }
 
     void update_phrase_word_idx() {
@@ -312,6 +343,11 @@ private:
         base.shadow_color = ColorU::black();
         base.shadow_radius = 4;
 
+        // 关键修复：如果是 Transform 模式，让文字“出生”时就是透明的
+        if (sub_type == SubtitleType::Transform) {
+            base.alpha = transform_style.alpha_start;
+        }
+
         TextStyle high = base;
         if (sub_type == SubtitleType::Karaoke)
             high.color = karaoke_style.reached;
@@ -381,6 +417,71 @@ private:
                     // 未唱到：保持原色，禁用渐变
                     g.style.color = karaoke_style.unreached;
                     g.style.karaoke_progress = -1.0f;
+                }
+                glyph_ptr++;
+            }
+            current_char_offset += word_len;
+        }
+    }
+
+    void update_logic_for_transform(double dt) {
+        if (active_phrase_idx == -1) {
+            return;
+        }
+
+        const auto& phrase = subtitles[active_phrase_idx];
+
+        // 1. 句子切换时重建内容
+        if (active_phrase_idx != last_phrase_idx) {
+            rebuild_contents(phrase);
+            label->adjust_layout();
+            last_phrase_idx = active_phrase_idx;
+        }
+
+        // 2. 找到当前正在唱的词和进度
+        int w_idx = -1;
+        double progress = 0;
+        for (int i = 0; i < (int)phrase.targetSrt.size(); ++i) {
+            auto& w = phrase.targetSrt[i];
+            if (current_time >= w.start && current_time <= w.end) {
+                w_idx = i;
+                progress = (current_time - w.start) / (w.end - w.start);
+                break;
+            }
+        }
+
+        // 3. 逐帧更新 Label 中每个字符的 Transform
+        auto& glyphs = label->get_glyphs();
+        size_t current_char_offset = 0;
+        int glyph_ptr = 0;
+
+        for (int i = 0; i < (int)phrase.targetSrt.size(); ++i) {
+            const auto& word_data = phrase.targetSrt[i];
+            std::u32string w32;
+            utf8_to_utf32(word_data.word, w32);
+            size_t word_len = w32.size();
+
+            while (glyph_ptr < (int)glyphs.size()) {
+                auto& g = glyphs[glyph_ptr];
+                // 严谨匹配：如果 glyph 的起始位置已经超出了当前词的范围，则跳出处理下一个词
+                if (g.start >= (int)(current_char_offset + word_len)) break;
+
+                if (current_time > word_data.end) {
+                    // 已唱完的词：保持最终状态
+                    g.style.local_transform = Transform2();
+                    g.style.alpha = 1.0f;
+                } else if (current_time >= word_data.start) {
+                    // 正在朗读的词：应用插值
+                    g.style.local_transform = lerp_transform(transform_style.highlight_transform_start,
+                                                            transform_style.highlight_transform_end,
+                                                            (float)progress);
+                    g.style.alpha = Pathfinder::lerp(transform_style.alpha_start,
+                                                   transform_style.alpha_end,
+                                                   (float)progress);
+                } else {
+                    // 未唱到的词：保持起始透明度
+                    g.style.local_transform = Transform2();
+                    g.style.alpha = transform_style.alpha_start;
                 }
                 glyph_ptr++;
             }

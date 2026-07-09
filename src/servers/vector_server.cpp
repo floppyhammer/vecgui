@@ -310,7 +310,8 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             if (glyph_positions[end].y != current_y ||
                 !(glyphs[end].style.background_color == style.background_color) ||
                 glyphs[end].style.background_corner_radius != style.background_corner_radius ||
-                glyphs[end].style.background_padding != style.background_padding) {
+                glyphs[end].style.background_padding != style.background_padding ||
+                !(glyphs[end].style.local_transform == style.local_transform)) {
                 break;
             }
             end++;
@@ -326,7 +327,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
 
         if (union_rect.is_valid()) {
             auto baseline_xform = Transform2::from_translation({0, current_ascent});
-            canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform * baseline_xform);
+            canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform * style.local_transform * baseline_xform);
 
             if (style.background_padding > 0) {
                 union_rect = union_rect.dilate(style.background_padding);
@@ -335,7 +336,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             Pathfinder::Path2d bg_path;
             bg_path.add_rect(union_rect, style.background_corner_radius);
 
-            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.background_color.apply_alpha(alpha)));
+            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.background_color.apply_alpha(alpha * style.alpha)));
             canvas->fill_path(bg_path, Pathfinder::FillRule::Winding);
         }
 
@@ -362,12 +363,13 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             if (p.y == current_line_y &&
                 g.style.shadow_color == style.shadow_color &&
                 g.style.shadow_radius == style.shadow_radius &&
-                g.style.shadow_offset == style.shadow_offset) {
+                g.style.shadow_offset == style.shadow_offset &&
+                g.style.local_transform == style.local_transform) {
 
                 if (!g.skip_drawing) {
                     auto shadow_pos = p + style.shadow_offset;
                     auto baseline_xform = Transform2::from_translation({0, g.ascent});
-                    auto local_transform = Transform2::from_translation(shadow_pos) * baseline_xform;
+                    auto local_transform = Transform2::from_translation(shadow_pos) * style.local_transform * baseline_xform;
 
                     auto skew_xform = Transform2::from_scale({1, 1});
                     if (g.style.italic) {
@@ -389,12 +391,12 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform);
 
         if (style.shadow_radius > 0) {
-            canvas->set_shadow_color(style.shadow_color.apply_alpha(alpha));
+            canvas->set_shadow_color(style.shadow_color.apply_alpha(alpha * style.alpha));
             canvas->set_shadow_blur(style.shadow_radius);
             canvas->set_shadow_offset({0, 0});
         }
 
-        canvas->set_fill_paint(Pathfinder::Paint::from_color(style.shadow_color.apply_alpha(alpha)));
+        canvas->set_fill_paint(Pathfinder::Paint::from_color(style.shadow_color.apply_alpha(alpha * style.alpha)));
         canvas->fill_path(combined_shadow_path, Pathfinder::FillRule::Winding);
 
         canvas->restore_state();
@@ -411,12 +413,12 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         }
 
         TextStyle style = g.style;
-        style.stroke_color = style.stroke_color.apply_alpha(alpha);
+        style.stroke_color = style.stroke_color.apply_alpha(alpha * style.alpha);
 
         auto baseline_xform = Transform2::from_translation({0, g.ascent});
 
         auto glyph_global_transform =
-            dpi_scaling_xform * global_transform_offset * Transform2::from_translation(p) * transform * baseline_xform;
+            dpi_scaling_xform * global_transform_offset * Transform2::from_translation(p) * transform * style.local_transform * baseline_xform;
 
         auto skew_xform = Transform2::from_scale({1, 1});
         if (style.italic) {
@@ -453,7 +455,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             j++;
         }
 
-        const auto full_transform = dpi_scaling_xform * global_transform_offset * transform;
+        const auto full_transform = dpi_scaling_xform * global_transform_offset * transform * style.local_transform;
         Pathfinder::Path2d combined_word_path;
         bool is_karaoke = style.karaoke_progress >= 0.0f;
 
@@ -495,15 +497,15 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             float prg = std::clamp(style.karaoke_progress, 0.0f, 1.0f);
 
             // 4-stop chain for maximum robustness across different GPU drivers.
-            gradient.add_color_stop(style.color.apply_alpha(alpha), prg);
-            gradient.add_color_stop(style.color.apply_alpha(alpha), 1.0f);
+            gradient.add_color_stop(style.color.apply_alpha(alpha * style.alpha), prg);
+            gradient.add_color_stop(style.color.apply_alpha(alpha * style.alpha), 1.0f);
 
-            gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(alpha), 0.0f);
-            gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(alpha), prg);
+            gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(alpha * style.alpha), 0.0f);
+            gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(alpha * style.alpha), prg);
 
             canvas->set_fill_paint(Pathfinder::Paint::from_gradient(gradient));
         } else {
-            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.color.apply_alpha(alpha)));
+            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.color.apply_alpha(alpha * style.alpha)));
         }
 
         // Draw the entire word at once.
@@ -520,10 +522,11 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             if (gk.emoji) {
                 auto svg_scene = std::make_shared<Pathfinder::SvgScene>(gk.svg, *canvas);
                 auto emoji_scale = Transform2::from_scale(gk.box.size() / svg_scene->get_size());
+                // TODO: Apply alpha to emoji if supported by append_scene or similar
                 canvas->get_scene()->append_scene(*(svg_scene->get_scene()), glyph_global_transform * emoji_scale);
             } else if (gk.style.bold) {
                 canvas->set_transform(glyph_global_transform);
-                canvas->set_stroke_paint(Pathfinder::Paint::from_color(gk.style.color.apply_alpha(alpha)));
+                canvas->set_stroke_paint(Pathfinder::Paint::from_color(gk.style.color.apply_alpha(alpha * style.alpha)));
                 canvas->set_line_width(STROKE_WIDTH_FOR_PSEUDO_BOLD_TEXT);
                 canvas->set_line_join(Pathfinder::LineJoin::Round);
                 canvas->stroke_path(gk.path);

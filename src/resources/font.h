@@ -226,6 +226,10 @@ struct TextStyle {
     float karaoke_progress = -1.0f; // < 0 means disabled. 0.0 to 1.0.
     ColorU karaoke_reached_color;
 
+    Transform2 local_transform;
+
+    float alpha = 1.0f;
+
     bool debug = false;
 
     bool operator==(const TextStyle &rhs) const {
@@ -235,7 +239,8 @@ struct TextStyle {
                shadow_offset == rhs.shadow_offset && background_color == rhs.background_color &&
                background_corner_radius == rhs.background_corner_radius &&
                background_padding == rhs.background_padding && karaoke_progress == rhs.karaoke_progress &&
-               karaoke_reached_color == rhs.karaoke_reached_color && debug == rhs.debug;
+               karaoke_reached_color == rhs.karaoke_reached_color && local_transform == rhs.local_transform &&
+               alpha == rhs.alpha && debug == rhs.debug;
     }
 };
 
