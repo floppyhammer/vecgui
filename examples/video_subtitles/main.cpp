@@ -168,8 +168,11 @@ public:
                                current_alpha);
         }
 
-        // 2. 基础文字绘制 (调用 NodeUi::draw 或直接 label->draw)
-        label->draw();
+        // 2. 基础背景和边框绘制
+        NodeUi::draw();
+
+        // 注意：不要手动调用 label->draw()！
+        // 因为 label 已经是子节点，引擎会自动处理它的绘制。
     }
 
 private:
