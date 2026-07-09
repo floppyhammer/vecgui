@@ -32,6 +32,7 @@ struct SubtitleSlider {
 };
 
 struct SubtitleKaraoke {
+    TextStyle normal;
     ColorU reached;
     ColorU unreached;
 };
@@ -179,7 +180,9 @@ private:
     void setup_default_styles() {
         // Basic
         basic_style.normal.color = ColorU::white();
-        basic_style.highlight.color = ColorU::yellow();
+        basic_style.normal.shadow_color = ColorU::black();
+        basic_style.normal.shadow_radius = 12.0f;
+        basic_style.highlight.color = ColorU::red();
         basic_style.highlight.bold = true;
         basic_style.highlight.shadow_color = ColorU::black();
         basic_style.highlight.shadow_radius = 12.0f;
@@ -191,8 +194,10 @@ private:
         slider_style.highlight_slider.border_width = 1.5f;
 
         // Karaoke
-        karaoke_style.reached = ColorU::yellow();
+        karaoke_style.reached = ColorU::blue();
         karaoke_style.unreached = ColorU::white();
+        karaoke_style.normal.stroke_color = ColorU::black();
+        karaoke_style.normal.stroke_width = 1.5f;
     }
 
     void update_phrase_word_idx() {
@@ -239,17 +244,10 @@ private:
             label->clear_spans();
 
             // 基础样式
-            TextStyle normal_style;
-            normal_style.color = ColorU::white();
-            normal_style.shadow_color = ColorU::black();
-            normal_style.shadow_radius = 8.0;
+            TextStyle normal_style = basic_style.normal;
 
             // 高亮样式 (当前正在说的词)
-            TextStyle highlight_style = normal_style;
-            highlight_style.color = ColorU::yellow();
-            highlight_style.bold = true;
-            highlight_style.stroke_color = ColorU::black();
-            highlight_style.stroke_width = 2.0f;
+            TextStyle highlight_style = basic_style.highlight;
 
             // 根据 targetSrt 构建富文本 Span
             for (int i = 0; i < (int)phrase.targetSrt.size(); ++i) {
@@ -295,33 +293,14 @@ private:
             }
         }
 
-        // 效果专用逻辑
-        if (sub_type == SubtitleType::Slider) {
-            if (active_word_idx != -1) {
-                target_slider_rect = phrase.targetSrt[active_word_idx].rect.dilate(4);
-            }
-            // No lerp for the first word.
-            if (active_word_idx == 0) {
-                current_slider_rect = target_slider_rect;
-            } else {
-                current_slider_rect = lerp_rect(current_slider_rect, target_slider_rect, 10.0f * (float)dt);
-            }
-        } else if (sub_type == SubtitleType::Karaoke) {
-            RectF full_box = label->get_layout_box();
-            float clip_x = full_box.left;
-            if (active_word_idx != -1) {
-                auto& w = phrase.targetSrt[active_word_idx];
-                clip_x = w.rect.left + w.rect.width() * (float)progress;
-            } else {
-                for (int i = (int)phrase.targetSrt.size() - 1; i >= 0; --i) {
-                    if (current_time > phrase.targetSrt[i].end) {
-                        clip_x = phrase.targetSrt[i].rect.right;
-                        break;
-                    }
-                }
-            }
-            karaoke_clip_rect = full_box;
-            karaoke_clip_rect.right = clip_x;
+        if (active_word_idx != -1) {
+            target_slider_rect = phrase.targetSrt[active_word_idx].rect.dilate(4);
+        }
+        // No lerp for the first word.
+        if (active_word_idx == 0) {
+            current_slider_rect = target_slider_rect;
+        } else {
+            current_slider_rect = lerp_rect(current_slider_rect, target_slider_rect, 10.0f * (float)dt);
         }
     }
 
@@ -384,6 +363,9 @@ private:
             while (glyph_ptr < (int)glyphs.size()) {
                 auto& g = glyphs[glyph_ptr];
                 if (g.start >= (int)(current_char_offset + word_len)) break;
+
+                g.style.stroke_color = karaoke_style.normal.stroke_color;
+                g.style.stroke_width = karaoke_style.normal.stroke_width;
 
                 // 设置渐变参数
                 if (i < w_idx) {
