@@ -12,37 +12,62 @@ using json = nlohmann::json;
 
 using namespace vecgui;
 
+/// Once animation exits, unreached words should be invisible.
+enum class SubtitleAnimationType {
+    None = 0,
+    FadeIn = 1,
+    SlideUp = 2,
+    SlideDown = 3,
+    ScaleUp = 4,
+    ScaleDown = 5,
+    Max,
+};
+
+struct SubtitleAnimation {
+    float alpha_start;
+    float alpha_end;
+    Transform2 transform_start;
+    Transform2 transform_end;
+};
+
+struct FontConfig {
+    std::string font_path;
+    std::string font_size;
+    float letter_spacing;
+    float line_spacing;
+};
+
 // 1. 字幕样式类型
-enum class SubtitleType {
+enum class SubtitleHighlightType {
     Basic,
     Slider,  // 滑块背景随文字滑动
     Karaoke, // 逐字进度染色效果
-    Transform,
 };
 
-struct SubtitleBasic {
-    TextStyle normal;
+struct SubtitleHighlightBasic {
     TextStyle highlight;
 };
 
-struct SubtitleSlider {
-    TextStyle normal;
-    TextStyle highlight;
-    StyleBox highlight_slider;
+struct SubtitleHighlightSlider {
+    StyleBox slider;
 };
 
-struct SubtitleKaraoke {
-    TextStyle normal;
+struct SubtitleHighlightKaraoke {
     ColorU reached;
     ColorU unreached;
 };
 
-struct SubtitleTransform {
+struct SubtitleStyleConfig {
+    FontConfig font_config;
     TextStyle normal;
-    float alpha_start;
-    float alpha_end;
-    Transform2 highlight_transform_start;
-    Transform2 highlight_transform_end;
+
+    SubtitleHighlightType highlight_type;
+    std::optional<SubtitleHighlightBasic> highlight_basic;
+    std::optional<SubtitleHighlightSlider> highlight_slider;
+    std::optional<SubtitleHighlightKaraoke> highlight_karaoke;
+
+    SubtitleHighlightType animation_type;
+    std::optional<SubtitleAnimation> animation;
 };
 
 // 1. 定义与 JSON 对应的字幕数据结构
@@ -87,12 +112,9 @@ Transform2 lerp_transform(const Transform2& a, const Transform2& b, float t) {
 // 2. 自定义字幕显示节点
 class SubtitleNode : public NodeUi {
 public:
-    SubtitleType sub_type = SubtitleType::Basic; // 默认 Slider 模式
-
-    SubtitleBasic basic_style;
-    SubtitleSlider slider_style;
-    SubtitleKaraoke karaoke_style;
-    SubtitleTransform transform_style;
+    std::vector<SubtitleStyleConfig> subtitle_config_presets;
+    uint32_t preset_idx = 0;
+    SubtitleStyleConfig active_subtitle_config;
 
     void custom_ready() override {
         setup_default_styles();
@@ -119,9 +141,10 @@ public:
     void custom_input(InputEvent& event) override {
         if (event.type == InputEventType::Key && event.args.key.pressed) {
             if (event.args.key.key == KeyCode::R) { // 按 R 切换模式
-                sub_type = static_cast<SubtitleType>((static_cast<int>(sub_type) + 1) % 4);
+                auto preset_count = subtitle_config_presets.size();
+                preset_idx = (preset_idx + 1) % preset_count;
+                active_subtitle_config = subtitle_config_presets[preset_idx];
                 last_phrase_idx = -1; // 强制刷新
-                printf("Switched Subtitle Mode to: %d\n", (int)sub_type);
             }
         }
     }
@@ -164,15 +187,8 @@ public:
 
         update_phrase_word_idx();
 
-        if (sub_type == SubtitleType::Basic) {
-            update_logic_for_basic();
-        } else if (sub_type == SubtitleType::Slider) {
-            update_logic_for_slider(dt);
-        } else if (sub_type == SubtitleType::Karaoke) {
-            update_logic_for_karaoke(dt);
-        } else if (sub_type == SubtitleType::Transform) {
-            update_logic_for_transform(dt);
-        }
+        // 统一刷新字幕显示 (基于 Span)
+        refresh_subtitle_display(dt);
 
         debug_label_->set_text("Current phrase idx: " + std::to_string(active_phrase_idx) +
                                " | Current word idx: " + std::to_string(active_word_idx));
@@ -186,8 +202,9 @@ public:
         float current_alpha = modulate.a_ / 255.0f;
 
         // 1. Slider 模式背景 (在文字底层绘制)
-        if (sub_type == SubtitleType::Slider && active_phrase_idx != -1 && active_word_idx != -1) {
-            vs->draw_style_box(slider_style.highlight_slider,
+        if (active_subtitle_config.highlight_type == SubtitleHighlightType::Slider && active_phrase_idx != -1 &&
+            active_word_idx != -1) {
+            vs->draw_style_box(active_subtitle_config.highlight_slider.value().slider,
                                label_origin + current_slider_rect.origin(),
                                current_slider_rect.size(),
                                current_alpha);
@@ -202,33 +219,95 @@ public:
 
 private:
     void setup_default_styles() {
+        // Animations
+        std::vector<SubtitleAnimation> anim_presets;
+        // FadeIn
+        {
+            SubtitleAnimation anim;
+            anim.alpha_start = 0.0f;
+            anim.alpha_end = 1.0f;
+            anim_presets.push_back(anim);
+        }
+        // SlideDown
+        {
+            SubtitleAnimation anim;
+            anim.alpha_start = 0.0f;
+            anim.alpha_end = 1.0f;
+            anim.transform_start = Transform2::from_translation({0, -20});
+            anim_presets.push_back(anim);
+        }
+        // SlideUp
+        {
+            SubtitleAnimation anim;
+            anim.alpha_start = 0.0f;
+            anim.alpha_end = 1.0f;
+            anim.transform_start = Transform2::from_translation({0, 20});
+            anim_presets.push_back(anim);
+        }
+        // ScaleUp
+        {
+            SubtitleAnimation anim;
+            anim.alpha_start = 0.0f;
+            anim.alpha_end = 1.0f;
+            anim.transform_start = Transform2::from_scale({0.5, 0.5});
+            anim_presets.push_back(anim);
+        }
+        // ScaleDown
+        {
+            SubtitleAnimation anim;
+            anim.alpha_start = 0.0f;
+            anim.alpha_end = 1.0f;
+            anim.transform_start = Transform2::from_scale({1.5, 1.5});
+            anim_presets.push_back(anim);
+        }
+
         // Basic
-        basic_style.normal.color = ColorU::white();
-        basic_style.normal.shadow_color = ColorU::black();
-        basic_style.normal.shadow_radius = 12.0f;
+        SubtitleStyleConfig config0;
+        config0.normal.color = ColorU::white();
+        config0.normal.shadow_color = ColorU::black();
+        config0.normal.shadow_radius = 12.0f;
+        config0.normal.shadow_offset = {4, 4};
+        config0.highlight_type = SubtitleHighlightType::Basic;
+        auto basic_style = SubtitleHighlightBasic{};
         basic_style.highlight.color = ColorU::red();
         basic_style.highlight.bold = true;
+        basic_style.highlight.italic = true;
         basic_style.highlight.shadow_color = ColorU::black();
         basic_style.highlight.shadow_radius = 12.0f;
+        basic_style.highlight.shadow_offset = {4, 4};
+        config0.highlight_basic = basic_style;
+        config0.animation = anim_presets[uint32_t(SubtitleAnimationType::FadeIn) - 1];
+        subtitle_config_presets.push_back(config0);
+
+        active_subtitle_config = config0;
 
         // Slider
-        slider_style.highlight_slider.bg_color = ColorU(255, 255, 0, 80);
-        slider_style.highlight_slider.corner_radius = 8;
-        slider_style.highlight_slider.border_color = ColorU::yellow();
-        slider_style.highlight_slider.border_width = 1.5f;
+        SubtitleStyleConfig config1;
+        config1.normal.color = ColorU::white();
+        config1.normal.stroke_width = 4;
+        config1.normal.stroke_color = ColorU::black();
+        config1.highlight_type = SubtitleHighlightType::Slider;
+        auto high_style = SubtitleHighlightSlider{};
+        high_style.slider.bg_color = ColorU(255, 255, 0, 80);
+        high_style.slider.corner_radius = 8;
+        high_style.slider.border_color = ColorU::yellow();
+        high_style.slider.border_width = 1.5f;
+        config1.highlight_slider = high_style;
+        config1.animation = anim_presets[uint32_t(SubtitleAnimationType::SlideDown) - 1];
+        subtitle_config_presets.push_back(config1);
 
         // Karaoke
+        SubtitleStyleConfig config2;
+        config2.normal.color = ColorU::white();
+        config2.normal.stroke_color = ColorU::black();
+        config2.normal.stroke_width = 1.5f;
+        config2.highlight_type = SubtitleHighlightType::Karaoke;
+        auto karaoke_style = SubtitleHighlightKaraoke{};
         karaoke_style.reached = ColorU::blue();
         karaoke_style.unreached = ColorU::white();
-        karaoke_style.normal.stroke_color = ColorU::black();
-        karaoke_style.normal.stroke_width = 1.5f;
-
-        // Transform
-        transform_style.normal.color = ColorU::white();
-        transform_style.alpha_start = 0.0f;
-        transform_style.alpha_end = 1.0f;
-        transform_style.highlight_transform_start = Transform2::from_translation({0, -20});
-        transform_style.highlight_transform_end = Transform2::from_scale({1.0f, 1.0f});
+        config2.highlight_karaoke = karaoke_style;
+        config2.animation = anim_presets[uint32_t(SubtitleAnimationType::ScaleUp) - 1];
+        subtitle_config_presets.push_back(config2);
     }
 
     void update_phrase_word_idx() {
@@ -263,229 +342,123 @@ private:
         }
     }
 
-    void update_logic_for_basic() {
-        if (active_phrase_idx == -1 || active_word_idx == -1) {
+    void refresh_subtitle_display(double dt) {
+        if (active_phrase_idx == -1) {
+            label->hide();
             return;
         }
+        label->show();
 
-        const auto& phrase = subtitles[active_phrase_idx];
+        auto& phrase = subtitles[active_phrase_idx];
+        auto sub_type = active_subtitle_config.highlight_type;
+        bool has_animation = active_subtitle_config.animation.has_value();
 
-        // 性能优化：只有在句子切换或高亮词切换时才重新构建富文本 Span
-        if (active_phrase_idx != last_phrase_idx || active_word_idx != last_word_idx) {
+        // 1. 判断是否需要逐帧更新 Span (Karaoke 染色或动画需要逐帧刷新)
+        bool needs_per_frame_update = (sub_type == SubtitleHighlightType::Karaoke) || has_animation;
+
+        // 2. 如果不需要逐帧刷新，只有在词/句切换时才更新
+        bool phrase_changed = active_phrase_idx != last_phrase_idx;
+        bool word_changed = active_word_idx != last_word_idx;
+
+        if (needs_per_frame_update || phrase_changed || word_changed) {
+            // 如果句子发生了变化，先进行一次“干跑”布局计算，以获取准确的单词矩形
+            if (phrase_changed) {
+                label->clear_spans();
+                for (auto& w : phrase.targetSrt) {
+                    label->add_span({w.word, active_subtitle_config.normal});
+                }
+                label->calc_minimum_size();
+                label->adjust_layout();
+                calculate_word_rects(phrase);
+            }
+
             label->clear_spans();
 
-            // 基础样式
-            TextStyle normal_style = basic_style.normal;
-
-            // 高亮样式 (当前正在说的词)
-            TextStyle highlight_style = basic_style.highlight;
-
-            // 根据 targetSrt 构建富文本 Span
             for (int i = 0; i < (int)phrase.targetSrt.size(); ++i) {
-                const auto& word_data = phrase.targetSrt[i];
-                if (i == active_word_idx) {
-                    label->add_span({word_data.word, highlight_style});
-                } else {
-                    label->add_span({word_data.word, normal_style});
+                auto& word_data = phrase.targetSrt[i];
+                TextStyle style = active_subtitle_config.normal;
+
+                // 计算当前词的进度 (0.0 - 1.0)
+                double progress = 0;
+                if (current_time >= word_data.start && current_time <= word_data.end) {
+                    progress = (current_time - word_data.start) / (word_data.end - word_data.start);
                 }
+
+                // A. 高亮逻辑
+                if (sub_type == SubtitleHighlightType::Basic) {
+                    if (i == active_word_idx) {
+                        style = active_subtitle_config.highlight_basic->highlight;
+                    }
+                } else if (sub_type == SubtitleHighlightType::Karaoke) {
+                    auto& karaoke = *active_subtitle_config.highlight_karaoke;
+                    if (current_time > word_data.end) {
+                        style.color = karaoke.reached;
+                        style.karaoke_progress = -1.0f;
+                    } else if (current_time >= word_data.start) {
+                        style.color = karaoke.unreached;
+                        style.karaoke_reached_color = karaoke.reached;
+                        style.karaoke_progress = (float)progress;
+                    } else {
+                        style.color = karaoke.unreached;
+                        style.karaoke_progress = -1.0f;
+                    }
+                }
+
+                // B. 动画逻辑：应用以单词中心为原点的变换
+                if (has_animation) {
+                    auto& anim = *active_subtitle_config.animation;
+                    Transform2 anim_xform;
+                    float current_alpha = style.alpha;
+
+                    if (current_time > word_data.end) {
+                        anim_xform = anim.transform_end;
+                        current_alpha = anim.alpha_end;
+                    } else if (current_time >= word_data.start) {
+                        anim_xform = lerp_transform(anim.transform_start, anim.transform_end, (float)progress);
+                        current_alpha = Pathfinder::lerp(anim.alpha_start, anim.alpha_end, (float)progress);
+                    } else {
+                        anim_xform = anim.transform_start;
+                        current_alpha = anim.alpha_start;
+                    }
+
+                    // 核心修复：如果矩形有效，则绕中心缩放/旋转
+                    if (word_data.rect.is_valid()) {
+                        Vec2F center = word_data.rect.center();
+                        style.local_transform = Transform2::from_translation(center) *
+                                                 anim_xform *
+                                                 Transform2::from_translation(-center);
+                    } else {
+                        style.local_transform = anim_xform;
+                    }
+                    style.alpha = current_alpha;
+                }
+
+                label->add_span({word_data.word, style});
             }
+
+            label->calc_minimum_size();
+            label->adjust_layout();
 
             last_phrase_idx = active_phrase_idx;
             last_word_idx = active_word_idx;
         }
+
+        // 3. Slider 模式背景移动逻辑 (独立于 Span 的样式，但依赖于单词位置)
+        if (sub_type == SubtitleHighlightType::Slider) {
+            update_slider_logic(dt);
+        }
     }
 
-    void update_logic_for_slider(double dt) {
-        if (active_phrase_idx == -1 || active_word_idx == -1) {
-            return;
-        }
-
-        label->show();
+    void update_slider_logic(double dt) {
         auto& phrase = subtitles[active_phrase_idx];
-
-        // 句子切换
-        if (active_phrase_idx != last_phrase_idx) {
-            last_phrase_idx = active_phrase_idx;
-            rebuild_contents(phrase);
-            label->calc_minimum_size();
-            label->adjust_layout();
-            calculate_word_rects(phrase);
-        }
-
-        // 更新活跃词和进度
-        active_word_idx = -1;
-        double progress = 0;
-        for (int i = 0; i < (int)phrase.targetSrt.size(); ++i) {
-            auto& w = phrase.targetSrt[i];
-            if (current_time >= w.start && current_time <= w.end) {
-                active_word_idx = i;
-                progress = (current_time - w.start) / (w.end - w.start);
-                break;
-            }
-        }
-
         if (active_word_idx != -1) {
             target_slider_rect = phrase.targetSrt[active_word_idx].rect.dilate(4);
         }
-        // No lerp for the first word.
+        // 第一词直接到位
         if (active_word_idx == 0) {
             current_slider_rect = target_slider_rect;
         } else {
             current_slider_rect = lerp_rect(current_slider_rect, target_slider_rect, 10.0f * (float)dt);
-        }
-    }
-
-    void rebuild_contents(const SubtitlePhrase& phrase) {
-        label->clear_spans();
-
-        TextStyle base;
-        base.color = (sub_type == SubtitleType::Karaoke) ? karaoke_style.unreached : ColorU::white();
-        base.shadow_color = ColorU::black();
-        base.shadow_radius = 4;
-
-        // 关键修复：如果是 Transform 模式，让文字“出生”时就是透明的
-        if (sub_type == SubtitleType::Transform) {
-            base.alpha = transform_style.alpha_start;
-        }
-
-        TextStyle high = base;
-        if (sub_type == SubtitleType::Karaoke)
-            high.color = karaoke_style.reached;
-        else if (sub_type == SubtitleType::Basic)
-            high = basic_style.highlight;
-
-        for (const auto& w : phrase.targetSrt) {
-            label->add_span({w.word, base});
-        }
-    }
-
-    void update_logic_for_karaoke(double dt) {
-        if (active_phrase_idx == -1) {
-            return;
-        }
-
-        const auto& phrase = subtitles[active_phrase_idx];
-
-        // 1. 句子切换时重建内容
-        if (active_phrase_idx != last_phrase_idx) {
-            rebuild_contents(phrase);
-            label->adjust_layout();
-            last_phrase_idx = active_phrase_idx;
-        }
-
-        // 2. 找到当前正在唱的词和进度
-        int w_idx = -1;
-        double progress = 0;
-        for (int i = 0; i < (int)phrase.targetSrt.size(); ++i) {
-            auto& w = phrase.targetSrt[i];
-            if (current_time >= w.start && current_time <= w.end) {
-                w_idx = i;
-                progress = (current_time - w.start) / (w.end - w.start);
-                break;
-            }
-        }
-
-        // 3. 核心修复：逐帧更新 Label 中每个字符的样式
-        auto& glyphs = label->get_glyphs();
-        size_t current_char_offset = 0;
-        int glyph_ptr = 0;
-
-        for (int i = 0; i < (int)phrase.targetSrt.size(); ++i) {
-            const auto& word_data = phrase.targetSrt[i];
-            std::u32string w32;
-            utf8_to_utf32(word_data.word, w32);
-            size_t word_len = w32.size();
-
-            while (glyph_ptr < (int)glyphs.size()) {
-                auto& g = glyphs[glyph_ptr];
-                if (g.start >= (int)(current_char_offset + word_len)) break;
-
-                g.style.stroke_color = karaoke_style.normal.stroke_color;
-                g.style.stroke_width = karaoke_style.normal.stroke_width;
-
-                // 设置渐变参数
-                if (i < w_idx) {
-                    // 已唱完：全变色，禁用渐变
-                    g.style.color = karaoke_style.reached;
-                    g.style.karaoke_progress = -1.0f;
-                } else if (i == w_idx) {
-                    // 正在唱：设置渐变和进度
-                    g.style.color = karaoke_style.unreached;
-                    g.style.karaoke_reached_color = karaoke_style.reached;
-                    g.style.karaoke_progress = (float)progress;
-                } else {
-                    // 未唱到：保持原色，禁用渐变
-                    g.style.color = karaoke_style.unreached;
-                    g.style.karaoke_progress = -1.0f;
-                }
-                glyph_ptr++;
-            }
-            current_char_offset += word_len;
-        }
-    }
-
-    void update_logic_for_transform(double dt) {
-        if (active_phrase_idx == -1) {
-            return;
-        }
-
-        const auto& phrase = subtitles[active_phrase_idx];
-
-        // 1. 句子切换时重建内容
-        if (active_phrase_idx != last_phrase_idx) {
-            rebuild_contents(phrase);
-            label->adjust_layout();
-            last_phrase_idx = active_phrase_idx;
-        }
-
-        // 2. 找到当前正在唱的词和进度
-        int w_idx = -1;
-        double progress = 0;
-        for (int i = 0; i < (int)phrase.targetSrt.size(); ++i) {
-            auto& w = phrase.targetSrt[i];
-            if (current_time >= w.start && current_time <= w.end) {
-                w_idx = i;
-                progress = (current_time - w.start) / (w.end - w.start);
-                break;
-            }
-        }
-
-        // 3. 逐帧更新 Label 中每个字符的 Transform
-        auto& glyphs = label->get_glyphs();
-        size_t current_char_offset = 0;
-        int glyph_ptr = 0;
-
-        for (int i = 0; i < (int)phrase.targetSrt.size(); ++i) {
-            const auto& word_data = phrase.targetSrt[i];
-            std::u32string w32;
-            utf8_to_utf32(word_data.word, w32);
-            size_t word_len = w32.size();
-
-            while (glyph_ptr < (int)glyphs.size()) {
-                auto& g = glyphs[glyph_ptr];
-                // 严谨匹配：如果 glyph 的起始位置已经超出了当前词的范围，则跳出处理下一个词
-                if (g.start >= (int)(current_char_offset + word_len)) break;
-
-                if (current_time > word_data.end) {
-                    // 已唱完的词：保持最终状态
-                    g.style.local_transform = Transform2();
-                    g.style.alpha = 1.0f;
-                } else if (current_time >= word_data.start) {
-                    // 正在朗读的词：应用插值
-                    g.style.local_transform = lerp_transform(transform_style.highlight_transform_start,
-                                                            transform_style.highlight_transform_end,
-                                                            (float)progress);
-                    g.style.alpha = Pathfinder::lerp(transform_style.alpha_start,
-                                                   transform_style.alpha_end,
-                                                   (float)progress);
-                } else {
-                    // 未唱到的词：保持起始透明度
-                    g.style.local_transform = Transform2();
-                    g.style.alpha = transform_style.alpha_start;
-                }
-                glyph_ptr++;
-            }
-            current_char_offset += word_len;
         }
     }
 

@@ -548,7 +548,10 @@ void Label::draw() {
 
     auto default_theme = DefaultResource::get_singleton()->get_default_theme();
 
-    text_style.color = default_theme->label.colors["text"];
+    // Apply theme color if not overridden.
+    if (!theme_override_text_style.has_value() && text_style.color == ColorU::white()) {
+        text_style.color = default_theme->label.colors["text"];
+    }
     auto theme_background = theme_override_bg.value_or(default_theme->label.styles["background"]);
 
     vector_server->draw_style_box(theme_background, global_position, size, alpha);
