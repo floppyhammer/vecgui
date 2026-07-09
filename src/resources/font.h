@@ -222,7 +222,21 @@ struct TextStyle {
     float background_corner_radius = 0;
     float background_padding = 0; // 外扩距离
 
+    // Karaoke.
+    float karaoke_progress = -1.0f; // < 0 means disabled. 0.0 to 1.0.
+    ColorU karaoke_reached_color;
+
     bool debug = false;
+
+    bool operator==(const TextStyle &rhs) const {
+        return color == rhs.color && font_size == rhs.font_size && italic == rhs.italic && bold == rhs.bold &&
+               stroke_color == rhs.stroke_color && stroke_width == rhs.stroke_width &&
+               shadow_color == rhs.shadow_color && shadow_radius == rhs.shadow_radius &&
+               shadow_offset == rhs.shadow_offset && background_color == rhs.background_color &&
+               background_corner_radius == rhs.background_corner_radius &&
+               background_padding == rhs.background_padding && karaoke_progress == rhs.karaoke_progress &&
+               karaoke_reached_color == rhs.karaoke_reached_color && debug == rhs.debug;
+    }
 };
 
 struct TextSpan {

@@ -436,91 +436,113 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         canvas->stroke_path(g.path);
     }
 
-    // 3. Draw glyph fills.
-    for (int i = 0; i < glyphs.size(); i++) {
+    // 3. Draw glyph fills (Batched for Styles & Karaoke).
+    for (int i = 0; i < glyphs.size();) {
         auto &g = glyphs[i];
-        auto &p = glyph_positions[i];
-
         if (g.skip_drawing) {
+            i++;
             continue;
         }
 
         TextStyle style = g.style;
-        style.color = style.color.apply_alpha(alpha);
+        float current_y = glyph_positions[i].y;
 
-        auto baseline_xform = Transform2::from_translation({0, g.ascent});
-
-        // No italic for emojis and debug boxes.
-        auto glyph_global_transform =
-            dpi_scaling_xform * global_transform_offset * Transform2::from_translation(p) * transform * baseline_xform;
-
-        auto skew_xform = Transform2::from_scale({1, 1});
-        if (style.italic) {
-            skew_xform = Transform2({1, 0, std::tan(-15.f * 3.1415926f / 180.f), 1}, {});
+        // Grouping: Find consecutive glyphs on the same line with identical styling.
+        int j = i + 1;
+        while (j < glyphs.size() && glyphs[j].style == style && glyph_positions[j].y == current_y) {
+            j++;
         }
 
-        if (!g.emoji) {
-            canvas->set_transform(glyph_global_transform * skew_xform);
+        const auto full_transform = dpi_scaling_xform * global_transform_offset * transform;
+        Pathfinder::Path2d combined_word_path;
+        bool is_karaoke = style.karaoke_progress >= 0.0f;
 
-            // Add fill.
-            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.color));
-            canvas->fill_path(g.path, Pathfinder::FillRule::Winding);
+        // Build a combined path for this styling run to apply gradient correctly across all letters.
+        for (int k = i; k < j; k++) {
+            if (glyphs[k].skip_drawing || glyphs[k].emoji) continue;
 
-            // Use stroke to make a pseudo bold effect.
-            if (style.bold) {
-                canvas->set_stroke_paint(Pathfinder::Paint::from_color(style.color));
-                canvas->set_line_width(STROKE_WIDTH_FOR_PSEUDO_BOLD_TEXT);
-                canvas->set_line_join(Pathfinder::LineJoin::Bevel);
-                canvas->stroke_path(g.path);
+            auto baseline_xform = Transform2::from_translation({0, glyphs[k].ascent});
+            auto local_transform = Transform2::from_translation(glyph_positions[k]) * baseline_xform;
+
+            auto skew_xform = Transform2::from_scale({1, 1});
+            if (glyphs[k].style.italic) {
+                skew_xform = Transform2({1, 0, std::tan(-15.f * 3.1415926f / 180.f), 1}, {});
             }
+
+            combined_word_path.add_path(glyphs[k].path, local_transform * skew_xform);
+        }
+
+        canvas->save_state();
+        canvas->set_transform(full_transform);
+
+        if (is_karaoke) {
+            float word_min_x = 1e9f;
+            float word_max_x = -1e9f;
+            for (int k = i; k < j; k++) {
+                word_min_x = std::min(word_min_x, glyph_positions[k].x);
+                word_max_x = std::max(word_max_x, glyph_positions[k].x + glyphs[k].x_advance);
+            }
+
+            // Define the gradient line in Label-Local space.
+            Vec2F p0 = {word_min_x, current_y};
+            Vec2F p1 = {word_max_x, current_y};
+
+            // CRITICAL: Transform the gradient line to SCENE space to match the rendered path.
+            // This ensures the gradient "sticks" to the text as it moves/scales.
+            auto grad_line = Pathfinder::LineSegmentF(p0, p1).apply_transform(full_transform);
+            auto gradient = Pathfinder::Gradient::linear(grad_line);
+
+            float prg = std::clamp(style.karaoke_progress, 0.0f, 1.0f);
+
+            // 4-stop chain for maximum robustness across different GPU drivers.
+            gradient.add_color_stop(style.color.apply_alpha(alpha), prg);
+            gradient.add_color_stop(style.color.apply_alpha(alpha), 1.0f);
+
+            gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(alpha), 0.0f);
+            gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(alpha), prg);
+
+            canvas->set_fill_paint(Pathfinder::Paint::from_gradient(gradient));
         } else {
-            auto svg_scene = std::make_shared<Pathfinder::SvgScene>(g.svg, *canvas);
-
-            // The emoji's svg size is always fixed for a specific font no matter what the font size you set.
-            auto svg_size = svg_scene->get_size();
-            auto glyph_size = g.box.size();
-
-            auto emoji_scale = Transform2::from_scale(glyph_size / svg_size);
-
-            canvas->get_scene()->append_scene(*(svg_scene->get_scene()), glyph_global_transform * emoji_scale);
+            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.color.apply_alpha(alpha)));
         }
 
-        if (style.debug) {
-            canvas->set_transform(glyph_global_transform);
-            canvas->set_line_width(1);
-            auto svg_scene = std::make_shared<Pathfinder::SvgScene>(g.svg, *canvas);
+        // Draw the entire word at once.
+        canvas->fill_path(combined_word_path, Pathfinder::FillRule::Winding);
 
-            // The emoji's svg size is always fixed for a specific font no matter what the font size you set.
-            auto svg_size = svg_scene->get_size();
-            auto glyph_size = g.box.size();
+        // Handle Pseudo-Bold and Emojis within the batch (they don't support simple path-level gradients well).
+        for (int k = i; k < j; k++) {
+            auto &gk = glyphs[k];
+            if (gk.skip_drawing) continue;
 
-            auto emoji_scale = Transform2::from_scale(glyph_size / svg_size);
+            auto baseline_xform = Transform2::from_translation({0, gk.ascent});
+            auto glyph_global_transform = full_transform * Transform2::from_translation(glyph_positions[k]) * baseline_xform;
 
-            canvas->get_scene()->append_scene(*(svg_scene->get_scene()), glyph_global_transform * emoji_scale);
+            if (gk.emoji) {
+                auto svg_scene = std::make_shared<Pathfinder::SvgScene>(gk.svg, *canvas);
+                auto emoji_scale = Transform2::from_scale(gk.box.size() / svg_scene->get_size());
+                canvas->get_scene()->append_scene(*(svg_scene->get_scene()), glyph_global_transform * emoji_scale);
+            } else if (gk.style.bold) {
+                canvas->set_transform(glyph_global_transform);
+                canvas->set_stroke_paint(Pathfinder::Paint::from_color(gk.style.color.apply_alpha(alpha)));
+                canvas->set_line_width(STROKE_WIDTH_FOR_PSEUDO_BOLD_TEXT);
+                canvas->set_line_join(Pathfinder::LineJoin::Round);
+                canvas->stroke_path(gk.path);
+            }
+
+            if (gk.style.debug) {
+                canvas->set_transform(glyph_global_transform);
+                canvas->set_line_width(1);
+                Pathfinder::Path2d layout_path; layout_path.add_rect(gk.box);
+                canvas->set_stroke_paint(Pathfinder::Paint::from_color(ColorU::green()));
+                canvas->stroke_path(layout_path);
+                Pathfinder::Path2d bbox_path; bbox_path.add_rect(gk.bbox);
+                canvas->set_stroke_paint(Pathfinder::Paint::from_color(ColorU::red()));
+                canvas->stroke_path(bbox_path);
+            }
         }
 
-        if (style.debug) {
-            canvas->set_transform(glyph_global_transform);
-            canvas->set_line_width(1);
-
-            // Add box.
-            // --------------------------------
-            Pathfinder::Path2d layout_path;
-            layout_path.add_rect(g.box);
-
-            canvas->set_stroke_paint(Pathfinder::Paint::from_color(ColorU::green()));
-            canvas->stroke_path(layout_path);
-            // --------------------------------
-
-            // Add bbox.
-            // --------------------------------
-            Pathfinder::Path2d bbox_path;
-            bbox_path.add_rect(g.bbox);
-
-            canvas->set_stroke_paint(Pathfinder::Paint::from_color(ColorU::red()));
-            canvas->stroke_path(bbox_path);
-            // --------------------------------
-        }
+        canvas->restore_state();
+        i = j;
     }
 
     canvas->restore_state();

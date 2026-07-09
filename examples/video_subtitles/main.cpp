@@ -145,6 +145,8 @@ public:
             update_logic_for_basic();
         } else if (sub_type == SubtitleType::Slider) {
             update_logic_for_slider(dt);
+        } else if (sub_type == SubtitleType::Karaoke) {
+            update_logic_for_karaoke(dt);
         }
 
         debug_label_->set_text("Current phrase idx: " + std::to_string(active_phrase_idx) +
@@ -336,6 +338,68 @@ private:
 
         for (const auto& w : phrase.targetSrt) {
             label->add_span({w.word, base});
+        }
+    }
+
+    void update_logic_for_karaoke(double dt) {
+        if (active_phrase_idx == -1) {
+            return;
+        }
+
+        const auto& phrase = subtitles[active_phrase_idx];
+
+        // 1. 句子切换时重建内容
+        if (active_phrase_idx != last_phrase_idx) {
+            rebuild_contents(phrase);
+            label->adjust_layout();
+            last_phrase_idx = active_phrase_idx;
+        }
+
+        // 2. 找到当前正在唱的词和进度
+        int w_idx = -1;
+        double progress = 0;
+        for (int i = 0; i < (int)phrase.targetSrt.size(); ++i) {
+            auto& w = phrase.targetSrt[i];
+            if (current_time >= w.start && current_time <= w.end) {
+                w_idx = i;
+                progress = (current_time - w.start) / (w.end - w.start);
+                break;
+            }
+        }
+
+        // 3. 核心修复：逐帧更新 Label 中每个字符的样式
+        auto& glyphs = label->get_glyphs();
+        size_t current_char_offset = 0;
+        int glyph_ptr = 0;
+
+        for (int i = 0; i < (int)phrase.targetSrt.size(); ++i) {
+            const auto& word_data = phrase.targetSrt[i];
+            std::u32string w32;
+            utf8_to_utf32(word_data.word, w32);
+            size_t word_len = w32.size();
+
+            while (glyph_ptr < (int)glyphs.size()) {
+                auto& g = glyphs[glyph_ptr];
+                if (g.start >= (int)(current_char_offset + word_len)) break;
+
+                // 设置渐变参数
+                if (i < w_idx) {
+                    // 已唱完：全变色，禁用渐变
+                    g.style.color = karaoke_style.reached;
+                    g.style.karaoke_progress = -1.0f;
+                } else if (i == w_idx) {
+                    // 正在唱：设置渐变和进度
+                    g.style.color = karaoke_style.unreached;
+                    g.style.karaoke_reached_color = karaoke_style.reached;
+                    g.style.karaoke_progress = (float)progress;
+                } else {
+                    // 未唱到：保持原色，禁用渐变
+                    g.style.color = karaoke_style.unreached;
+                    g.style.karaoke_progress = -1.0f;
+                }
+                glyph_ptr++;
+            }
+            current_char_offset += word_len;
         }
     }
 
