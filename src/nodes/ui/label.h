@@ -75,8 +75,13 @@ public:
     void adjust_layout() override;
 
     std::vector<Glyph> &get_glyphs();
+    const std::vector<Vec2F>& get_glyph_positions() const { return glyph_positions; }
 
     std::shared_ptr<Font> get_font() const;
+
+    Vec2F get_alignment_shift() const { return alignment_shift; }
+
+    RectF get_layout_box() const { return layout_box; }
 
     float get_glyph_left_edge_position(int32_t glyph_index);
 
