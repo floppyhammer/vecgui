@@ -1,7 +1,6 @@
 #pragma once
 
 #include <pathfinder/prelude.h>
-#include "../render/blit.h"
 
 namespace vecgui {
 

@@ -38,7 +38,7 @@ public:
 protected:
     Vec2I size_;
 
-    std::shared_ptr<Blit> blit_;
+    std::shared_ptr<Pathfinder::Blit> blit_;
 
     uint8_t window_index_;
 

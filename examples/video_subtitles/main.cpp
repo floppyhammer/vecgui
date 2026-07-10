@@ -512,13 +512,12 @@ private:
     int active_word_idx = -1;
     RectF current_slider_rect;
     RectF target_slider_rect;
-    RectF karaoke_clip_rect;
 
     std::shared_ptr<Label> debug_label_;
 };
 
 int main() {
-    App app({1280, 720}, true);
+    App app({800, 480}, true);
 
     // 添加字幕显示节点到场景树
     app.get_tree_root()->add_child(std::make_shared<SubtitleNode>());

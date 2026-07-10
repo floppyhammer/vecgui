@@ -10,8 +10,6 @@
 
 #include "common/geometry.h"
 #include "nodes/scene_tree.h"
-#include "render/blit.h"
-#include "servers/input_server.h"
 #include "servers/translation_server.h"
 
 class ANativeWindow;
@@ -34,7 +32,7 @@ public:
 
     void single_run_cleanup();
 
-    [[nodiscard]] std::shared_ptr<Node> get_tree_root() const;
+    std::shared_ptr<Node> get_tree_root() const;
 
     void set_window_title(const std::string& title);
 
