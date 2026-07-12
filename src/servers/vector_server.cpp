@@ -10,8 +10,8 @@ constexpr float STROKE_WIDTH_FOR_PSEUDO_BOLD_TEXT = 1.0;
 void VectorServer::init(Pathfinder::Vec2I size,
                         const std::shared_ptr<Pathfinder::Device> &device,
                         const std::shared_ptr<Pathfinder::Queue> &queue,
-                        Pathfinder::RenderLevel level) {
-    canvas = std::make_shared<Pathfinder::Canvas>(size, device, queue, level);
+                        Pathfinder::RenderMode mode) {
+    canvas = std::make_shared<Pathfinder::Canvas>(size, device, queue, mode);
 }
 
 void VectorServer::cleanup() {
@@ -296,24 +296,20 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         // Find the range of glyphs on the same line with the same background style.
         int start = i;
         int end = i + 1;
+        bool all_transforms_match = true;
         while (end < glyphs.size()) {
-            if (glyphs[end].skip_drawing) {
-                // If it's just a skip_drawing glyph (like space) in the middle of the same line,
-                // we can include it in the background if the next glyph has the same style.
-                if (end + 1 < glyphs.size() && glyph_positions[end + 1].y == current_y &&
-                    glyphs[end + 1].style.background_color == style.background_color) {
-                    end++;
-                    continue;
-                }
+            const auto &ge = glyphs[end];
+            const auto &pe = glyph_positions[end];
+
+            // Must be on the same line and have identical background styling.
+            if (pe.y != current_y || !(ge.style.background_color == style.background_color) ||
+                ge.style.background_corner_radius != style.background_corner_radius ||
+                ge.style.background_padding != style.background_padding) {
                 break;
             }
 
-            if (glyph_positions[end].y != current_y ||
-                !(glyphs[end].style.background_color == style.background_color) ||
-                glyphs[end].style.background_corner_radius != style.background_corner_radius ||
-                glyphs[end].style.background_padding != style.background_padding ||
-                !(glyphs[end].style.local_transform == style.local_transform)) {
-                break;
+            if (!(ge.style.local_transform == style.local_transform)) {
+                all_transforms_match = false;
             }
             end++;
         }
@@ -321,6 +317,16 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         // Calculate the union bounding box of all glyphs in this run.
         RectF union_rect;
         for (int k = start; k < end; ++k) {
+            if (glyphs[k].skip_drawing && k != start && k != end - 1) {
+                // For spaces in the middle of a line background, we still want to expand the rect.
+                // We use a simple horizontal advance to bridge the gap.
+                union_rect =
+                    union_rect.union_rect(RectF(glyph_positions[k].x,
+                                                glyph_positions[k].y - current_ascent,
+                                                glyph_positions[k].x + glyphs[k].x_advance,
+                                                glyph_positions[k].y + (glyphs[k].ascent + glyphs[k].descent)));
+                continue;
+            }
             if (glyphs[k].skip_drawing) continue;
             RectF glyph_box = glyphs[k].box + glyph_positions[k];
             union_rect = union_rect.union_rect(glyph_box);
@@ -328,7 +334,12 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
 
         if (union_rect.is_valid()) {
             auto baseline_xform = Transform2::from_translation({0, current_ascent});
-            canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform * style.local_transform *
+
+            // CRITICAL: If transforms within the line differ (e.g. per-word popping),
+            // we draw the background strip using IDENTITY transform to keep it static and contiguous.
+            Transform2 final_bg_transform = all_transforms_match ? style.local_transform : Transform2();
+
+            canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform * final_bg_transform *
                                   baseline_xform);
 
             if (style.background_padding > 0) {
@@ -397,8 +408,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             // Note: offset is already baked into combined_shadow_path transforms.
             canvas->set_shadow_offset({0, 0});
 
-            canvas->set_fill_paint(
-                Pathfinder::Paint::from_color(style.shadow_color.apply_alpha(alpha * style.alpha)));
+            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.shadow_color.apply_alpha(alpha * style.alpha)));
             canvas->fill_path(combined_shadow_path, Pathfinder::FillRule::Winding);
         }
 

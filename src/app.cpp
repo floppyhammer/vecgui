@@ -48,7 +48,7 @@ App::App(Vec2I primary_window_size, const bool dark_mode, bool use_vulkan) {
     vector_server->init(primary_window.lock()->get_physical_size(),
                         render_server->device_,
                         render_server->queue_,
-                        Pathfinder::RenderLevel::D3d9);
+                        Pathfinder::RenderMode::Hybrid);
 
     tree = std::make_unique<SceneTree>(primary_window_size);
 }

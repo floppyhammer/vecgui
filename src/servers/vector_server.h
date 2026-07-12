@@ -24,7 +24,7 @@ public:
     void init(Pathfinder::Vec2I size,
               const std::shared_ptr<Pathfinder::Device> &device,
               const std::shared_ptr<Pathfinder::Queue> &queue,
-              Pathfinder::RenderLevel level);
+              Pathfinder::RenderMode mode);
 
     void set_dst_texture(const std::shared_ptr<Pathfinder::Texture> &texture);
 
