@@ -61,12 +61,17 @@ struct SubtitleStyleConfig {
     FontConfig font_config;
     TextStyle normal;
 
+    // 全局字幕背景 (每行)
+    ColorU background_color = ColorU::transparent_black();
+    float background_corner_radius = 0;
+    float background_padding = 0; // 外扩距离
+
     SubtitleHighlightType highlight_type;
     std::optional<SubtitleHighlightBasic> highlight_basic;
     std::optional<SubtitleHighlightSlider> highlight_slider;
     std::optional<SubtitleHighlightKaraoke> highlight_karaoke;
 
-    SubtitleHighlightType animation_type;
+    SubtitleAnimationType animation_type;
     std::optional<SubtitleAnimation> animation;
 };
 
@@ -201,7 +206,21 @@ public:
         auto label_origin = label->get_global_position() + label->get_alignment_shift();
         float current_alpha = modulate.a_ / 255.0f;
 
-        // 1. Slider 模式背景 (在文字底层绘制)
+        // 0. 全局行背景 (在最底层绘制，跨越所有单词，支持多行)
+        if (active_subtitle_config.background_color.is_visible()) {
+            StyleBox sb = StyleBox::from_empty();
+            sb.bg_color = active_subtitle_config.background_color;
+            sb.corner_radius = active_subtitle_config.background_corner_radius;
+
+            auto line_rects = get_line_rects();
+            for (auto& r : line_rects) {
+                // 外扩 padding
+                auto dilated = r.dilate(active_subtitle_config.background_padding);
+                vs->draw_style_box(sb, label_origin + dilated.origin(), dilated.size(), current_alpha);
+            }
+        }
+
+        // 1. Slider 模式背景 (在中层绘制)
         if (active_subtitle_config.highlight_type == SubtitleHighlightType::Slider && active_phrase_idx != -1 &&
             active_word_idx != -1) {
             vs->draw_style_box(active_subtitle_config.highlight_slider.value().slider,
@@ -218,6 +237,38 @@ public:
     }
 
 private:
+    std::vector<RectF> get_line_rects() {
+        std::vector<RectF> rects;
+        auto& glyphs = label->get_glyphs();
+        auto& positions = label->get_glyph_positions();
+        if (glyphs.empty()) return rects;
+
+        float current_line_y = positions[0].y;
+        RectF current_line_rect;
+
+        for (size_t i = 0; i < glyphs.size(); ++i) {
+            // 换行检测
+            if (std::abs(positions[i].y - current_line_y) > 1.0f) {
+                if (current_line_rect.is_valid()) rects.push_back(current_line_rect);
+                current_line_y = positions[i].y;
+                current_line_rect = RectF();
+            }
+
+            RectF g_box;
+            if (glyphs[i].skip_drawing) {
+                // 对空格等不可见字符，取其行高范围以保证背景条连续
+                g_box = RectF(0, -glyphs[i].ascent, glyphs[i].x_advance, glyphs[i].ascent + glyphs[i].descent);
+            } else {
+                g_box = glyphs[i].box;
+            }
+
+            // 核心修复：加上 glyphs[i].ascent 的偏移，以匹配渲染引擎的基线偏移逻辑
+            auto render_offset = positions[i] + Vec2F(0, glyphs[i].ascent);
+            current_line_rect = current_line_rect.union_rect(g_box + render_offset);
+        }
+        if (current_line_rect.is_valid()) rects.push_back(current_line_rect);
+        return rects;
+    }
     void setup_default_styles() {
         // Animations
         std::vector<SubtitleAnimation> anim_presets;
@@ -257,12 +308,15 @@ private:
             SubtitleAnimation anim;
             anim.alpha_start = 0.0f;
             anim.alpha_end = 1.0f;
-            anim.transform_start = Transform2::from_scale({1.5, 1.5});
+            anim.transform_start = Transform2::from_scale({1.25, 1.25});
             anim_presets.push_back(anim);
         }
 
         // Basic
         SubtitleStyleConfig config0;
+        config0.background_color = ColorU(255, 255, 0, 160);
+        config0.background_padding = 8.0f;
+        config0.background_corner_radius = 4.0f;
         config0.normal.color = ColorU::white();
         config0.normal.shadow_color = ColorU::black();
         config0.normal.shadow_radius = 12.0f;
@@ -280,6 +334,20 @@ private:
         subtitle_config_presets.push_back(config0);
 
         active_subtitle_config = config0;
+
+        {
+            SubtitleStyleConfig config3;
+            config3.normal.color = ColorU::white();
+            config3.highlight_type = SubtitleHighlightType::Basic;
+            auto basic_style = SubtitleHighlightBasic{};
+            basic_style.highlight.color = ColorU::blue();
+            basic_style.highlight.background_color = ColorU(255, 0, 0, 160);
+            basic_style.highlight.background_padding = 2.0f;
+            basic_style.highlight.background_corner_radius = 4.0f;
+            config3.highlight_basic = basic_style;
+            config3.animation = anim_presets[uint32_t(SubtitleAnimationType::ScaleUp) - 1];
+            subtitle_config_presets.push_back(config3);
+        }
 
         // Slider
         SubtitleStyleConfig config1;
@@ -306,7 +374,6 @@ private:
         karaoke_style.reached = ColorU::blue();
         karaoke_style.unreached = ColorU::white();
         config2.highlight_karaoke = karaoke_style;
-        config2.animation = anim_presets[uint32_t(SubtitleAnimationType::ScaleUp) - 1];
         subtitle_config_presets.push_back(config2);
     }
 
@@ -424,9 +491,8 @@ private:
                     // 核心修复：如果矩形有效，则绕中心缩放/旋转
                     if (word_data.rect.is_valid()) {
                         Vec2F center = word_data.rect.center();
-                        style.local_transform = Transform2::from_translation(center) *
-                                                 anim_xform *
-                                                 Transform2::from_translation(-center);
+                        style.local_transform =
+                            Transform2::from_translation(center) * anim_xform * Transform2::from_translation(-center);
                     } else {
                         style.local_transform = anim_xform;
                     }
