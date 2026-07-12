@@ -7,73 +7,11 @@
 #include <vector>
 
 #include "app.h"
+#include "subtitle_style_config.h"
 
 using json = nlohmann::json;
 
 using namespace vecgui;
-
-/// Once animation exits, unreached words should be invisible.
-enum class SubtitleAnimationType {
-    None = 0,
-    FadeIn = 1,
-    SlideUp = 2,
-    SlideDown = 3,
-    ScaleUp = 4,
-    ScaleDown = 5,
-    Max,
-};
-
-struct SubtitleAnimation {
-    float alpha_start;
-    float alpha_end;
-    Transform2 transform_start;
-    Transform2 transform_end;
-};
-
-struct FontConfig {
-    std::string font_path;
-    std::string font_size;
-    float letter_spacing;
-    float line_spacing;
-};
-
-// 1. 字幕样式类型
-enum class SubtitleHighlightType {
-    Basic,
-    Slider,  // 滑块背景随文字滑动
-    Karaoke, // 逐字进度染色效果
-};
-
-struct SubtitleHighlightBasic {
-    TextStyle highlight;
-};
-
-struct SubtitleHighlightSlider {
-    StyleBox slider;
-};
-
-struct SubtitleHighlightKaraoke {
-    ColorU reached;
-    ColorU unreached;
-};
-
-struct SubtitleStyleConfig {
-    FontConfig font_config;
-    TextStyle normal;
-
-    // 全局字幕背景 (每行)
-    ColorU background_color = ColorU::transparent_black();
-    float background_corner_radius = 0;
-    float background_padding = 0; // 外扩距离
-
-    SubtitleHighlightType highlight_type;
-    std::optional<SubtitleHighlightBasic> highlight_basic;
-    std::optional<SubtitleHighlightSlider> highlight_slider;
-    std::optional<SubtitleHighlightKaraoke> highlight_karaoke;
-
-    SubtitleAnimationType animation_type;
-    std::optional<SubtitleAnimation> animation;
-};
 
 // 1. 定义与 JSON 对应的字幕数据结构
 struct SubtitleWord {
@@ -269,71 +207,32 @@ private:
         if (current_line_rect.is_valid()) rects.push_back(current_line_rect);
         return rects;
     }
+
     void setup_default_styles() {
-        // Animations
-        std::vector<SubtitleAnimation> anim_presets;
-        // FadeIn
-        {
-            SubtitleAnimation anim;
-            anim.alpha_start = 0.0f;
-            anim.alpha_end = 1.0f;
-            anim_presets.push_back(anim);
-        }
-        // SlideDown
-        {
-            SubtitleAnimation anim;
-            anim.alpha_start = 0.0f;
-            anim.alpha_end = 1.0f;
-            anim.transform_start = Transform2::from_translation({0, -20});
-            anim_presets.push_back(anim);
-        }
-        // SlideUp
-        {
-            SubtitleAnimation anim;
-            anim.alpha_start = 0.0f;
-            anim.alpha_end = 1.0f;
-            anim.transform_start = Transform2::from_translation({0, 20});
-            anim_presets.push_back(anim);
-        }
-        // ScaleUp
-        {
-            SubtitleAnimation anim;
-            anim.alpha_start = 0.0f;
-            anim.alpha_end = 1.0f;
-            anim.transform_start = Transform2::from_scale({0.5, 0.5});
-            anim_presets.push_back(anim);
-        }
-        // ScaleDown
-        {
-            SubtitleAnimation anim;
-            anim.alpha_start = 0.0f;
-            anim.alpha_end = 1.0f;
-            anim.transform_start = Transform2::from_scale({1.25, 1.25});
-            anim_presets.push_back(anim);
-        }
-
         // Basic
-        SubtitleStyleConfig config0;
-        config0.background_color = ColorU(255, 255, 0, 160);
-        config0.background_padding = 8.0f;
-        config0.background_corner_radius = 4.0f;
-        config0.normal.color = ColorU::white();
-        config0.normal.shadow_color = ColorU::black();
-        config0.normal.shadow_radius = 12.0f;
-        config0.normal.shadow_offset = {4, 4};
-        config0.highlight_type = SubtitleHighlightType::Basic;
-        auto basic_style = SubtitleHighlightBasic{};
-        basic_style.highlight.color = ColorU::red();
-        basic_style.highlight.bold = true;
-        basic_style.highlight.italic = true;
-        basic_style.highlight.shadow_color = ColorU::black();
-        basic_style.highlight.shadow_radius = 12.0f;
-        basic_style.highlight.shadow_offset = {4, 4};
-        config0.highlight_basic = basic_style;
-        config0.animation = anim_presets[uint32_t(SubtitleAnimationType::FadeIn) - 1];
-        subtitle_config_presets.push_back(config0);
+        {
+            SubtitleStyleConfig config0;
+            config0.background_color = ColorU(255, 255, 0, 160);
+            config0.background_padding = 8.0f;
+            config0.background_corner_radius = 4.0f;
+            config0.normal.color = ColorU::white();
+            config0.normal.shadow_color = ColorU::black();
+            config0.normal.shadow_radius = 12.0f;
+            config0.normal.shadow_offset = {4, 4};
+            config0.highlight_type = SubtitleHighlightType::Basic;
+            auto basic_style = SubtitleHighlightBasic{};
+            basic_style.highlight.color = ColorU::red();
+            basic_style.highlight.bold = true;
+            basic_style.highlight.italic = true;
+            basic_style.highlight.shadow_color = ColorU::black();
+            basic_style.highlight.shadow_radius = 12.0f;
+            basic_style.highlight.shadow_offset = {4, 4};
+            config0.highlight_basic = basic_style;
+            config0.animation = get_subtitle_animation(SubtitleAnimationType::FadeIn);
+            subtitle_config_presets.push_back(config0);
 
-        active_subtitle_config = config0;
+            active_subtitle_config = config0;
+        }
 
         {
             SubtitleStyleConfig config3;
@@ -345,36 +244,40 @@ private:
             basic_style.highlight.background_padding = 2.0f;
             basic_style.highlight.background_corner_radius = 4.0f;
             config3.highlight_basic = basic_style;
-            config3.animation = anim_presets[uint32_t(SubtitleAnimationType::ScaleUp) - 1];
+            config3.animation = get_subtitle_animation(SubtitleAnimationType::ScaleUp);
             subtitle_config_presets.push_back(config3);
         }
 
         // Slider
-        SubtitleStyleConfig config1;
-        config1.normal.color = ColorU::white();
-        config1.normal.stroke_width = 4;
-        config1.normal.stroke_color = ColorU::black();
-        config1.highlight_type = SubtitleHighlightType::Slider;
-        auto high_style = SubtitleHighlightSlider{};
-        high_style.slider.bg_color = ColorU(255, 255, 0, 80);
-        high_style.slider.corner_radius = 8;
-        high_style.slider.border_color = ColorU::yellow();
-        high_style.slider.border_width = 1.5f;
-        config1.highlight_slider = high_style;
-        config1.animation = anim_presets[uint32_t(SubtitleAnimationType::SlideDown) - 1];
-        subtitle_config_presets.push_back(config1);
+        {
+            SubtitleStyleConfig config1;
+            config1.normal.color = ColorU::white();
+            config1.normal.stroke_width = 4;
+            config1.normal.stroke_color = ColorU::black();
+            config1.highlight_type = SubtitleHighlightType::Slider;
+            auto high_style = SubtitleHighlightSlider{};
+            high_style.slider.bg_color = ColorU(255, 255, 0, 80);
+            high_style.slider.corner_radius = 8;
+            high_style.slider.border_color = ColorU::yellow();
+            high_style.slider.border_width = 1.5f;
+            config1.highlight_slider = high_style;
+            config1.animation = get_subtitle_animation(SubtitleAnimationType::SlideDown);
+            subtitle_config_presets.push_back(config1);
+        }
 
         // Karaoke
-        SubtitleStyleConfig config2;
-        config2.normal.color = ColorU::white();
-        config2.normal.stroke_color = ColorU::black();
-        config2.normal.stroke_width = 1.5f;
-        config2.highlight_type = SubtitleHighlightType::Karaoke;
-        auto karaoke_style = SubtitleHighlightKaraoke{};
-        karaoke_style.reached = ColorU::blue();
-        karaoke_style.unreached = ColorU::white();
-        config2.highlight_karaoke = karaoke_style;
-        subtitle_config_presets.push_back(config2);
+        {
+            SubtitleStyleConfig config2;
+            config2.normal.color = ColorU::white();
+            config2.normal.stroke_color = ColorU::black();
+            config2.normal.stroke_width = 1.5f;
+            config2.highlight_type = SubtitleHighlightType::Karaoke;
+            auto karaoke_style = SubtitleHighlightKaraoke{};
+            karaoke_style.reached = ColorU::blue();
+            karaoke_style.unreached = ColorU::white();
+            config2.highlight_karaoke = karaoke_style;
+            subtitle_config_presets.push_back(config2);
+        }
     }
 
     void update_phrase_word_idx() {
