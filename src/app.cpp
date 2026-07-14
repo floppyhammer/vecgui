@@ -3,15 +3,6 @@
 #include <cstdint>
 #include <memory>
 
-// clang-format off
-#ifdef PATHFINDER_USE_OPENGL
-#include "pathfinder/gpu/gl/window_builder.h"
-#endif
-#ifdef PATHFINDER_USE_VULKAN
-#include "pathfinder/gpu/vk/window_builder.h"
-#endif
-// clang-format on
-
 #include "resources/default_resource.h"
 #include "servers/engine.h"
 #include "servers/input_server.h"
@@ -32,8 +23,16 @@ App::App(Vec2I primary_window_size, const bool dark_mode, bool use_vulkan) {
 
     auto render_server = RenderServer::get_singleton();
 
-    auto window_builder = Pathfinder::WindowBuilder::new_impl(
-        use_vulkan ? Pathfinder::BackendType::Vulkan : Pathfinder::BackendType::Opengl, primary_window_size);
+    #ifdef __APPLE__
+    auto backend = Pathfinder::BackendType::Metal;
+    #else
+    auto backend = Pathfinder::BackendType::Opengl;
+    if (use_vulkan) {
+        backend = Pathfinder::BackendType::Vulkan;
+    }
+    #endif
+
+    auto window_builder = Pathfinder::WindowBuilder::new_impl(backend, primary_window_size);
 
     render_server->window_builder_ = window_builder;
 

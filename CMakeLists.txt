@@ -15,21 +15,21 @@ option(VECGUI_VULKAN "Use Vulkan instead of OpenGL" ON)
 option(VECGUI_FRIBIDI "Use fribidi instead of icu" ON)
 option(VECGUI_BUILD_EXAMPLES "Build native examples" OFF)
 
-if (APPLE)
-    set(VECGUI_FRIBIDI ON)
-endif ()
-
 file(GLOB_RECURSE VECGUI_SRC_FILES CONFIGURE_DEPENDS
         src/*.cpp
         third_party/tinyfiledialogs/tinyfiledialogs.c
 )
 
 if (APPLE)
+    enable_language(OBJC OBJCXX)
+
     file(GLOB_RECURSE VECGUI_SRC_FILES_APPLE CONFIGURE_DEPENDS
             src/*.mm
     )
 
     file(GLOB VECGUI_SRC_FILES ${VECGUI_SRC_FILES} ${VECGUI_SRC_FILES_APPLE})
+
+    set(VECGUI_FRIBIDI ON)
 endif ()
 
 add_library(vecgui STATIC ${VECGUI_SRC_FILES})
