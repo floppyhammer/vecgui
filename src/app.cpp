@@ -136,8 +136,12 @@ float App::get_scaling_factor() const {
 void App::main_loop() {
     bool closing_app = false;
 
+    auto render_server = RenderServer::get_singleton();
+
+    render_server->queue_->wait_idle();
+
     while (!closing_app) {
-        RenderServer::get_singleton()->window_builder_->poll_events();
+        render_server->window_builder_->poll_events();
 
         // Engine processing.
         Engine::get_singleton()->tick();
@@ -153,7 +157,7 @@ void App::main_loop() {
         closing_app = tree->render();
     }
 
-    RenderServer::get_singleton()->window_builder_->stop_and_destroy_swapchains();
+    render_server->window_builder_->stop_and_destroy_swapchains();
 }
 
 bool App::single_run() {

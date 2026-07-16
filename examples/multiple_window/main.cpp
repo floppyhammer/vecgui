@@ -6,6 +6,7 @@
 
 using namespace vecgui;
 
+/// fixme: currently not working for Vulkan.
 class MyNode : public Node {
     void custom_ready() override {
         auto open_window_button = std::make_shared<Button>();

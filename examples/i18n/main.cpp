@@ -39,14 +39,6 @@ class MyNode : public Node {
         // No word wrapping.
         {
             auto label = std::make_shared<Label>();
-            label->set_text_style(TextStyle{
-                ColorU::white(),
-                ColorU::red(),
-                0,
-                false,
-                false,
-                false,
-            });
             label->set_text(text);
             label->container_sizing.flag_h = ContainerSizingFlag::Fill;
             // label->set_font(font);
@@ -60,14 +52,6 @@ class MyNode : public Node {
             auto label = std::make_shared<Label>();
             label->set_word_wrap(true);
             label->set_custom_minimum_size(Vec2F(200, 600));
-            label->set_text_style(TextStyle{
-                ColorU::white(),
-                ColorU::red(),
-                0,
-                false,
-                false,
-                false,
-            });
             label->set_text(text);
             label->container_sizing.flag_h = ContainerSizingFlag::Fill;
             // label->set_font(font);

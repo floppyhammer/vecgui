@@ -9,6 +9,7 @@ namespace vecgui {
 
 class Blit;
 
+// todo: should have its own instance of a pathfinder renderer.
 class ProxyWindow : public Node {
     friend class SceneTree;
 

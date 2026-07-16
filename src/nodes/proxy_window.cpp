@@ -97,6 +97,9 @@ void ProxyWindow::post_draw_propagation() {
         return;
     }
 
+    render_server->device_->begin_frame();
+    render_server->queue_->begin_frame(render_server->device_->get_current_frame_index());
+
     vector_server->submit_and_clear();
 
     // vector_server->get_canvas()->set_scene(temp_draw_data.previous_scene);
