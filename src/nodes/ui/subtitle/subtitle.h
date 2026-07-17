@@ -6,11 +6,26 @@
 
 namespace vecgui {
 
-struct SubtitlePhrase;
+// 1. 定义与 JSON 对应的字幕数据结构
+struct SubtitleWord {
+    std::string word;
+    double start;
+    double end;
+    RectF rect; // 布局缓存，用于滑块和裁剪
+};
+
+struct SubtitlePhrase {
+    double start{};
+    double end{};
+    std::string targetText;
+    std::vector<SubtitleWord> targetSrt;
+};
 
 // 2. 自定义字幕显示节点
 class Subtitle : public NodeUi {
 public:
+    Subtitle();
+
     std::vector<SubtitleStyleConfig> subtitle_config_presets;
     uint32_t preset_idx = 0;
     SubtitleStyleConfig active_subtitle_config;
@@ -24,6 +39,8 @@ public:
     void custom_update(double dt) override;
 
     void draw() override;
+
+    void set_font(std::shared_ptr<Font> font);
 
 private:
     std::vector<RectF> get_line_rects();

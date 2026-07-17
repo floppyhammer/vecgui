@@ -459,7 +459,7 @@ void Label::set_font(std::shared_ptr<Font> new_font) {
         return;
     }
 
-    font = std::move(new_font);
+    font = new_font;
 
     need_to_remeasure = true;
     queue_relayout();

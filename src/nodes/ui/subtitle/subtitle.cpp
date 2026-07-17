@@ -13,21 +13,6 @@ using json = nlohmann::json;
 
 namespace vecgui {
 
-// 1. 定义与 JSON 对应的字幕数据结构
-struct SubtitleWord {
-    std::string word;
-    double start;
-    double end;
-    RectF rect; // 布局缓存，用于滑块和裁剪
-};
-
-struct SubtitlePhrase {
-    double start{};
-    double end{};
-    std::string targetText;
-    std::vector<SubtitleWord> targetSrt;
-};
-
 // 辅助函数：RectF 线性插值（带 Clamp 防止崩溃）
 RectF lerp_rect(const RectF& a, const RectF& b, float t) {
     t = std::clamp(t, 0.0f, 1.0f);
@@ -52,7 +37,7 @@ Transform2 lerp_transform(const Transform2& a, const Transform2& b, float t) {
     return Transform2(values);
 }
 
-void Subtitle::custom_ready() {
+Subtitle::Subtitle() {
     setup_default_styles();
 
     set_anchor_flag(AnchorFlag::FullRect);
@@ -64,9 +49,6 @@ void Subtitle::custom_ready() {
     label->set_anchor_flag(AnchorFlag::FullRect);
     add_child(label);
 
-    auto font = Font::from_file("../../assets/zcool_qingke_huangyou.ttf");
-    label->set_font(font);
-
     debug_label_ = std::make_shared<Label>();
     debug_label_->set_anchor_flag(AnchorFlag::BottomWide);
     add_child(debug_label_);
@@ -75,6 +57,10 @@ void Subtitle::custom_ready() {
     if (!load_from_file("subtitles.json")) {
         load_default_subtitles_data();
     }
+}
+
+void Subtitle::custom_ready() {
+
 }
 
 void Subtitle::custom_input(InputEvent& event) {
@@ -201,6 +187,10 @@ std::vector<RectF> Subtitle::get_line_rects() {
     }
     if (current_line_rect.is_valid()) rects.push_back(current_line_rect);
     return rects;
+}
+
+void Subtitle::set_font(std::shared_ptr<Font> font) {
+    label->set_font(font);
 }
 
 void Subtitle::setup_default_styles() {
