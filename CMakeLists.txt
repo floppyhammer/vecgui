@@ -102,6 +102,27 @@ if (MSVC)
     target_compile_options(vecgui PUBLIC "/utf-8")
 endif ()
 
+# Debug information settings
+if (APPLE)
+    # Generate full DWARF debug info for Debug builds
+    target_compile_options(vecgui PUBLIC
+            "$<$<CONFIG:Debug>:-g>"
+            "$<$<CONFIG:Debug>:-gdwarf-4>"
+    )
+    
+    # Map source file paths so debugger can find them
+    target_compile_options(vecgui PUBLIC
+            "-fdebug-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}=."
+            "-fdebug-compilation-dir=${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    
+    # Preserve debug symbols in the framework
+    set_target_properties(vecgui PROPERTIES
+            XCODE_ATTRIBUTE_STRIP_DEBUG_SYMBOLS_DURING_COPY "NO"
+            XCODE_ATTRIBUTE_COPY_PHASE_STRIP "NO"
+    )
+endif ()
+
 # Include external and third-party headers.
 target_include_directories(vecgui PUBLIC "src" "third_party")
 

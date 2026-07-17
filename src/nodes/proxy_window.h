@@ -31,10 +31,6 @@ public:
 
 protected:
     uint8_t window_index_;
-
-#if !defined(VECGUI_USE_OFFSCREEN)
-    std::shared_ptr<Pathfinder::Blit> blit_;
-#endif
 };
 
 } // namespace vecgui

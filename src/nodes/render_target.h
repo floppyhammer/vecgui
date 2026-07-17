@@ -44,12 +44,19 @@ public:
         dpi_scale_ = scale;
     }
 
+    void set_blit_texture(std::shared_ptr<Pathfinder::Texture> texture);
+
 protected:
     Vec2I size_;
 
     float dpi_scale_ = 1.0f;
 
     std::shared_ptr<Pathfinder::Texture> vector_target_;
+
+    std::shared_ptr<Pathfinder::Texture> blit_target_;
+    std::shared_ptr<Pathfinder::Blit> blit_;
+
+    std::shared_ptr<Pathfinder::RenderPass> blit_render_pass_;
 };
 
 } // namespace vecgui

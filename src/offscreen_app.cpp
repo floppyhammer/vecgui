@@ -51,10 +51,13 @@ void OffscreenApp::update(double dt) {
 }
 
 void OffscreenApp::render(std::shared_ptr<Pathfinder::Texture> target_texture) {
+    auto render_server = RenderServer::get_singleton();
+    render_server->device_->begin_frame();
+    render_server->queue_->begin_frame(render_server->device_->get_current_frame_index());
+
     auto root_target = std::dynamic_pointer_cast<RenderTarget>(tree->get_root());
 
-    // 1. Prepare target
-    root_target->set_vector_target(target_texture);
+    root_target->set_blit_texture(target_texture);
 
     // 2. Setup VectorServer via RenderTarget's logic (sets scale and target)
     root_target->pre_draw_propagation();
