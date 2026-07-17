@@ -18,6 +18,7 @@
 #include "ui/container/split_container.h"
 #include "ui/container/tab_container.h"
 #include "ui/label.h"
+#include "ui/subtitle/subtitle.h"
 #include "ui/panel.h"
 #include "ui/popup_menu.h"
 #include "ui/progress_bar.h"
