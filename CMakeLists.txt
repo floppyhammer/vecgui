@@ -132,7 +132,12 @@ target_include_directories(vecgui PUBLIC "third_party/stduuid-1.2.3")
 set(ZLIB_BUILD_EXAMPLES OFF)
 add_subdirectory("third_party/zlib")
 
-target_link_libraries(vecgui PUBLIC pathfinder harfbuzz zlibstatic)
+if (APPLE)
+    target_link_libraries(vecgui PUBLIC pathfinder harfbuzz zlibstatic "-framework Metal" "-framework Cocoa" "-framework QuartzCore" "-framework MetalKit" "-framework Foundation")
+    target_link_options(vecgui PUBLIC "-Wl,-force_load,$<TARGET_FILE:pathfinder>")
+else ()
+    target_link_libraries(vecgui PUBLIC "-Wl,--whole-archive" pathfinder "-Wl,--no-whole-archive" harfbuzz zlibstatic)
+endif ()
 
 if (LINUX)
     target_link_libraries(vecgui PUBLIC tbb)
