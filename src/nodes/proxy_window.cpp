@@ -19,7 +19,8 @@ ProxyWindow::ProxyWindow(const Vec2I size, const int window_index) {
         window_index_ = render_server->window_builder_->create_window(size_, "Window");
     }
 
-    auto window = render_server->window_builder_->get_window(window_index_).lock();
+    auto window_ptr = render_server->window_builder_->get_window(window_index_);
+    auto window = window_ptr.lock();
 
     auto input_server = InputServer::get_singleton();
     input_server->initialize_window_callbacks(window_index_);
@@ -33,11 +34,23 @@ ProxyWindow::ProxyWindow(const Vec2I size, const int window_index) {
         render_server->device_->create_texture({size_, Pathfinder::TextureFormat::Rgba8Unorm}, "dst texture");
 }
 
+ProxyWindow::ProxyWindow(const Vec2I size) {
+    type = NodeType::Window;
+    size_ = size;
+    window_index_ = 255; // Use 255 to represent an invalid/headless window.
+
+    auto render_server = RenderServer::get_singleton();
+    vector_target_ =
+        render_server->device_->create_texture({size_, Pathfinder::TextureFormat::Rgba8Unorm}, "dst texture");
+}
+
 Vec2I ProxyWindow::get_size() const {
     return size_;
 }
 
 void ProxyWindow::update(double dt) {
+    if (window_index_ == 255) return;
+
     auto render_server = RenderServer::get_singleton();
     auto window = render_server->window_builder_->get_window(window_index_).lock();
 
@@ -57,35 +70,42 @@ void ProxyWindow::pre_draw_propagation() {
     auto render_server = RenderServer::get_singleton();
     auto vector_server = VectorServer::get_singleton();
 
-    auto window = render_server->window_builder_->get_window(window_index_).lock();
+    float dpi_scale = 1.0f;
 
-    // Set DPI.
-    vector_server->set_global_scale(window->get_dpi_scaling_factor());
+    if (window_index_ != 255) {
+        auto window = render_server->window_builder_->get_window(window_index_).lock();
 
-    auto physical_size = window->get_physical_size();
+        // Set DPI.
+        dpi_scale = window->get_dpi_scaling_factor();
 
-    if (physical_size != vector_target_->get_size()) {
-        if (!physical_size.is_any_zero()) {
-            // Texture & canvas should use the physical size.
-            auto physical_size = window->get_physical_size();
+        auto physical_size = window->get_physical_size();
 
-            vector_target_ = render_server->device_->create_texture(
-                {physical_size, Pathfinder::TextureFormat::Rgba8Unorm}, "dst texture");
+        if (physical_size != vector_target_->get_size()) {
+            if (!physical_size.is_any_zero()) {
+                // Texture & canvas should use the physical size.
+                vector_target_ = render_server->device_->create_texture(
+                    {physical_size, Pathfinder::TextureFormat::Rgba8Unorm}, "dst texture");
 
-            vector_server->set_canvas_size(physical_size);
+                vector_server->set_canvas_size(physical_size);
 
-            std::ostringstream ss;
-            ss << "Vector target of the primary window resized to " << physical_size;
-            Logger::info(ss.str(), "vecgui");
+                std::ostringstream ss;
+                ss << "Vector target of the primary window resized to " << physical_size;
+                Logger::info(ss.str(), "vecgui");
+            }
         }
     }
 
+    vector_server->set_global_scale(dpi_scale);
     vector_server->set_dst_texture(vector_target_);
 
     // temp_draw_data.previous_scene = vector_server->get_canvas()->take_scene();
 }
 
 void ProxyWindow::post_draw_propagation() {
+    if (window_index_ == 255) {
+        return;
+    }
+
     auto render_server = RenderServer::get_singleton();
     auto vector_server = VectorServer::get_singleton();
 
@@ -136,6 +156,8 @@ void ProxyWindow::set_visibility(bool visible) {
 }
 
 std::shared_ptr<Pathfinder::Window> ProxyWindow::get_raw_window() const {
+    if (window_index_ == 255) return nullptr;
+
     auto render_server = RenderServer::get_singleton();
 
     auto window = render_server->window_builder_->get_window(window_index_).lock();

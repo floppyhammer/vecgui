@@ -16,7 +16,7 @@ option(VECGUI_FRIBIDI "Use fribidi instead of icu" ON)
 option(VECGUI_BUILD_EXAMPLES "Build native examples" OFF)
 
 file(GLOB_RECURSE VECGUI_SRC_FILES CONFIGURE_DEPENDS
-        src/*.cpp
+        src/*.cpp src/*.h
         third_party/tinyfiledialogs/tinyfiledialogs.c
 )
 

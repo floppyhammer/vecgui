@@ -17,6 +17,12 @@ SceneTree::SceneTree(Vec2I primary_window_size) {
     root->tree_ = this;
 }
 
+SceneTree::SceneTree() {
+    root = std::make_shared<ProxyWindow>(Vec2I{1, 1}); // Create a headless proxy window.
+    root->name = "Root";
+    root->tree_ = this;
+}
+
 void propagate_input(Node* node, InputEvent& event) {
     if (!node->get_visibility()) {
         return;
@@ -191,9 +197,10 @@ void SceneTree::process(double dt) {
         return;
     }
 
-    if (get_primary_window().lock()->get_resize_flag()) {
+    auto primary_window = get_primary_window();
+    if (primary_window && primary_window->get_resize_flag()) {
         Logger::info("Notify window resizing", "vecgui");
-        notify_primary_window_size_changed(get_primary_window().lock()->get_logical_size());
+        notify_primary_window_size_changed(primary_window->get_logical_size());
     }
 
     // OpenGL calls in input callbacks cannot be made from another thread.
@@ -244,6 +251,12 @@ bool SceneTree::render() const {
             continue;
         }
 
+        // Skip headless windows during standard render loop,
+        // they are expected to be handled by OffscreenApp manually.
+        if (w->get_raw_window() == nullptr) {
+            continue;
+        }
+
         // Get all pop menus that belong to this window.
         std::vector<PopupMenu*> popup_menus;
         {
@@ -275,7 +288,10 @@ bool SceneTree::render() const {
         w->post_draw_propagation();
     }
 
-    return root->get_raw_window()->should_close() || quited;
+    auto primary_window = get_primary_window();
+    bool should_close = primary_window ? primary_window->should_close() : false;
+
+    return should_close || quited;
 }
 
 void SceneTree::notify_primary_window_size_changed(Vec2I new_size) const {
@@ -283,14 +299,14 @@ void SceneTree::notify_primary_window_size_changed(Vec2I new_size) const {
 }
 
 std::shared_ptr<Node> SceneTree::get_root() const {
-    return root;
+    return std::static_pointer_cast<Node>(root);
 }
 
 void SceneTree::quit() {
     quited = true;
 }
 
-std::weak_ptr<Pathfinder::Window> SceneTree::get_primary_window() const {
+std::shared_ptr<Pathfinder::Window> SceneTree::get_primary_window() const {
     return root->get_raw_window();
 }
 

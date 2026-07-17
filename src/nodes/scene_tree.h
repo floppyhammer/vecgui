@@ -50,6 +50,8 @@ class SceneTree {
 public:
     explicit SceneTree(Vec2I primary_window_size);
 
+    SceneTree();
+
     void process(double dt);
 
     bool render() const;

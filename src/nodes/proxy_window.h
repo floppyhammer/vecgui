@@ -16,6 +16,9 @@ class ProxyWindow : public Node {
 public:
     ProxyWindow(Vec2I size, int window_index);
 
+    /// Constructor for offscreen window.
+    explicit ProxyWindow(Vec2I size);
+
     void update(double dt) override;
 
     void pre_draw_propagation();
