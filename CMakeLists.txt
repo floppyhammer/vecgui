@@ -14,10 +14,26 @@ endif ()
 option(VECGUI_VULKAN "Use Vulkan instead of OpenGL" ON)
 option(VECGUI_FRIBIDI "Use fribidi instead of icu" ON)
 option(VECGUI_BUILD_EXAMPLES "Build native examples" OFF)
+option(VECGUI_OFFSCREEN "Build in offscreen mode (no physical window dependency)" OFF)
 
 file(GLOB_RECURSE VECGUI_SRC_FILES CONFIGURE_DEPENDS
-        src/*.cpp src/*.h
+        src/*.cpp
         third_party/tinyfiledialogs/tinyfiledialogs.c
+)
+
+if (VECGUI_OFFSCREEN)
+    list(REMOVE_ITEM VECGUI_SRC_FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/app.cpp"
+    )
+endif ()
+
+file(GLOB_RECURSE VECGUI_HDR_FILES CONFIGURE_DEPENDS
+        src/*.h
+)
+
+# Collect pathfinder headers that are needed by public API.
+file(GLOB_RECURSE PATHFINDER_HDR_FILES CONFIGURE_DEPENDS
+        third_party/pathfinder-cpp/pathfinder/*.h
 )
 
 if (APPLE)
@@ -27,12 +43,47 @@ if (APPLE)
             src/*.mm
     )
 
-    file(GLOB VECGUI_SRC_FILES ${VECGUI_SRC_FILES} ${VECGUI_SRC_FILES_APPLE})
+    file(GLOB VECGUI_SRC_FILES ${VECGUI_SRC_FILES} ${VECGUI_SRC_FILES_APPLE} ${VECGUI_HDR_FILES} ${PATHFINDER_HDR_FILES})
 
     set(VECGUI_FRIBIDI ON)
 endif ()
 
-add_library(vecgui STATIC ${VECGUI_SRC_FILES})
+add_library(vecgui SHARED ${VECGUI_SRC_FILES})
+
+if (VECGUI_OFFSCREEN)
+    target_compile_definitions(vecgui PUBLIC VECGUI_USE_OFFSCREEN)
+endif ()
+
+if (APPLE)
+    # Preserve directory structure for vecgui headers.
+    foreach (HDR ${VECGUI_HDR_FILES})
+        get_filename_component(HDR_DIR "${HDR}" DIRECTORY)
+        file(RELATIVE_PATH REL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src" "${HDR_DIR}")
+
+        if (REL_DIR STREQUAL "")
+            set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers")
+        else ()
+            set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers/${REL_DIR}")
+        endif ()
+    endforeach ()
+
+    # Preserve directory structure for pathfinder headers.
+    foreach (HDR ${PATHFINDER_HDR_FILES})
+        get_filename_component(HDR_DIR "${HDR}" DIRECTORY)
+        file(RELATIVE_PATH REL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/pathfinder-cpp" "${HDR_DIR}")
+        set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers/${REL_DIR}")
+    endforeach ()
+
+    set_target_properties(vecgui PROPERTIES
+            FRAMEWORK TRUE
+            MACOSX_FRAMEWORK_IDENTIFIER com.vecgui.framework
+            MACOSX_FRAMEWORK_BUNDLE_VERSION "0.1.0"
+            MACOSX_FRAMEWORK_SHORT_VERSION_STRING "0.1"
+            RESOURCE "assets"
+            XCODE_ATTRIBUTE_DEFINES_MODULE "YES"
+            XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
+    )
+endif ()
 
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 
@@ -44,7 +95,7 @@ if (MSVC)
 endif ()
 
 # Include external and third-party headers.
-target_include_directories(vecgui PUBLIC "third_party")
+target_include_directories(vecgui PUBLIC "src" "third_party")
 
 # Do this before add_subdirectory
 if (VECGUI_VULKAN)
@@ -53,6 +104,9 @@ else ()
     set(PATHFINDER_BACKEND_VULKAN OFF)
 endif ()
 set(PATHFINDER_USE_D3D11 OFF)
+if (VECGUI_OFFSCREEN)
+    set(PATHFINDER_WINDOW OFF)
+endif ()
 target_include_directories(vecgui PUBLIC "third_party/pathfinder-cpp")
 add_subdirectory("third_party/pathfinder-cpp")
 

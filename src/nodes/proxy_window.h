@@ -1,57 +1,40 @@
 #pragma once
 
-#include <optional>
+#include "render_target.h"
 
-#include "../common/geometry.h"
-#include "node.h"
+#if !defined(VECGUI_USE_OFFSCREEN)
+namespace Pathfinder {
+class Window;
+class Blit;
+}
+#endif
 
 namespace vecgui {
 
-class Blit;
-
-// todo: should have its own instance of a pathfinder renderer.
-class ProxyWindow : public Node {
+class ProxyWindow : public RenderTarget {
     friend class SceneTree;
 
 public:
     ProxyWindow(Vec2I size, int window_index);
 
-    /// Constructor for offscreen window.
-    explicit ProxyWindow(Vec2I size);
-
     void update(double dt) override;
 
-    void pre_draw_propagation();
+    void pre_draw_propagation() override;
 
-    void post_draw_propagation();
-
-    Vec2I get_size() const;
+    void post_draw_propagation() override;
 
     void set_visibility(bool visible) override;
 
+#if !defined(VECGUI_USE_OFFSCREEN)
     std::shared_ptr<Pathfinder::Window> get_raw_window() const;
-
-    std::shared_ptr<Pathfinder::Texture> get_vector_target() const {
-        return vector_target_;
-    }
-
-    void set_vector_target(std::shared_ptr<Pathfinder::Texture> texture) {
-        vector_target_ = texture;
-    }
+#endif
 
 protected:
-    Vec2I size_;
-
-    std::shared_ptr<Pathfinder::Blit> blit_;
-
     uint8_t window_index_;
 
-    std::shared_ptr<Pathfinder::Texture> vector_target_;
-
-private:
-    struct {
-        std::shared_ptr<Pathfinder::Scene> previous_scene;
-    } temp_draw_data;
+#if !defined(VECGUI_USE_OFFSCREEN)
+    std::shared_ptr<Pathfinder::Blit> blit_;
+#endif
 };
 
 } // namespace vecgui

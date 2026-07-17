@@ -13,6 +13,7 @@ namespace vecgui {
 enum class NodeType {
     // General.
     Node = 0,
+    RenderTarget,
     Window,
 
     // UI.

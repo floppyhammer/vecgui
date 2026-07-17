@@ -14,10 +14,14 @@ public:
     void destroy() {
         queue_.reset();
         device_.reset();
+#if !defined(VECGUI_USE_OFFSCREEN)
         window_builder_.reset();
+#endif
     }
 
+#if !defined(VECGUI_USE_OFFSCREEN)
     std::shared_ptr<Pathfinder::WindowBuilder> window_builder_;
+#endif
     std::shared_ptr<Pathfinder::Device> device_;
     std::shared_ptr<Pathfinder::Queue> queue_;
 };

@@ -290,7 +290,12 @@ bool Node::get_global_visibility() const {
 uint8_t Node::get_window_index() const {
     if (type == NodeType::Window) {
         auto sub_window_node = (ProxyWindow *)this;
-        return sub_window_node->get_raw_window()->window_index;
+#if !defined(VECGUI_USE_OFFSCREEN)
+        auto raw_window = sub_window_node->get_raw_window();
+        return raw_window ? raw_window->window_index : 0;
+#else
+        return 0;
+#endif
     }
 
     if (parent) {

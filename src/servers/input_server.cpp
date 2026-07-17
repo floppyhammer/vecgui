@@ -34,7 +34,7 @@ std::string cpp11_codepoint_to_utf8(char32_t codepoint) {
 }
 
 InputServer::InputServer() {
-#ifndef __ANDROID__
+#if !defined(ANDROID) && !defined(VECGUI_USE_OFFSCREEN)
     // All remaining cursors are destroyed when glfwTerminate is called.
     arrow_cursor = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
     ibeam_cursor = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
@@ -48,7 +48,7 @@ InputServer::InputServer() {
 }
 
 void InputServer::initialize_window_callbacks(uint8_t window_index) {
-#ifndef __ANDROID__
+#if !defined(ANDROID) && !defined(VECGUI_USE_OFFSCREEN)
     auto render_server = RenderServer::get_singleton();
     auto window = (GLFWwindow *)render_server->window_builder_->get_window(window_index).lock()->get_glfw_handle();
 
@@ -202,7 +202,7 @@ void InputServer::clear_events() {
 }
 
 std::string InputServer::get_clipboard() {
-#ifndef __ANDROID__
+#if !defined(ANDROID) && !defined(VECGUI_USE_OFFSCREEN)
     auto chars = glfwGetClipboardString(nullptr);
     return std::string(chars);
 #else
@@ -211,13 +211,13 @@ std::string InputServer::get_clipboard() {
 }
 
 void InputServer::set_clipboard(const std::string &text) {
-#ifndef __ANDROID__
+#if !defined(ANDROID) && !defined(VECGUI_USE_OFFSCREEN)
     glfwSetClipboardString(nullptr, text.c_str());
 #endif
 }
 
 void InputServer::set_cursor(uint8_t window_index, CursorShape shape) {
-#ifndef __ANDROID__
+#if !defined(ANDROID) && !defined(VECGUI_USE_OFFSCREEN)
     auto render_server = RenderServer::get_singleton();
     auto window = (GLFWwindow *)render_server->window_builder_->get_window(window_index).lock()->get_glfw_handle();
 
@@ -259,7 +259,7 @@ bool InputServer::is_key_pressed(KeyCode code) const {
 }
 
 void InputServer::set_cursor_captured(uint8_t window_index, bool captured) {
-#ifndef __ANDROID__
+#if !defined(ANDROID) && !defined(VECGUI_USE_OFFSCREEN)
     auto render_server = RenderServer::get_singleton();
     auto window = (GLFWwindow *)render_server->window_builder_->get_window(window_index).lock()->get_glfw_handle();
 
@@ -268,7 +268,7 @@ void InputServer::set_cursor_captured(uint8_t window_index, bool captured) {
 }
 
 void InputServer::hide_cursor(uint8_t window_index) {
-#ifndef __ANDROID__
+#if !defined(ANDROID) && !defined(VECGUI_USE_OFFSCREEN)
     auto render_server = RenderServer::get_singleton();
     auto window = (GLFWwindow *)render_server->window_builder_->get_window(window_index).lock()->get_glfw_handle();
 
@@ -277,7 +277,7 @@ void InputServer::hide_cursor(uint8_t window_index) {
 }
 
 void InputServer::restore_cursor(uint8_t window_index) {
-#ifndef __ANDROID__
+#if !defined(ANDROID) && !defined(VECGUI_USE_OFFSCREEN)
     auto render_server = RenderServer::get_singleton();
     auto window = (GLFWwindow *)render_server->window_builder_->get_window(window_index).lock()->get_glfw_handle();
 

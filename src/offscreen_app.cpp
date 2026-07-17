@@ -1,6 +1,6 @@
 #include "offscreen_app.h"
 
-#include "nodes/proxy_window.h"
+#include "nodes/render_target.h"
 #include "resources/default_resource.h"
 #include "servers/engine.h"
 #include "servers/input_server.h"
@@ -25,11 +25,13 @@ OffscreenApp::OffscreenApp(std::shared_ptr<Pathfinder::Device> device,
     auto vector_server = VectorServer::get_singleton();
     vector_server->init(size, device, queue, Pathfinder::RenderMode::Hybrid);
 
-    // Create a SceneTree with a headless ProxyWindow as root.
+    // Create a SceneTree with a generic RenderTarget as root.
     tree = std::make_unique<SceneTree>();
 
     // Ensure root has correct initial size.
-    std::dynamic_pointer_cast<ProxyWindow>(tree->get_root())->when_parent_size_changed(size.to_f32());
+    auto root = std::dynamic_pointer_cast<RenderTarget>(tree->get_root());
+    root->set_size(size);
+    root->when_parent_size_changed(size.to_f32());
 }
 
 OffscreenApp::~OffscreenApp() {
@@ -49,20 +51,19 @@ void OffscreenApp::update(double dt) {
 }
 
 void OffscreenApp::render(std::shared_ptr<Pathfinder::Texture> target_texture) {
-    auto vector_server = VectorServer::get_singleton();
-    auto root_window = std::dynamic_pointer_cast<ProxyWindow>(tree->get_root());
+    auto root_target = std::dynamic_pointer_cast<RenderTarget>(tree->get_root());
 
     // 1. Prepare target
-    root_window->set_vector_target(target_texture);
+    root_target->set_vector_target(target_texture);
 
-    // 2. Setup VectorServer via ProxyWindow's logic (sets scale and target)
-    root_window->pre_draw_propagation();
+    // 2. Setup VectorServer via RenderTarget's logic (sets scale and target)
+    root_target->pre_draw_propagation();
 
     // 3. Collect and draw all nodes.
-    propagate_draw(root_window.get());
+    propagate_draw(root_target.get());
 
     // 4. Submit and clear for this frame.
-    vector_server->submit_and_clear();
+    root_target->post_draw_propagation();
 }
 
 std::shared_ptr<Node> OffscreenApp::get_tree_root() const {
