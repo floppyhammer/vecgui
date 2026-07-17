@@ -238,11 +238,8 @@ void NodeUi::apply_anchor() {
     if (parent && parent->is_ui_node()) {
         auto ui_parent = dynamic_cast<NodeUi *>(parent);
         parent_size = ui_parent->get_size();
-    } else {
-        auto render_server = RenderServer::get_singleton();
-        auto window = render_server->window_builder_->get_window(get_window_index());
-
-        parent_size = window.lock()->get_logical_size().to_f32();
+    } else if (tree_) {
+        parent_size = tree_->get_view_size().to_f32();
     }
 
     auto actual_size = get_effective_minimum_size().max(size);

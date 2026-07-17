@@ -87,15 +87,26 @@ void PopupMenu::set_visibility(bool visible) {
     if (visible_) {
         calc_minimum_size();
 
-        auto render_server = RenderServer::get_singleton();
-        auto window = render_server->window_builder_->get_window(get_window_index());
+        float window_height = 0;
+        if (tree_) {
+            window_height = tree_->get_view_size().y;
+        }
+
+#ifdef VECGUI_USE_WINDOW
+        auto render_context = RenderContext::get_singleton();
+        auto window_builder = render_context->get_window_builder();
+        if (window_builder) {
+            auto window = window_builder->get_window(get_window_index());
+            window_height = window.lock()->get_logical_size().y;
+        }
+#endif
 
         // We updated its global position in MenuButton before calling set_visibility.
         auto global_position = popup_position;
 
         float menu_width = std::max(size.x, margin_container_->get_effective_minimum_size().x);
         float menu_top_space = global_position.y;
-        float menu_bottom_space = window.lock()->get_logical_size().y - global_position.y - button_height;
+        float menu_bottom_space = window_height - global_position.y - button_height;
 
         float min_menu_height = vbox_container_->get_effective_minimum_size().y + margin_container_->get_margin().top +
                                 margin_container_->get_margin().bottom + 2; // 2 comes from the glitch margin container.

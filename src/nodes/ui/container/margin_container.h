@@ -2,8 +2,6 @@
 
 #include "container.h"
 
-using Pathfinder::Rect;
-
 namespace vecgui {
 
 class MarginContainer : public Container {

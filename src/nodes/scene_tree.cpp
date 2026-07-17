@@ -10,10 +10,21 @@
 namespace vecgui {
 
 SceneTree::SceneTree(Vec2I primary_window_size) {
+#ifdef VECGUI_USE_WINDOW
     auto primary_window = std::make_shared<ProxyWindow>(primary_window_size, 0);
     primary_window->name = "Primary window";
-
     root = primary_window;
+#else
+    Logger::error("You are creating a windowed scene tree without a window system!");
+#endif
+
+    root->tree_ = this;
+}
+
+SceneTree::SceneTree() {
+    // In headless mode, we use a generic RenderTarget as the root.
+    root = std::make_shared<RenderTarget>(Vec2I{1, 1});
+    root->name = "Root";
     root->tree_ = this;
 }
 
@@ -23,7 +34,12 @@ void propagate_input(Node* node, InputEvent& event) {
     }
 
     for (auto& child : node->get_all_children_reversed()) {
-        if (typeid(*child) == typeid(ProxyWindow) || !node->get_visibility()) {
+#ifdef VECGUI_USE_WINDOW
+        if (dynamic_cast<RenderTarget*>(child.get())) {
+            continue;
+        }
+#endif
+        if (!node->get_visibility()) {
             continue;
         }
 
@@ -70,8 +86,14 @@ void input_system(Node* root, std::vector<InputEvent>& input_queue) {
         dfs_postorder_rtl_traversal(root, nodes);
 
         for (auto& node : nodes) {
-            if (typeid(*node) == typeid(ProxyWindow) || typeid(*node) == typeid(PopupMenu)) {
+            if (dynamic_cast<RenderTarget*>(node)) {
                 priority_nodes.push_back(node);
+                continue;
+            }
+
+            if (typeid(*node) == typeid(PopupMenu)) {
+                priority_nodes.push_back(node);
+                continue;
             }
         }
     }
@@ -144,11 +166,11 @@ void propagate_draw(Node* node) {
         if (!node->get_visibility()) {
             continue;
         }
-        // Don't propagate to ProxyWindows/PopupMenus as we'll handle them differently.
-        if (typeid(*child) == typeid(ProxyWindow)) {
+        // Don't propagate to RenderTargets (Sub-windows) as we'll handle them differently.
+        if (dynamic_cast<RenderTarget*>(child.get())) {
             continue;
         }
-        if (typeid(*child) == typeid(PopupMenu)) {
+        if (dynamic_cast<PopupMenu*>(child.get())) {
             continue;
         }
 
@@ -191,10 +213,13 @@ void SceneTree::process(double dt) {
         return;
     }
 
-    if (get_primary_window().lock()->get_resize_flag()) {
+#if defined(VECGUI_USE_WINDOW)
+    auto primary_window = get_primary_window();
+    if (primary_window && primary_window->get_resize_flag()) {
         Logger::info("Notify window resizing", "vecgui");
-        notify_primary_window_size_changed(get_primary_window().lock()->get_logical_size());
+        notify_primary_window_size_changed(primary_window->get_logical_size());
     }
+#endif
 
     // OpenGL calls in input callbacks cannot be made from another thread.
     input_system(root.get(), InputServer::get_singleton()->input_queue);
@@ -225,30 +250,29 @@ void SceneTree::process(double dt) {
 }
 
 bool SceneTree::render() const {
-    // Collect all windows.
-    std::vector<ProxyWindow*> sub_windows;
+    // Collect all render targets.
+    std::vector<RenderTarget*> sub_targets;
     {
         std::vector<Node*> nodes;
         dfs_preorder_ltr_traversal(root.get(), nodes);
         for (auto& node : nodes) {
-            if (typeid(*node) == typeid(ProxyWindow)) {
-                auto sub_window = dynamic_cast<ProxyWindow*>(node);
-                sub_windows.push_back(sub_window);
+            if (auto rt = dynamic_cast<RenderTarget*>(node)) {
+                sub_targets.push_back(rt);
             }
         }
     }
 
-    // Draw sub-windows.
-    for (const auto& w : sub_windows) {
-        if (!w->get_visibility()) {
+    // Draw all targets.
+    for (const auto& target : sub_targets) {
+        if (!target->get_visibility()) {
             continue;
         }
 
-        // Get all pop menus that belong to this window.
+        // Get all pop menus that belong to this target.
         std::vector<PopupMenu*> popup_menus;
         {
             std::vector<Node*> nodes;
-            dfs_preorder_ltr_traversal(w, nodes);
+            dfs_preorder_ltr_traversal(target, nodes);
             for (auto& node : nodes) {
                 if (typeid(*node) == typeid(PopupMenu)) {
                     auto popup_menu = dynamic_cast<PopupMenu*>(node);
@@ -257,10 +281,10 @@ bool SceneTree::render() const {
             }
         }
 
-        w->pre_draw_propagation();
+        target->pre_draw_propagation();
 
         // Collect renderable objects
-        propagate_draw(w);
+        propagate_draw(target);
 
         // Draw popup menus
         for (const auto& m : popup_menus) {
@@ -272,10 +296,17 @@ bool SceneTree::render() const {
         }
 
         // Submit render commands
-        w->post_draw_propagation();
+        target->post_draw_propagation();
     }
 
-    return root->get_raw_window()->should_close() || quited;
+#if defined(VECGUI_USE_WINDOW)
+    auto primary_window = get_primary_window();
+    bool should_close = primary_window ? primary_window->should_close() : false;
+
+    return should_close || quited;
+#else
+    return quited;
+#endif
 }
 
 void SceneTree::notify_primary_window_size_changed(Vec2I new_size) const {
@@ -283,15 +314,28 @@ void SceneTree::notify_primary_window_size_changed(Vec2I new_size) const {
 }
 
 std::shared_ptr<Node> SceneTree::get_root() const {
-    return root;
+    return std::static_pointer_cast<Node>(root);
 }
 
 void SceneTree::quit() {
     quited = true;
 }
 
-std::weak_ptr<Pathfinder::Window> SceneTree::get_primary_window() const {
-    return root->get_raw_window();
+std::shared_ptr<Pathfinder::Window> SceneTree::get_primary_window() const {
+#if defined(VECGUI_USE_WINDOW)
+    if (auto proxy_window = std::dynamic_pointer_cast<ProxyWindow>(root)) {
+        return proxy_window->get_raw_window();
+    }
+#endif
+    return nullptr;
+}
+
+Vec2I SceneTree::get_view_size() const {
+    return root->get_size();
+}
+
+float SceneTree::get_dpi_scale() const {
+    return root->get_dpi_scale();
 }
 
 } // namespace vecgui

@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "../common/geometry.h"
-#include "../render/base.h"
 
 namespace Pathfinder {
 class Window;
@@ -100,12 +99,11 @@ enum class CursorShape {
     ResizeTrbl,
 };
 
+struct GlfwData;
+
 class InputServer {
 public:
-    static InputServer *get_singleton() {
-        static InputServer singleton;
-        return &singleton;
-    }
+    static InputServer *get_singleton();
 
     InputServer();
 
@@ -132,10 +130,7 @@ public:
     bool is_key_pressed(KeyCode code) const;
 
 private:
-#ifndef ANDROID
-    GLFWcursor *arrow_cursor, *ibeam_cursor, *crosshair_cursor, *hand_cursor, *resize_cursor_h, *resize_cursor_v;
-    GLFWcursor *resize_tlbr_cursor, *resize_trbl_cursor;
-#endif
+    std::shared_ptr<GlfwData> glfw_data_;
 
     CursorShape target_cursor_shape = CursorShape::Arrow;
     CursorShape current_cursor_shape = CursorShape::Arrow;

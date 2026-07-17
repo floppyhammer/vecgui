@@ -14,10 +14,30 @@ endif ()
 option(VECGUI_VULKAN "Use Vulkan instead of OpenGL" ON)
 option(VECGUI_FRIBIDI "Use fribidi instead of icu" ON)
 option(VECGUI_BUILD_EXAMPLES "Build native examples" OFF)
+option(VECGUI_WINDOW "Build with GLFW dependency and window management" ON)
 
 file(GLOB_RECURSE VECGUI_SRC_FILES CONFIGURE_DEPENDS
         src/*.cpp
         third_party/tinyfiledialogs/tinyfiledialogs.c
+)
+
+if (NOT VECGUI_WINDOW)
+    list(REMOVE_ITEM VECGUI_SRC_FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/app.cpp"
+    )
+    list(REMOVE_ITEM VECGUI_SRC_FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/nodes/proxy_window.cpp"
+    )
+endif ()
+
+# All headers
+file(GLOB_RECURSE VECGUI_HDR_FILES CONFIGURE_DEPENDS
+        src/*.h
+)
+
+# Collect pathfinder headers that are needed by public API.
+file(GLOB_RECURSE PATHFINDER_HDR_FILES CONFIGURE_DEPENDS
+        third_party/pathfinder-cpp/pathfinder/*.h
 )
 
 if (APPLE)
@@ -27,12 +47,48 @@ if (APPLE)
             src/*.mm
     )
 
-    file(GLOB VECGUI_SRC_FILES ${VECGUI_SRC_FILES} ${VECGUI_SRC_FILES_APPLE})
+    file(GLOB VECGUI_SRC_FILES ${VECGUI_SRC_FILES} ${VECGUI_SRC_FILES_APPLE} ${VECGUI_HDR_FILES} ${PATHFINDER_HDR_FILES})
 
     set(VECGUI_FRIBIDI ON)
 endif ()
 
-add_library(vecgui STATIC ${VECGUI_SRC_FILES})
+add_library(vecgui SHARED ${VECGUI_SRC_FILES}
+        src/servers/render_server.cpp)
+
+if (VECGUI_WINDOW)
+    target_compile_definitions(vecgui PUBLIC VECGUI_USE_WINDOW)
+endif ()
+
+if (APPLE)
+    # Preserve directory structure for vecgui headers.
+    foreach (HDR ${VECGUI_HDR_FILES})
+        get_filename_component(HDR_DIR "${HDR}" DIRECTORY)
+        file(RELATIVE_PATH REL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src" "${HDR_DIR}")
+
+        if (REL_DIR STREQUAL "")
+            set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers/vecgui")
+        else ()
+            set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers/vecgui/${REL_DIR}")
+        endif ()
+    endforeach ()
+
+    # Preserve directory structure for pathfinder headers.
+    foreach (HDR ${PATHFINDER_HDR_FILES})
+        get_filename_component(HDR_DIR "${HDR}" DIRECTORY)
+        file(RELATIVE_PATH REL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/pathfinder-cpp" "${HDR_DIR}")
+        set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers/${REL_DIR}")
+    endforeach ()
+
+    set_target_properties(vecgui PROPERTIES
+            FRAMEWORK TRUE
+            MACOSX_FRAMEWORK_IDENTIFIER com.vecgui.framework
+            MACOSX_FRAMEWORK_BUNDLE_VERSION "0.1.0"
+            MACOSX_FRAMEWORK_SHORT_VERSION_STRING "0.1"
+            RESOURCE "assets"
+            XCODE_ATTRIBUTE_DEFINES_MODULE "YES"
+            XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
+    )
+endif ()
 
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 
@@ -43,8 +99,29 @@ if (MSVC)
     target_compile_options(vecgui PUBLIC "/utf-8")
 endif ()
 
+# Debug information settings
+if (APPLE)
+    # Generate full DWARF debug info for Debug builds
+    target_compile_options(vecgui PUBLIC
+            "$<$<CONFIG:Debug>:-g>"
+            "$<$<CONFIG:Debug>:-gdwarf-4>"
+    )
+
+    # Map source file paths so debugger can find them
+    target_compile_options(vecgui PUBLIC
+            "-fdebug-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}=."
+            "-fdebug-compilation-dir=${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+
+    # Preserve debug symbols in the framework
+    set_target_properties(vecgui PROPERTIES
+            XCODE_ATTRIBUTE_STRIP_DEBUG_SYMBOLS_DURING_COPY "NO"
+            XCODE_ATTRIBUTE_COPY_PHASE_STRIP "NO"
+    )
+endif ()
+
 # Include external and third-party headers.
-target_include_directories(vecgui PUBLIC "third_party")
+target_include_directories(vecgui PUBLIC "src" "third_party")
 
 # Do this before add_subdirectory
 if (VECGUI_VULKAN)
@@ -53,6 +130,11 @@ else ()
     set(PATHFINDER_BACKEND_VULKAN OFF)
 endif ()
 set(PATHFINDER_USE_D3D11 OFF)
+if (VECGUI_WINDOW)
+    set(PATHFINDER_WINDOW ON)
+else ()
+    set(PATHFINDER_WINDOW OFF)
+endif ()
 target_include_directories(vecgui PUBLIC "third_party/pathfinder-cpp")
 add_subdirectory("third_party/pathfinder-cpp")
 
@@ -70,7 +152,17 @@ target_include_directories(vecgui PUBLIC "third_party/stduuid-1.2.3")
 set(ZLIB_BUILD_EXAMPLES OFF)
 add_subdirectory("third_party/zlib")
 
-target_link_libraries(vecgui PUBLIC pathfinder harfbuzz zlibstatic)
+if (APPLE)
+    target_link_libraries(vecgui PUBLIC pathfinder harfbuzz zlibstatic "-framework Metal" "-framework QuartzCore" "-framework CoreText"
+            "-framework CoreGraphics" "-framework MetalKit" "-framework Foundation")
+    target_link_options(vecgui PUBLIC "-Wl,-force_load,$<TARGET_FILE:pathfinder>")
+
+    if (VECGUI_WINDOW)
+        target_link_libraries(vecgui PUBLIC "-framework Cocoa")
+    endif ()
+else ()
+    target_link_libraries(vecgui PUBLIC "-Wl,--whole-archive" pathfinder "-Wl,--no-whole-archive" harfbuzz zlibstatic)
+endif ()
 
 if (LINUX)
     target_link_libraries(vecgui PUBLIC tbb)

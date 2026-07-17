@@ -1,5 +1,7 @@
 #include "scroll_container.h"
 
+#include "../../scene_tree.h"
+
 using Pathfinder::clamp;
 
 namespace vecgui {
@@ -277,8 +279,17 @@ void ScrollContainer::pre_draw_children() {
         return;
     }
 
+    float dpi_scale = tree_ ? tree_->get_dpi_scale() : 1.0f;
+
+#ifdef VECGUI_USE_WINDOW
+    auto window_builder = RenderContext::get_singleton()->get_window_builder();
+    if (window_builder) {
+        dpi_scale = window_builder->get_dpi_scaling_factor(get_window_index());
+    }
+#endif
+
     auto global_pos = get_global_position();
-    float dpi_scale = RenderServer::get_singleton()->window_builder_->get_dpi_scaling_factor(get_window_index());
+
     auto size = get_size() * dpi_scale;
 
     auto vector_server = VectorServer::get_singleton();
@@ -310,7 +321,14 @@ void ScrollContainer::post_draw_children() {
     // Don't draw on the temporary render target anymore.
     canvas->get_scene()->pop_render_target();
 
-    float dpi_scale = RenderServer::get_singleton()->window_builder_->get_dpi_scaling_factor(get_window_index());
+    float dpi_scale = tree_ ? tree_->get_dpi_scale() : 1.0f;
+
+#ifdef VECGUI_USE_WINDOW
+    auto window_builder = RenderContext::get_singleton()->get_window_builder();
+    if (window_builder) {
+        dpi_scale = window_builder->get_dpi_scaling_factor(get_window_index());
+    }
+#endif
 
     auto dst_rect = RectF(global_pos * dpi_scale, (global_pos + size) * dpi_scale);
     canvas->draw_render_target(temp_draw_data.render_target_id, dst_rect);

@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include "../render/base.h"
 #include "image.h"
 
 namespace vecgui {

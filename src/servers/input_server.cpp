@@ -8,6 +8,11 @@
 #include "../nodes/proxy_window.h"
 #include "render_server.h"
 
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
+    #define GLFW_INCLUDE_NONE
+    #include <GLFW/glfw3.h>
+#endif
+
 namespace vecgui {
 
 std::string cpp11_codepoint_to_utf8(char32_t codepoint) {
@@ -33,24 +38,44 @@ std::string cpp11_codepoint_to_utf8(char32_t codepoint) {
     return result;
 }
 
+struct GlfwData {
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
+    GLFWcursor *arrow_cursor;
+    GLFWcursor *ibeam_cursor;
+    GLFWcursor *crosshair_cursor;
+    GLFWcursor *hand_cursor;
+    GLFWcursor *resize_cursor_h;
+    GLFWcursor *resize_cursor_v;
+    GLFWcursor *resize_tlbr_cursor;
+    GLFWcursor *resize_trbl_cursor;
+#endif
+};
+
+InputServer *InputServer::get_singleton() {
+    static InputServer singleton;
+    return &singleton;
+}
+
 InputServer::InputServer() {
-#ifndef __ANDROID__
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
+    glfw_data_ = std::make_shared<GlfwData>();
     // All remaining cursors are destroyed when glfwTerminate is called.
-    arrow_cursor = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
-    ibeam_cursor = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
-    crosshair_cursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
-    hand_cursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-    resize_cursor_h = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
-    resize_cursor_v = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
-    resize_tlbr_cursor = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
-    resize_trbl_cursor = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
+    glfw_data_->arrow_cursor = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+    glfw_data_->ibeam_cursor = glfwCreateStandardCursor(GLFW_IBEAM_CURSOR);
+    glfw_data_->crosshair_cursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
+    glfw_data_->hand_cursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+    glfw_data_->resize_cursor_h = glfwCreateStandardCursor(GLFW_HRESIZE_CURSOR);
+    glfw_data_->resize_cursor_v = glfwCreateStandardCursor(GLFW_VRESIZE_CURSOR);
+    glfw_data_->resize_tlbr_cursor = glfwCreateStandardCursor(GLFW_RESIZE_NWSE_CURSOR);
+    glfw_data_->resize_trbl_cursor = glfwCreateStandardCursor(GLFW_RESIZE_NESW_CURSOR);
 #endif
 }
 
 void InputServer::initialize_window_callbacks(uint8_t window_index) {
-#ifndef __ANDROID__
-    auto render_server = RenderServer::get_singleton();
-    auto window = (GLFWwindow *)render_server->window_builder_->get_window(window_index).lock()->get_glfw_handle();
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
+    auto render_context = RenderContext::get_singleton();
+    auto window =
+        (GLFWwindow *)render_context->get_window_builder()->get_window(window_index).lock()->get_glfw_handle();
 
     // A lambda function that doesn't capture anything can be implicitly converted to a regular function pointer.
     auto cursor_position_callback = [](GLFWwindow *window, double x_pos, double y_pos) {
@@ -202,7 +227,7 @@ void InputServer::clear_events() {
 }
 
 std::string InputServer::get_clipboard() {
-#ifndef __ANDROID__
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
     auto chars = glfwGetClipboardString(nullptr);
     return std::string(chars);
 #else
@@ -211,42 +236,43 @@ std::string InputServer::get_clipboard() {
 }
 
 void InputServer::set_clipboard(const std::string &text) {
-#ifndef __ANDROID__
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
     glfwSetClipboardString(nullptr, text.c_str());
 #endif
 }
 
 void InputServer::set_cursor(uint8_t window_index, CursorShape shape) {
-#ifndef __ANDROID__
-    auto render_server = RenderServer::get_singleton();
-    auto window = (GLFWwindow *)render_server->window_builder_->get_window(window_index).lock()->get_glfw_handle();
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
+    auto render_context = RenderContext::get_singleton();
+    auto window =
+        (GLFWwindow *)render_context->get_window_builder()->get_window(window_index).lock()->get_glfw_handle();
 
     GLFWcursor *current_cursor{};
 
     switch (shape) {
         case CursorShape::Arrow: {
-            current_cursor = arrow_cursor;
+            current_cursor = glfw_data_->arrow_cursor;
         } break;
         case CursorShape::IBeam: {
-            current_cursor = ibeam_cursor;
+            current_cursor = glfw_data_->ibeam_cursor;
         } break;
         case CursorShape::Crosshair: {
-            current_cursor = crosshair_cursor;
+            current_cursor = glfw_data_->crosshair_cursor;
         } break;
         case CursorShape::Hand: {
-            current_cursor = hand_cursor;
+            current_cursor = glfw_data_->hand_cursor;
         } break;
         case CursorShape::ResizeH: {
-            current_cursor = resize_cursor_h;
+            current_cursor = glfw_data_->resize_cursor_h;
         } break;
         case CursorShape::ResizeV: {
-            current_cursor = resize_cursor_v;
+            current_cursor = glfw_data_->resize_cursor_v;
         } break;
         case CursorShape::ResizeTlbr: {
-            current_cursor = resize_tlbr_cursor;
+            current_cursor = glfw_data_->resize_tlbr_cursor;
         } break;
         case CursorShape::ResizeTrbl: {
-            current_cursor = resize_trbl_cursor;
+            current_cursor = glfw_data_->resize_trbl_cursor;
         } break;
     }
 
@@ -259,27 +285,30 @@ bool InputServer::is_key_pressed(KeyCode code) const {
 }
 
 void InputServer::set_cursor_captured(uint8_t window_index, bool captured) {
-#ifndef __ANDROID__
-    auto render_server = RenderServer::get_singleton();
-    auto window = (GLFWwindow *)render_server->window_builder_->get_window(window_index).lock()->get_glfw_handle();
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
+    auto render_context = RenderContext::get_singleton();
+    auto window =
+        (GLFWwindow *)render_context->get_window_builder()->get_window(window_index).lock()->get_glfw_handle();
 
     glfwSetInputMode(window, GLFW_CURSOR, captured ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 #endif
 }
 
 void InputServer::hide_cursor(uint8_t window_index) {
-#ifndef __ANDROID__
-    auto render_server = RenderServer::get_singleton();
-    auto window = (GLFWwindow *)render_server->window_builder_->get_window(window_index).lock()->get_glfw_handle();
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
+    auto render_context = RenderContext::get_singleton();
+    auto window =
+        (GLFWwindow *)render_context->get_window_builder()->get_window(window_index).lock()->get_glfw_handle();
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 #endif
 }
 
 void InputServer::restore_cursor(uint8_t window_index) {
-#ifndef __ANDROID__
-    auto render_server = RenderServer::get_singleton();
-    auto window = (GLFWwindow *)render_server->window_builder_->get_window(window_index).lock()->get_glfw_handle();
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
+    auto render_context = RenderContext::get_singleton();
+    auto window =
+        (GLFWwindow *)render_context->get_window_builder()->get_window(window_index).lock()->get_glfw_handle();
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 #endif

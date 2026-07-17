@@ -4,6 +4,7 @@
 
 #include "file_dialog.h"
 #include "node.h"
+#include "render_target.h"
 #include "timer.h"
 #include "ui/button/button.h"
 #include "ui/button/check_button.h"
@@ -50,6 +51,8 @@ class SceneTree {
 public:
     explicit SceneTree(Vec2I primary_window_size);
 
+    SceneTree();
+
     void process(double dt);
 
     bool render() const;
@@ -60,16 +63,17 @@ public:
 
     void quit();
 
-    std::weak_ptr<Pathfinder::Window> get_primary_window() const;
+    std::shared_ptr<Pathfinder::Window> get_primary_window() const;
+
+    Vec2I get_view_size() const;
+
+    float get_dpi_scale() const;
 
 private:
-    /// Primary window
-    std::shared_ptr<ProxyWindow> root;
+    /// Primary render target (can be a window or a generic target)
+    std::shared_ptr<RenderTarget> root;
 
     bool quited = false;
-
-    // todo
-    std::thread render_thread;
 };
 
 } // namespace vecgui
