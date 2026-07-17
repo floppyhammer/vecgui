@@ -109,13 +109,13 @@ if (APPLE)
             "$<$<CONFIG:Debug>:-g>"
             "$<$<CONFIG:Debug>:-gdwarf-4>"
     )
-    
+
     # Map source file paths so debugger can find them
     target_compile_options(vecgui PUBLIC
             "-fdebug-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}=."
             "-fdebug-compilation-dir=${CMAKE_CURRENT_SOURCE_DIR}"
     )
-    
+
     # Preserve debug symbols in the framework
     set_target_properties(vecgui PROPERTIES
             XCODE_ATTRIBUTE_STRIP_DEBUG_SYMBOLS_DURING_COPY "NO"
@@ -134,7 +134,9 @@ else ()
 endif ()
 set(PATHFINDER_USE_D3D11 OFF)
 if (VECGUI_OFFSCREEN)
-    set(PATHFINDER_WINDOW OFF)
+    set(PATHFINDER_WINDOW OFF CACHE BOOL "Disable windowing in pathfinder" FORCE)
+else ()
+    set(PATHFINDER_WINDOW ON CACHE BOOL "Enable windowing in pathfinder" FORCE)
 endif ()
 target_include_directories(vecgui PUBLIC "third_party/pathfinder-cpp")
 add_subdirectory("third_party/pathfinder-cpp")
@@ -154,8 +156,13 @@ set(ZLIB_BUILD_EXAMPLES OFF)
 add_subdirectory("third_party/zlib")
 
 if (APPLE)
-    target_link_libraries(vecgui PUBLIC pathfinder harfbuzz zlibstatic "-framework Metal" "-framework Cocoa" "-framework QuartzCore" "-framework MetalKit" "-framework Foundation")
+    target_link_libraries(vecgui PUBLIC pathfinder harfbuzz zlibstatic "-framework Metal" "-framework QuartzCore" "-framework CoreText"
+            "-framework CoreGraphics" "-framework MetalKit" "-framework Foundation")
     target_link_options(vecgui PUBLIC "-Wl,-force_load,$<TARGET_FILE:pathfinder>")
+
+    if (NOT VECGUI_OFFSCREEN)
+        target_link_libraries(vecgui PUBLIC "-framework Cocoa")
+    endif ()
 else ()
     target_link_libraries(vecgui PUBLIC "-Wl,--whole-archive" pathfinder "-Wl,--no-whole-archive" harfbuzz zlibstatic)
 endif ()
