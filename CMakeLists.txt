@@ -52,7 +52,15 @@ add_library(vecgui SHARED ${VECGUI_SRC_FILES})
 
 if (VECGUI_OFFSCREEN)
     target_compile_definitions(vecgui PUBLIC VECGUI_USE_OFFSCREEN)
+    set(VECGUI_USE_OFFSCREEN 1)
 endif ()
+
+set(VECGUI_CONFIG_H "${CMAKE_CURRENT_SOURCE_DIR}/src/vecgui_config.h")
+configure_file(src/vecgui_config.h.in "${VECGUI_CONFIG_H}")
+
+# Add the generated file to header list so it gets packaged.
+list(APPEND VECGUI_HDR_FILES "${VECGUI_CONFIG_H}")
+list(REMOVE_DUPLICATES VECGUI_HDR_FILES)
 
 if (APPLE)
     # Preserve directory structure for vecgui headers.

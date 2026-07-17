@@ -8,8 +8,6 @@
 #include "../../resources/style_box.h"
 #include "node_ui.h"
 
-using Pathfinder::Rect;
-
 namespace vecgui {
 
 enum class BidiAlignment {

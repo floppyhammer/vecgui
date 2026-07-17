@@ -8,8 +8,6 @@
 #include "../../servers/vector_server.h"
 #include "../node.h"
 
-using Pathfinder::ColorF;
-
 namespace vecgui {
 
 /// How a UI node handles mouse input propagation.
