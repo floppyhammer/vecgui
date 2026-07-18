@@ -4,26 +4,24 @@
 
 namespace vecgui {
 
-class RenderServer {
+struct RenderContextImpl;
+
+class RenderContext {
 public:
-    static RenderServer *get_singleton() {
-        static RenderServer singleton;
-        return &singleton;
-    }
+    static RenderContext *get_singleton();
 
-    void destroy() {
-        queue_.reset();
-        device_.reset();
-#ifdef VECGUI_USE_WINDOW
-        window_builder_.reset();
-#endif
-    }
+    void init(std::shared_ptr<Pathfinder::WindowBuilder> window_builder,
+              std::shared_ptr<Pathfinder::Device> device,
+              std::shared_ptr<Pathfinder::Queue> queue);
 
-#ifdef VECGUI_USE_WINDOW
-    std::shared_ptr<Pathfinder::WindowBuilder> window_builder_;
-#endif
-    std::shared_ptr<Pathfinder::Device> device_;
-    std::shared_ptr<Pathfinder::Queue> queue_;
+    void destroy();
+
+    std::shared_ptr<Pathfinder::WindowBuilder> get_window_builder() const;
+
+    std::shared_ptr<Pathfinder::Device> get_device() const;
+    std::shared_ptr<Pathfinder::Queue> get_queue() const;
+
+    std::unique_ptr<RenderContextImpl> impl_;
 };
 
 } // namespace vecgui

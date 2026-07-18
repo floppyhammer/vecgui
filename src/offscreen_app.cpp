@@ -16,9 +16,8 @@ OffscreenApp::OffscreenApp(std::shared_ptr<Pathfinder::Device> device,
     dark_mode_ = dark_mode;
 
     // Initialize Servers with provided hardware interface.
-    auto render_server = RenderServer::get_singleton();
-    render_server->device_ = device;
-    render_server->queue_ = queue;
+    auto render_context = RenderContext::get_singleton();
+    render_context->init(nullptr, device, queue);
 
     DefaultResource::get_singleton()->init(dark_mode_);
 
@@ -37,7 +36,7 @@ OffscreenApp::OffscreenApp(std::shared_ptr<Pathfinder::Device> device,
 OffscreenApp::~OffscreenApp() {
     tree.reset();
     VectorServer::get_singleton()->cleanup();
-    RenderServer::get_singleton()->destroy();
+    RenderContext::get_singleton()->destroy();
 }
 
 void OffscreenApp::update(double dt) {
@@ -51,9 +50,9 @@ void OffscreenApp::update(double dt) {
 }
 
 void OffscreenApp::render(std::shared_ptr<Pathfinder::Texture> target_texture) {
-    auto render_server = RenderServer::get_singleton();
-    render_server->device_->begin_frame();
-    render_server->queue_->begin_frame(render_server->device_->get_current_frame_index());
+    auto render_context = RenderContext::get_singleton();
+    render_context->get_device()->begin_frame();
+    render_context->get_queue()->begin_frame(render_context->get_device()->get_current_frame_index());
 
     auto root_target = std::dynamic_pointer_cast<RenderTarget>(tree->get_root());
 

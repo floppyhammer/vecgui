@@ -52,19 +52,13 @@ if (APPLE)
     set(VECGUI_FRIBIDI ON)
 endif ()
 
-add_library(vecgui SHARED ${VECGUI_SRC_FILES})
+add_library(vecgui SHARED ${VECGUI_SRC_FILES}
+        src/servers/render_server.cpp)
 
 if (VECGUI_WINDOW)
     target_compile_definitions(vecgui PUBLIC VECGUI_USE_WINDOW)
     set(VECGUI_USE_WINDOW 1)
 endif ()
-
-set(VECGUI_CONFIG_H "${CMAKE_CURRENT_SOURCE_DIR}/src/vecgui_config.h")
-configure_file(src/vecgui_config.h.in "${VECGUI_CONFIG_H}")
-
-# Add the generated file to header list so it gets packaged.
-list(APPEND VECGUI_HDR_FILES "${VECGUI_CONFIG_H}")
-list(REMOVE_DUPLICATES VECGUI_HDR_FILES)
 
 if (APPLE)
     # Preserve directory structure for vecgui headers.

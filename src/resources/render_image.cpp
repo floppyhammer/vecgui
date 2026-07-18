@@ -12,7 +12,7 @@ RenderImage::RenderImage(Vec2I _size) {
 
     type = ImageType::Render;
 
-    texture_ = RenderServer::get_singleton()->device_->create_texture(desc, "render image");
+    texture_ = RenderContext::get_singleton()->get_device()->create_texture(desc, "render image");
 }
 
 RenderImage::RenderImage(const std::shared_ptr<Pathfinder::Texture>& existing_texture) {
