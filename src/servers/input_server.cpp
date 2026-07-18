@@ -39,6 +39,7 @@ std::string cpp11_codepoint_to_utf8(char32_t codepoint) {
 }
 
 struct GlfwData {
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
     GLFWcursor *arrow_cursor;
     GLFWcursor *ibeam_cursor;
     GLFWcursor *crosshair_cursor;
@@ -47,6 +48,7 @@ struct GlfwData {
     GLFWcursor *resize_cursor_v;
     GLFWcursor *resize_tlbr_cursor;
     GLFWcursor *resize_trbl_cursor;
+#endif
 };
 
 InputServer *InputServer::get_singleton() {

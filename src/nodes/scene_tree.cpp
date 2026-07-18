@@ -35,7 +35,7 @@ void propagate_input(Node* node, InputEvent& event) {
 
     for (auto& child : node->get_all_children_reversed()) {
 #ifdef VECGUI_USE_WINDOW
-        if (typeid(*child) == typeid(ProxyWindow)) {
+        if (dynamic_cast<RenderTarget*>(child.get())) {
             continue;
         }
 #endif
@@ -86,12 +86,10 @@ void input_system(Node* root, std::vector<InputEvent>& input_queue) {
         dfs_postorder_rtl_traversal(root, nodes);
 
         for (auto& node : nodes) {
-#ifdef VECGUI_USE_WINDOW
-            if (typeid(*node) == typeid(ProxyWindow)) {
+            if (dynamic_cast<RenderTarget*>(node)) {
                 priority_nodes.push_back(node);
                 continue;
             }
-#endif
 
             if (typeid(*node) == typeid(PopupMenu)) {
                 priority_nodes.push_back(node);
@@ -172,7 +170,7 @@ void propagate_draw(Node* node) {
         if (dynamic_cast<RenderTarget*>(child.get())) {
             continue;
         }
-        if (typeid(*child) == typeid(PopupMenu)) {
+        if (dynamic_cast<PopupMenu*>(child.get())) {
             continue;
         }
 

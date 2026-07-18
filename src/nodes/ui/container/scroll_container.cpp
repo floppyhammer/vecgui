@@ -280,10 +280,13 @@ void ScrollContainer::pre_draw_children() {
     }
 
     float dpi_scale = tree_ ? tree_->get_dpi_scale() : 1.0f;
+
+#ifdef VECGUI_USE_WINDOW
     auto window_builder = RenderContext::get_singleton()->get_window_builder();
     if (window_builder) {
         dpi_scale = window_builder->get_dpi_scaling_factor(get_window_index());
     }
+#endif
 
     auto global_pos = get_global_position();
 
@@ -319,10 +322,13 @@ void ScrollContainer::post_draw_children() {
     canvas->get_scene()->pop_render_target();
 
     float dpi_scale = tree_ ? tree_->get_dpi_scale() : 1.0f;
+
+#ifdef VECGUI_USE_WINDOW
     auto window_builder = RenderContext::get_singleton()->get_window_builder();
     if (window_builder) {
         dpi_scale = window_builder->get_dpi_scaling_factor(get_window_index());
     }
+#endif
 
     auto dst_rect = RectF(global_pos * dpi_scale, (global_pos + size) * dpi_scale);
     canvas->draw_render_target(temp_draw_data.render_target_id, dst_rect);

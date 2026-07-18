@@ -97,14 +97,8 @@ void dfs_postorder_rtl_traversal_skip_priority_node_and_invisible(Node *node, st
         return;
     }
 
-#ifdef VECGUI_USE_WINDOW
-    // Skip ProxyWindow and all its children.
-    if (typeid(*node) == typeid(ProxyWindow)) {
-        return;
-    }
-#endif
-
-    if (typeid(*node) == typeid(RenderTarget)) {
+    // Skip RenderTarget, ProxyWindow and all its children.
+    if (dynamic_cast<RenderTarget *>(node)) {
         return;
     }
 
