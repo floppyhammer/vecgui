@@ -88,8 +88,16 @@ void PopupMenu::set_visibility(bool visible) {
         calc_minimum_size();
 
         float window_height = 0;
-        if (tree_) {
-            window_height = tree_->get_view_size().y;
+
+        auto render_context = RenderContext::get_singleton();
+        auto window_builder = render_context->get_window_builder();
+        if (window_builder) {
+            auto window = window_builder->get_window(get_window_index());
+            window_height = window.lock()->get_logical_size().y;
+        } else {
+            if (tree_) {
+                window_height = tree_->get_view_size().y;
+            }
         }
 
         // We updated its global position in MenuButton before calling set_visibility.
