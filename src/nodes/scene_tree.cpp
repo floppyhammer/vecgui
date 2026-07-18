@@ -9,15 +9,17 @@
 
 namespace vecgui {
 
-#ifdef VECGUI_USE_WINDOW
 SceneTree::SceneTree(Vec2I primary_window_size) {
+#ifdef VECGUI_USE_WINDOW
     auto primary_window = std::make_shared<ProxyWindow>(primary_window_size, 0);
     primary_window->name = "Primary window";
-
     root = primary_window;
+#else
+    Logger::error("You are creating a windowed scene tree without a window system!");
+#endif
+
     root->tree_ = this;
 }
-#endif
 
 SceneTree::SceneTree() {
     // In headless mode, we use a generic RenderTarget as the root.
