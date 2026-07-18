@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../node_ui.h"
-#include "nodes/ui/label.h"
+#include "../label.h"
 #include "subtitle_style_config.h"
 
 namespace vecgui {

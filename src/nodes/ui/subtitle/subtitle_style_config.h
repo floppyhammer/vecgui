@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../../common/geometry.h"
-#include "resources/font.h"
-#include "resources/style_box.h"
+#include "../../../resources/font.h"
+#include "../../../resources/style_box.h"
 
 namespace vecgui {
 
