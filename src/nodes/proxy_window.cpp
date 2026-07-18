@@ -52,13 +52,11 @@ void ProxyWindow::pre_draw_propagation() {
     dpi_scale_ = window->get_dpi_scaling_factor();
     auto physical_size = window->get_physical_size();
 
-    if (physical_size != vector_target_->get_size()) {
-        if (!physical_size.is_any_zero()) {
-            vector_target_ = render_context->get_device()->create_texture(
-                {physical_size, Pathfinder::TextureFormat::Rgba8Unorm}, "dst texture");
+    if (!vector_target_ || (physical_size != vector_target_->get_size() && !physical_size.is_any_zero())) {
+        vector_target_ = render_context->get_device()->create_texture(
+            {physical_size, Pathfinder::TextureFormat::Rgba8Unorm}, "dst texture");
 
-            size_ = physical_size;
-        }
+        size_ = physical_size;
     }
 }
 

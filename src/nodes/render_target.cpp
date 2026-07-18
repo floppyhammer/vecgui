@@ -25,6 +25,12 @@ void RenderTarget::pre_draw_propagation() {
         return;
     }
 
+    auto render_context = RenderContext::get_singleton();
+    if (size_ != vector_target_->get_size() && !size_.is_any_zero()) {
+        vector_target_ = render_context->get_device()->create_texture({size_, Pathfinder::TextureFormat::Rgba8Unorm},
+                                                                      "render target texture");
+    }
+
     auto vector_server = VectorServer::get_singleton();
 
     vector_server->set_global_scale(dpi_scale_);
@@ -64,12 +70,6 @@ Vec2I RenderTarget::get_size() const {
 void RenderTarget::set_size(Vec2I size) {
     if (size_ == size) return;
     size_ = size;
-
-    auto render_context = RenderContext::get_singleton();
-    if (render_context->get_device()) {
-        vector_target_ = render_context->get_device()->create_texture({size_, Pathfinder::TextureFormat::Rgba8Unorm},
-                                                                      "render target texture");
-    }
 }
 
 void RenderTarget::set_blit_texture(std::shared_ptr<Pathfinder::Texture> texture) {
