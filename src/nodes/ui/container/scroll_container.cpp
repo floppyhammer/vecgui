@@ -1,4 +1,5 @@
 #include "scroll_container.h"
+
 #include "../../scene_tree.h"
 
 using Pathfinder::clamp;
@@ -278,8 +279,14 @@ void ScrollContainer::pre_draw_children() {
         return;
     }
 
-    auto global_pos = get_global_position();
     float dpi_scale = tree_ ? tree_->get_dpi_scale() : 1.0f;
+    auto window_builder = RenderContext::get_singleton()->get_window_builder();
+    if (window_builder) {
+        dpi_scale = window_builder->get_dpi_scaling_factor(get_window_index());
+    }
+
+    auto global_pos = get_global_position();
+
     auto size = get_size() * dpi_scale;
 
     auto vector_server = VectorServer::get_singleton();
@@ -312,6 +319,10 @@ void ScrollContainer::post_draw_children() {
     canvas->get_scene()->pop_render_target();
 
     float dpi_scale = tree_ ? tree_->get_dpi_scale() : 1.0f;
+    auto window_builder = RenderContext::get_singleton()->get_window_builder();
+    if (window_builder) {
+        dpi_scale = window_builder->get_dpi_scaling_factor(get_window_index());
+    }
 
     auto dst_rect = RectF(global_pos * dpi_scale, (global_pos + size) * dpi_scale);
     canvas->draw_render_target(temp_draw_data.render_target_id, dst_rect);

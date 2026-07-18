@@ -39,7 +39,11 @@ void RenderContext::destroy() {
 }
 
 std::shared_ptr<Pathfinder::WindowBuilder> RenderContext::get_window_builder() const {
+#ifdef VECGUI_USE_WINDOW
     return impl_->window_builder_;
+#else
+    return nullptr;
+#endif
 }
 
 std::shared_ptr<Pathfinder::Device> RenderContext::get_device() const {
