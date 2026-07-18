@@ -14,11 +14,10 @@ SceneTree::SceneTree(Vec2I primary_window_size) {
     auto primary_window = std::make_shared<ProxyWindow>(primary_window_size, 0);
     primary_window->name = "Primary window";
     root = primary_window;
+    root->tree_ = this;
 #else
     Logger::error("You are creating a windowed scene tree without a window system!");
 #endif
-
-    root->tree_ = this;
 }
 
 SceneTree::SceneTree() {
@@ -331,10 +330,16 @@ std::shared_ptr<Pathfinder::Window> SceneTree::get_primary_window() const {
 }
 
 Vec2I SceneTree::get_view_size() const {
+    if (!root) {
+        return Vec2I{0, 0};
+    }
     return root->get_size();
 }
 
 float SceneTree::get_dpi_scale() const {
+    if (!root) {
+        return 1.0f;
+    }
     return root->get_dpi_scale();
 }
 

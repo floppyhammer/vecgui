@@ -153,7 +153,7 @@ protected:
     // Also, we must initialize it to null.
     Node *parent{};
 
-    SceneTree *tree_;
+    SceneTree *tree_{};
 
     // Called when subtree structure changes.
     std::vector<AnyCallable<void>> subtree_changed_callbacks;
