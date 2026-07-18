@@ -48,15 +48,23 @@ void ProxyWindow::pre_draw_propagation() {
     auto render_context = RenderContext::get_singleton();
     auto window = render_context->get_window_builder()->get_window(window_index_).lock();
 
+    auto vector_server = VectorServer::get_singleton();
+
     // Sync physical size and DPI from window.
     dpi_scale_ = window->get_dpi_scaling_factor();
     auto physical_size = window->get_physical_size();
+
+    vector_server->set_global_scale(window->get_dpi_scaling_factor());
 
     if (!vector_target_ || (physical_size != vector_target_->get_size() && !physical_size.is_any_zero())) {
         vector_target_ = render_context->get_device()->create_texture(
             {physical_size, Pathfinder::TextureFormat::Rgba8Unorm}, "dst texture");
 
-        size_ = physical_size;
+        vector_server->set_canvas_size(physical_size);
+
+        std::ostringstream ss;
+        ss << "Vector target of the primary window resized to " << physical_size;
+        Logger::info(ss.str(), "vecgui");
     }
 }
 
