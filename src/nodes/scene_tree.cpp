@@ -9,6 +9,7 @@
 
 namespace vecgui {
 
+#ifdef VECGUI_USE_WINDOW
 SceneTree::SceneTree(Vec2I primary_window_size) {
     auto primary_window = std::make_shared<ProxyWindow>(primary_window_size, 0);
     primary_window->name = "Primary window";
@@ -16,6 +17,7 @@ SceneTree::SceneTree(Vec2I primary_window_size) {
     root = primary_window;
     root->tree_ = this;
 }
+#endif
 
 SceneTree::SceneTree() {
     // In headless mode, we use a generic RenderTarget as the root.
@@ -30,7 +32,12 @@ void propagate_input(Node* node, InputEvent& event) {
     }
 
     for (auto& child : node->get_all_children_reversed()) {
-        if (typeid(*child) == typeid(ProxyWindow) || !node->get_visibility()) {
+#ifdef VECGUI_USE_WINDOW
+        if (typeid(*child) == typeid(ProxyWindow)) {
+            continue;
+        }
+#endif
+        if (!node->get_visibility()) {
             continue;
         }
 
@@ -77,8 +84,16 @@ void input_system(Node* root, std::vector<InputEvent>& input_queue) {
         dfs_postorder_rtl_traversal(root, nodes);
 
         for (auto& node : nodes) {
-            if (typeid(*node) == typeid(ProxyWindow) || typeid(*node) == typeid(PopupMenu)) {
+#ifdef VECGUI_USE_WINDOW
+            if (typeid(*node) == typeid(ProxyWindow)) {
                 priority_nodes.push_back(node);
+                continue;
+            }
+#endif
+
+            if (typeid(*node) == typeid(PopupMenu)) {
+                priority_nodes.push_back(node);
+                continue;
             }
         }
     }
@@ -198,7 +213,7 @@ void SceneTree::process(double dt) {
         return;
     }
 
-#if !defined(VECGUI_USE_OFFSCREEN)
+#if defined(VECGUI_USE_WINDOW)
     auto primary_window = get_primary_window();
     if (primary_window && primary_window->get_resize_flag()) {
         Logger::info("Notify window resizing", "vecgui");
@@ -284,7 +299,7 @@ bool SceneTree::render() const {
         target->post_draw_propagation();
     }
 
-#if !defined(VECGUI_USE_OFFSCREEN)
+#if defined(VECGUI_USE_WINDOW)
     auto primary_window = get_primary_window();
     bool should_close = primary_window ? primary_window->should_close() : false;
 
@@ -307,7 +322,7 @@ void SceneTree::quit() {
 }
 
 std::shared_ptr<Pathfinder::Window> SceneTree::get_primary_window() const {
-#if !defined(VECGUI_USE_OFFSCREEN)
+#if defined(VECGUI_USE_WINDOW)
     if (auto proxy_window = std::dynamic_pointer_cast<ProxyWindow>(root)) {
         return proxy_window->get_raw_window();
     }

@@ -2,12 +2,10 @@
 
 #include "render_target.h"
 
-#if !defined(VECGUI_USE_OFFSCREEN)
 namespace Pathfinder {
 class Window;
 class Blit;
-}
-#endif
+} // namespace Pathfinder
 
 namespace vecgui {
 
@@ -25,9 +23,7 @@ public:
 
     void set_visibility(bool visible) override;
 
-#if !defined(VECGUI_USE_OFFSCREEN)
     std::shared_ptr<Pathfinder::Window> get_raw_window() const;
-#endif
 
 protected:
     uint8_t window_index_;

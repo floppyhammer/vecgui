@@ -132,7 +132,7 @@ public:
     bool is_key_pressed(KeyCode code) const;
 
 private:
-#if !defined(ANDROID) && !defined(VECGUI_USE_OFFSCREEN)
+#if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
     GLFWcursor *arrow_cursor, *ibeam_cursor, *crosshair_cursor, *hand_cursor, *resize_cursor_h, *resize_cursor_v;
     GLFWcursor *resize_tlbr_cursor, *resize_trbl_cursor;
 #endif

@@ -1,13 +1,9 @@
 #include "proxy_window.h"
 
 #include "../common/geometry.h"
+#include "../servers/input_server.h"
 #include "../servers/render_server.h"
 #include "../servers/vector_server.h"
-#include "../servers/input_server.h"
-
-#if !defined(VECGUI_USE_OFFSCREEN)
-#include <pathfinder/prelude.h>
-#endif
 
 namespace vecgui {
 
@@ -15,7 +11,6 @@ ProxyWindow::ProxyWindow(const Vec2I size, const int window_index) : RenderTarge
     type = NodeType::Window;
     window_index_ = window_index;
 
-#if !defined(VECGUI_USE_OFFSCREEN)
     auto render_server = RenderServer::get_singleton();
 
     if (window_index_ == 255) {
@@ -31,11 +26,9 @@ ProxyWindow::ProxyWindow(const Vec2I size, const int window_index) : RenderTarge
 
     blit_ = std::make_shared<Pathfinder::Blit>(
         render_server->device_, render_server->queue_, swap_chain_->get_surface_format());
-#endif
 }
 
 void ProxyWindow::update(double dt) {
-#if !defined(VECGUI_USE_OFFSCREEN)
     auto render_server = RenderServer::get_singleton();
     auto window = render_server->window_builder_->get_window(window_index_).lock();
 
@@ -45,7 +38,6 @@ void ProxyWindow::update(double dt) {
     } else {
         window->show();
     }
-#endif
 }
 
 void ProxyWindow::pre_draw_propagation() {
@@ -53,7 +45,6 @@ void ProxyWindow::pre_draw_propagation() {
         return;
     }
 
-#if !defined(VECGUI_USE_OFFSCREEN)
     auto render_server = RenderServer::get_singleton();
     auto window = render_server->window_builder_->get_window(window_index_).lock();
 
@@ -69,14 +60,9 @@ void ProxyWindow::pre_draw_propagation() {
             size_ = physical_size;
         }
     }
-#endif
-
-    // Call base class to setup VectorServer.
-    RenderTarget::pre_draw_propagation();
 }
 
 void ProxyWindow::post_draw_propagation() {
-#if !defined(VECGUI_USE_OFFSCREEN)
     auto render_server = RenderServer::get_singleton();
     auto vector_server = VectorServer::get_singleton();
 
@@ -92,6 +78,7 @@ void ProxyWindow::post_draw_propagation() {
     render_server->queue_->begin_frame(render_server->device_->get_current_frame_index());
 
     // Submit vector commands.
+    vector_server->set_dst_texture(vector_target_);
     vector_server->submit_and_clear();
 
     auto encoder = render_server->device_->create_command_encoder("Window main encoder");
@@ -108,9 +95,6 @@ void ProxyWindow::post_draw_propagation() {
 
     swap_chain_->submit(encoder);
     swap_chain_->present();
-#else
-    RenderTarget::post_draw_propagation();
-#endif
 }
 
 void ProxyWindow::set_visibility(bool visible) {
@@ -121,12 +105,10 @@ void ProxyWindow::set_visibility(bool visible) {
     visible_ = visible;
 }
 
-#if !defined(VECGUI_USE_OFFSCREEN)
 std::shared_ptr<Pathfinder::Window> ProxyWindow::get_raw_window() const {
     auto render_server = RenderServer::get_singleton();
     auto window = render_server->window_builder_->get_window(window_index_).lock();
     return window;
 }
-#endif
 
 } // namespace vecgui

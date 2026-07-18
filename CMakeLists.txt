@@ -14,19 +14,23 @@ endif ()
 option(VECGUI_VULKAN "Use Vulkan instead of OpenGL" ON)
 option(VECGUI_FRIBIDI "Use fribidi instead of icu" ON)
 option(VECGUI_BUILD_EXAMPLES "Build native examples" OFF)
-option(VECGUI_OFFSCREEN "Build in offscreen mode (no physical window dependency)" OFF)
+option(VECGUI_WINDOW "Build with GLFW dependency and window management" ON)
 
 file(GLOB_RECURSE VECGUI_SRC_FILES CONFIGURE_DEPENDS
         src/*.cpp
         third_party/tinyfiledialogs/tinyfiledialogs.c
 )
 
-if (VECGUI_OFFSCREEN)
+if (NOT VECGUI_WINDOW)
     list(REMOVE_ITEM VECGUI_SRC_FILES
             "${CMAKE_CURRENT_SOURCE_DIR}/src/app.cpp"
     )
+    list(REMOVE_ITEM VECGUI_SRC_FILES
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/nodes/proxy_window.cpp"
+    )
 endif ()
 
+# All headers
 file(GLOB_RECURSE VECGUI_HDR_FILES CONFIGURE_DEPENDS
         src/*.h
 )
@@ -50,9 +54,9 @@ endif ()
 
 add_library(vecgui SHARED ${VECGUI_SRC_FILES})
 
-if (VECGUI_OFFSCREEN)
-    target_compile_definitions(vecgui PUBLIC VECGUI_USE_OFFSCREEN)
-    set(VECGUI_USE_OFFSCREEN 1)
+if (VECGUI_WINDOW)
+    target_compile_definitions(vecgui PUBLIC VECGUI_USE_WINDOW)
+    set(VECGUI_USE_WINDOW 1)
 endif ()
 
 set(VECGUI_CONFIG_H "${CMAKE_CURRENT_SOURCE_DIR}/src/vecgui_config.h")
@@ -133,10 +137,10 @@ else ()
     set(PATHFINDER_BACKEND_VULKAN OFF)
 endif ()
 set(PATHFINDER_USE_D3D11 OFF)
-if (VECGUI_OFFSCREEN)
-    set(PATHFINDER_WINDOW OFF CACHE BOOL "Disable windowing in pathfinder" FORCE)
+if (VECGUI_WINDOW)
+    set(PATHFINDER_WINDOW ON)
 else ()
-    set(PATHFINDER_WINDOW ON CACHE BOOL "Enable windowing in pathfinder" FORCE)
+    set(PATHFINDER_WINDOW OFF)
 endif ()
 target_include_directories(vecgui PUBLIC "third_party/pathfinder-cpp")
 add_subdirectory("third_party/pathfinder-cpp")
@@ -160,7 +164,7 @@ if (APPLE)
             "-framework CoreGraphics" "-framework MetalKit" "-framework Foundation")
     target_link_options(vecgui PUBLIC "-Wl,-force_load,$<TARGET_FILE:pathfinder>")
 
-    if (NOT VECGUI_OFFSCREEN)
+    if (VECGUI_WINDOW)
         target_link_libraries(vecgui PUBLIC "-framework Cocoa")
     endif ()
 else ()

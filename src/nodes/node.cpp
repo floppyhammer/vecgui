@@ -96,8 +96,15 @@ void dfs_postorder_rtl_traversal_skip_priority_node_and_invisible(Node *node, st
     if (node == nullptr || !node->get_visibility()) {
         return;
     }
+
+#ifdef VECGUI_USE_WINDOW
     // Skip ProxyWindow and all its children.
     if (typeid(*node) == typeid(ProxyWindow)) {
+        return;
+    }
+#endif
+
+    if (typeid(*node) == typeid(RenderTarget)) {
         return;
     }
 
@@ -289,8 +296,8 @@ bool Node::get_global_visibility() const {
 
 uint8_t Node::get_window_index() const {
     if (type == NodeType::Window) {
+#ifdef VECGUI_USE_WINDOW
         auto sub_window_node = (ProxyWindow *)this;
-#if !defined(VECGUI_USE_OFFSCREEN)
         auto raw_window = sub_window_node->get_raw_window();
         return raw_window ? raw_window->window_index : 0;
 #else

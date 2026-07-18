@@ -18,12 +18,12 @@
 #include "ui/container/split_container.h"
 #include "ui/container/tab_container.h"
 #include "ui/label.h"
-#include "ui/subtitle/subtitle.h"
 #include "ui/panel.h"
 #include "ui/popup_menu.h"
 #include "ui/progress_bar.h"
 #include "ui/slider.h"
 #include "ui/spin_box.h"
+#include "ui/subtitle/subtitle.h"
 #include "ui/text_edit.h"
 #include "ui/texture_rect.h"
 #include "ui/tree.h"
@@ -75,9 +75,6 @@ private:
     std::shared_ptr<RenderTarget> root;
 
     bool quited = false;
-
-    // todo
-    std::thread render_thread;
 };
 
 } // namespace vecgui
