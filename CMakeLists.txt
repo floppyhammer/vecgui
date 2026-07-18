@@ -57,7 +57,6 @@ add_library(vecgui SHARED ${VECGUI_SRC_FILES}
 
 if (VECGUI_WINDOW)
     target_compile_definitions(vecgui PUBLIC VECGUI_USE_WINDOW)
-    set(VECGUI_USE_WINDOW 1)
 endif ()
 
 if (APPLE)
@@ -67,9 +66,9 @@ if (APPLE)
         file(RELATIVE_PATH REL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src" "${HDR_DIR}")
 
         if (REL_DIR STREQUAL "")
-            set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers")
+            set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers/vecgui")
         else ()
-            set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers/${REL_DIR}")
+            set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers/vecgui/${REL_DIR}")
         endif ()
     endforeach ()
 
