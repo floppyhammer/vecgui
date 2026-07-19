@@ -1,4 +1,4 @@
-package graphics.revector.demo;
+package graphics.vecgui.demo;
 
 import com.google.androidgamesdk.GameActivity;
 
@@ -16,6 +16,6 @@ public class MainActivity extends GameActivity {
     }
 
     static {
-        System.loadLibrary("revector_android_demo");
+        System.loadLibrary("vecgui_android_demo");
     }
 }

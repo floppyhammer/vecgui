@@ -9,6 +9,10 @@
 namespace vecgui {
 
 std::string get_asset_dir(const std::string &relative_path) {
+#ifdef __ANDROID__
+    return relative_path;
+#endif
+
     // AppImage specific.
     const auto app_dir = getenv("APPDIR");
 

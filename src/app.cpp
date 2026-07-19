@@ -10,6 +10,8 @@
 #include "servers/input_server.h"
 #include "servers/render_server.h"
 #include "servers/vector_server.h"
+#include "pathfinder/gpu/gl/window_builder.h"
+#include "pathfinder/gpu/vk/window_builder.h"
 
 namespace vecgui {
 
@@ -23,7 +25,7 @@ App::App(Vec2I primary_window_size, const bool dark_mode, bool use_vulkan) {
 
     DefaultResource::get_singleton()->init(dark_mode_);
 
-    auto render_server = RenderContext::get_singleton();
+    auto render_context = RenderContext::get_singleton();
 
     #ifdef __APPLE__
     auto backend = Pathfinder::BackendType::Metal;
@@ -40,7 +42,7 @@ App::App(Vec2I primary_window_size, const bool dark_mode, bool use_vulkan) {
     auto device = window_builder->request_device();
     auto queue = window_builder->create_queue();
 
-    render_server->init(window_builder, device, queue);
+    render_context->init(window_builder, device, queue);
 
     // Create the main window.
     auto primary_window = window_builder->get_window(0);
@@ -63,33 +65,32 @@ App::App(ANativeWindow* native_window, void* asset_manager, Vec2I window_size, c
 
     DefaultResource::get_singleton()->init(dark_mode_);
 
-    auto render_server = RenderContext::get_singleton();
+    auto render_context = RenderContext::get_singleton();
 
-    std::shared_ptr<Pathfinder::WindowBuilder> window_builder;
-
-    if (!use_vulkan) {
-        window_builder = std::make_shared<Pathfinder::WindowBuilderGl>(native_window, window_size);
-    } else {
-        InitVulkan();
-        window_builder = std::make_shared<Pathfinder::WindowBuilderVk>(native_window, window_size);
+    auto backend = Pathfinder::BackendType::Opengl;
+    if (use_vulkan) {
+        backend = Pathfinder::BackendType::Vulkan;
     }
-
-    render_server->window_builder_ = window_builder;
-
-    // Create the main window.
-    auto primary_window = render_server->window_builder_->get_window(0);
+    auto window_builder = Pathfinder::WindowBuilder::new_impl(native_window, backend, window_size);
 
     // Create device and queue.
-    render_context->get_device() = window_builder->request_device();
-    render_server->queue_ = window_builder->create_queue();
+    auto device = window_builder->request_device();
+    auto queue = window_builder->create_queue();
+
+    render_context->init(window_builder, device, queue);
+
+    // Create the main window.
+    auto primary_window = render_context->get_window_builder()->get_window(0);
 
     auto vector_server = VectorServer::get_singleton();
     vector_server->init(primary_window.lock()->get_physical_size(),
-                        render_server->device_,
-                        render_server->queue_,
-                        Pathfinder::RenderLevel::D3d9);
+                        render_context->get_device(),
+                        render_context->get_queue(),
+                        Pathfinder::RenderMode::Hybrid);
 
     tree = std::make_unique<SceneTree>(window_size);
+
+    render_context->get_queue()->wait_idle();
 }
 #endif
 
@@ -109,38 +110,37 @@ std::shared_ptr<Node> App::get_tree_root() const {
 }
 
 void App::set_window_title(const std::string& title) {
-    auto render_server = RenderContext::get_singleton();
-    auto primary_window = render_server->get_window_builder()->get_window(0);
+    auto render_context = RenderContext::get_singleton();
+    auto primary_window = render_context->get_window_builder()->get_window(0);
     primary_window.lock()->set_window_title(title);
 }
 
 void App::set_fullscreen(bool fullscreen) {
-    auto render_server = RenderContext::get_singleton();
+    auto render_context = RenderContext::get_singleton();
 
-    render_server->get_window_builder()->set_fullscreen(fullscreen);
+    render_context->get_window_builder()->set_fullscreen(fullscreen);
 }
 
 void App::set_custom_scaling_factor(float new_value) {
-    auto render_server = RenderContext::get_singleton();
+    auto render_context = RenderContext::get_singleton();
 
-    render_server->get_window_builder()->set_dpi_scaling_factor(0, new_value);
+    render_context->get_window_builder()->set_dpi_scaling_factor(0, new_value);
 }
 
 float App::get_scaling_factor() const {
-    auto render_server = RenderContext::get_singleton();
+    auto render_context = RenderContext::get_singleton();
 
-    return render_server->get_window_builder()->get_dpi_scaling_factor(0);
+    return render_context->get_window_builder()->get_dpi_scaling_factor(0);
 }
 
 void App::main_loop() {
     bool closing_app = false;
 
-    auto render_server = RenderContext::get_singleton();
-
-    render_server->get_queue()->wait_idle();
+    auto render_context = RenderContext::get_singleton();
+    render_context->get_queue()->wait_idle();
 
     while (!closing_app) {
-        render_server->get_window_builder()->poll_events();
+        render_context->get_window_builder()->poll_events();
 
         // Engine processing.
         Engine::get_singleton()->tick();
@@ -156,7 +156,7 @@ void App::main_loop() {
         closing_app = tree->render();
     }
 
-    render_server->get_window_builder()->stop_and_destroy_swapchains();
+    render_context->get_window_builder()->stop_and_destroy_swapchains();
 }
 
 bool App::single_run() {

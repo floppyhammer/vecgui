@@ -5,10 +5,7 @@
 #include <iostream>
 #include <random>
 
-// clang-format off
-#include "src/android/vulkan_wrapper.h"
 #include "src/app.h"
-// clang-format on
 
 vecgui::App *app;
 
@@ -41,7 +38,8 @@ class MyNode : public Node {
 
         {
             auto button = std::make_shared<Button>();
-            button->set_icon_normal(std::make_shared<VectorImage>(get_asset_dir("icons/Node_Button.svg")));
+            button->set_icon_normal(
+                    std::make_shared<VectorImage>(get_asset_dir("icons/Node_Button.svg")));
             button->container_sizing.flag_h = ContainerSizingFlag::ShrinkStart;
             vbox_container->add_child(button);
         }
@@ -81,49 +79,54 @@ class MyNode : public Node {
 void handle_cmd(android_app *app_ctx, int32_t cmd) {
     switch (cmd) {
         case APP_CMD_START:
-            __android_log_print(ANDROID_LOG_INFO, "revector", "APP_CMD_START");
+            __android_log_print(ANDROID_LOG_INFO, "vecgui", "APP_CMD_START");
             break;
         case APP_CMD_RESUME:
-            __android_log_print(ANDROID_LOG_INFO, "revector", "APP_CMD_RESUME");
+            __android_log_print(ANDROID_LOG_INFO, "vecgui", "APP_CMD_RESUME");
             break;
         case APP_CMD_PAUSE:
-            __android_log_print(ANDROID_LOG_INFO, "revector", "APP_CMD_PAUSE");
+            __android_log_print(ANDROID_LOG_INFO, "vecgui", "APP_CMD_PAUSE");
             break;
         case APP_CMD_STOP:
-            __android_log_print(ANDROID_LOG_INFO, "revector", "APP_CMD_STOP");
+            __android_log_print(ANDROID_LOG_INFO, "vecgui", "APP_CMD_STOP");
             break;
         case APP_CMD_DESTROY:
-            __android_log_print(ANDROID_LOG_INFO, "revector", "APP_CMD_DESTROY");
+            __android_log_print(ANDROID_LOG_INFO, "vecgui", "APP_CMD_DESTROY");
             break;
         case APP_CMD_INIT_WINDOW: {
-            __android_log_print(ANDROID_LOG_INFO, "revector", "APP_CMD_INIT_WINDOW");
+            __android_log_print(ANDROID_LOG_INFO, "vecgui", "APP_CMD_INIT_WINDOW");
 
             AConfiguration *config = AConfiguration_new();
             AConfiguration_fromAssetManager(config, app_ctx->activity->assetManager);
             int32_t dpi = AConfiguration_getDensity(config);
-            float dpi_scale = (float)dpi / DPI_STANDARD;
+            float dpi_scale = (float) dpi / DPI_STANDARD;
             AConfiguration_delete(config);
-            __android_log_print(ANDROID_LOG_INFO, "revector", "DPI: %d, Expected scale factor: %.1f", dpi, dpi_scale);
+            __android_log_print(ANDROID_LOG_INFO, "vecgui",
+                                "DPI: %d, Expected scale factor: %.1f", dpi, dpi_scale);
 
             auto window_size =
-                Pathfinder::Vec2I(ANativeWindow_getWidth(app_ctx->window), ANativeWindow_getHeight(app_ctx->window));
+                    Pathfinder::Vec2I(ANativeWindow_getWidth(app_ctx->window),
+                                      ANativeWindow_getHeight(app_ctx->window));
 
-            app = new vecgui::App(app_ctx->window, app_ctx->activity->assetManager, window_size, true, USE_VULKAN);
+            app = new vecgui::App(app_ctx->window, app_ctx->activity->assetManager, window_size,
+                                  true, USE_VULKAN);
             app->set_custom_scaling_factor(dpi_scale);
 
             app->get_tree_root()->add_child(std::make_shared<MyNode>());
-        } break;
+        }
+            break;
         case APP_CMD_TERM_WINDOW: {
-            __android_log_print(ANDROID_LOG_INFO, "revector", "APP_CMD_TERM_WINDOW");
+            __android_log_print(ANDROID_LOG_INFO, "vecgui", "APP_CMD_TERM_WINDOW");
 
             app->single_run_cleanup();
 
             // The window is being hidden or closed or rotated, clean it up.
             delete app;
             app = nullptr;
-        } break;
+        }
+            break;
         default:
-            __android_log_print(ANDROID_LOG_INFO, "revector", "Event not handled: %d", cmd);
+            __android_log_print(ANDROID_LOG_INFO, "vecgui", "Event not handled: %d", cmd);
     }
 }
 
@@ -136,14 +139,18 @@ void handle_motion_event(GameActivityMotionEvent *event) {
     int32_t pointerIndex = 0;
 
     // Only get pointer index for specific actions (DOWN/UP)
-    if (actionMasked == AMOTION_EVENT_ACTION_POINTER_DOWN || actionMasked == AMOTION_EVENT_ACTION_POINTER_UP) {
+    if (actionMasked == AMOTION_EVENT_ACTION_POINTER_DOWN ||
+        actionMasked == AMOTION_EVENT_ACTION_POINTER_UP) {
         pointerIndex =
-            (event->action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+                (event->action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK)
+                        >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
     }
 
     // Get X/Y coordinates for the affected pointer
-    float x = GameActivityPointerAxes_getAxisValue(&event->pointers[pointerIndex], AMOTION_EVENT_AXIS_X);
-    float y = GameActivityPointerAxes_getAxisValue(&event->pointers[pointerIndex], AMOTION_EVENT_AXIS_Y);
+    float x = GameActivityPointerAxes_getAxisValue(&event->pointers[pointerIndex],
+                                                   AMOTION_EVENT_AXIS_X);
+    float y = GameActivityPointerAxes_getAxisValue(&event->pointers[pointerIndex],
+                                                   AMOTION_EVENT_AXIS_Y);
 
     float x_pos = x / app->get_scaling_factor();
     float y_pos = y / app->get_scaling_factor();
@@ -156,35 +163,40 @@ void handle_motion_event(GameActivityMotionEvent *event) {
             input_event.type = InputEventType::MouseButton;
             input_event.args.mouse_button.button = 0;
             input_event.args.mouse_button.pressed = true;
-            input_event.args.mouse_button.position = {(float)x_pos, (float)y_pos};
+            input_event.args.mouse_button.position = {(float) x_pos, (float) y_pos};
             input_server->input_queue.push_back(input_event);
-            input_server->cursor_position = {(float)x_pos, (float)y_pos};
-        } break;
+            input_server->cursor_position = {(float) x_pos, (float) y_pos};
+        }
+            break;
         case AMOTION_EVENT_ACTION_UP: {
             InputEvent input_event{};
             input_event.type = InputEventType::MouseButton;
             input_event.args.mouse_button.button = 0;
             input_event.args.mouse_button.pressed = false;
-            input_event.args.mouse_button.position = {(float)x_pos, (float)y_pos};
+            input_event.args.mouse_button.position = {(float) x_pos, (float) y_pos};
             input_server->input_queue.push_back(input_event);
 
-            input_server->cursor_position = {(float)x_pos, (float)y_pos};
-        } break;
+            input_server->cursor_position = {(float) x_pos, (float) y_pos};
+        }
+            break;
         case AMOTION_EVENT_ACTION_HOVER_MOVE:
         case AMOTION_EVENT_ACTION_MOVE: {
             InputEvent input_event{};
             input_event.type = InputEventType::MouseMotion;
-            input_event.args.mouse_motion.position = {(float)x_pos, (float)y_pos};
+            input_event.args.mouse_motion.position = {(float) x_pos, (float) y_pos};
             input_server->last_cursor_position = input_server->cursor_position;
 
-            input_server->cursor_position = {(float)x_pos, (float)y_pos};
+            input_server->cursor_position = {(float) x_pos, (float) y_pos};
 
-            input_event.args.mouse_motion.relative = input_server->cursor_position - input_server->last_cursor_position;
+            input_event.args.mouse_motion.relative =
+                    input_server->cursor_position - input_server->last_cursor_position;
             input_server->input_queue.push_back(input_event);
-        } break;
+        }
+            break;
         case AMOTION_EVENT_ACTION_SCROLL: {
-            __android_log_print(ANDROID_LOG_INFO, "revector", "INPUT: SCROLL (%.1f, %.1f)", x, y);
-        } break;
+            __android_log_print(ANDROID_LOG_INFO, "vecgui", "INPUT: SCROLL (%.1f, %.1f)", x, y);
+        }
+            break;
     }
 }
 
@@ -205,23 +217,22 @@ void android_main(struct android_app *app_ctx) {
 
     // Main loop.
     do {
-        if (ALooper_pollOnce(0, nullptr, &events, (void **)&source) >= 0) {
+        if (ALooper_pollOnce(0, nullptr, &events, (void **) &source) >= 0) {
             if (source != nullptr) {
                 source->process(app_ctx, source);
             }
         }
 
         // 2. Get the current input buffer
-        android_input_buffer *inputBuffer = android_app_swap_input_buffers(app_ctx);
+        android_input_buffer *input_buffer = android_app_swap_input_buffers(app_ctx);
 
         // 3. Process Motion Events (Touch/Controller Analog)
-        if (inputBuffer && inputBuffer->motionEventsCount) {
-            for (int i = 0; i < inputBuffer->motionEventsCount; i++) {
-                // Process inputBuffer->motionEvents[i] (a GameActivityMotionEvent*)
-                handle_motion_event(&inputBuffer->motionEvents[i]);
+        if (input_buffer && input_buffer->motionEventsCount) {
+            for (int i = 0; i < input_buffer->motionEventsCount; i++) {
+                handle_motion_event(&input_buffer->motionEvents[i]);
             }
             // Clear the motion events queue for the next frame
-            android_app_clear_motion_events(inputBuffer);
+            android_app_clear_motion_events(input_buffer);
         }
 
         if (app) {

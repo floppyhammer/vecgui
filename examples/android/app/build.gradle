@@ -5,7 +5,7 @@ android {
     ndkVersion '28.1.13356709'
 
     defaultConfig {
-        applicationId "graphics.revector.demo"
+        applicationId "graphics.vecgui.demo"
         minSdkVersion 24
         targetSdkVersion 36
 
@@ -19,7 +19,7 @@ android {
         externalNativeBuild {
             cmake {
                 abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
-                arguments '-DANDROID_TOOLCHAIN=clang', '-DANDROID_STL=c++_static', "-DCMAKE_BUILD_TYPE=Release"
+                arguments '-DANDROID_TOOLCHAIN=clang', '-DANDROID_STL=c++_static'
             }
         }
     }
@@ -31,7 +31,13 @@ android {
     }
     buildTypes.release.minifyEnabled = false
     buildFeatures.prefab = true
-    namespace 'graphics.revector.demo'
+    namespace 'graphics.vecgui.demo'
+
+    sourceSets {
+        main {
+            assets.srcDirs += ['../../../assets']
+        }
+    }
 }
 
 dependencies {

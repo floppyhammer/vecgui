@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4.1)
 
-project(revector_android_demo)
+project(vecgui_android_demo)
 
 # Integrate GameActivity, refer to
 #     https://d.android.com/games/agdk/integrate-game-activity
@@ -37,7 +37,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         game-activity::game-activity
         log
         android
-        revector
+        vecgui
         EGL # GL
         ${OPENGL_LIB} # GL
 )
