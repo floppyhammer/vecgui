@@ -52,8 +52,7 @@ if (APPLE)
     set(VECGUI_FRIBIDI ON)
 endif ()
 
-add_library(vecgui SHARED ${VECGUI_SRC_FILES}
-        src/servers/render_server.cpp)
+add_library(vecgui STATIC ${VECGUI_SRC_FILES})
 
 if (VECGUI_WINDOW)
     target_compile_definitions(vecgui PUBLIC VECGUI_USE_WINDOW)
