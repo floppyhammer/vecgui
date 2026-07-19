@@ -215,9 +215,15 @@ void SceneTree::process(double dt) {
 #if defined(VECGUI_USE_WINDOW)
     auto primary_window = get_primary_window();
     if (primary_window && primary_window->get_resize_flag()) {
-        Logger::info("Notify window resizing", "vecgui");
+        std::ostringstream ss;
+        ss << "Notify window resizing: physical size " << primary_window->get_physical_size() << " | logical size "
+           << primary_window->get_logical_size() << std::endl;
+
+        Logger::info(ss.str(), "vecgui");
         notify_primary_window_size_changed(primary_window->get_logical_size());
         root->set_size(primary_window->get_logical_size());
+
+        primary_window->clear_resize_flag();
     }
 #endif
 
