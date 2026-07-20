@@ -242,12 +242,16 @@ void NodeUi::apply_anchor() {
         parent_size = tree_->get_view_size().to_f32();
     }
 
-    auto actual_size = get_effective_minimum_size().max(size);
+    auto minimal_size = get_effective_minimum_size();
 
-    float center_x = (parent_size.x - actual_size.x) * 0.5f;
-    float center_y = (parent_size.y - actual_size.y) * 0.5f;
-    float right = parent_size.x - actual_size.x;
-    float bottom = parent_size.y - actual_size.y;
+    float center_x = (parent_size.x - minimal_size.x) * 0.5f;
+    float center_y = (parent_size.y - minimal_size.y) * 0.5f;
+    float right = parent_size.x - minimal_size.x;
+    float bottom = parent_size.y - minimal_size.y;
+
+    if (anchor_mode != AnchorFlag::None) {
+        set_size(minimal_size);
+    }
 
     switch (anchor_mode) {
         case AnchorFlag::None: {
@@ -282,27 +286,27 @@ void NodeUi::apply_anchor() {
         } break;
         case AnchorFlag::LeftWide: {
             position = {0, 0};
-            size = {actual_size.x, parent_size.y};
+            size = {minimal_size.x, parent_size.y};
         } break;
         case AnchorFlag::RightWide: {
             position = {right, 0};
-            size = {actual_size.x, parent_size.y};
+            size = {minimal_size.x, parent_size.y};
         } break;
         case AnchorFlag::TopWide: {
             position = {0, 0};
-            size = {parent_size.x, actual_size.y};
+            size = {parent_size.x, minimal_size.y};
         } break;
         case AnchorFlag::BottomWide: {
             position = {0, bottom};
-            size = {parent_size.x, actual_size.y};
+            size = {parent_size.x, minimal_size.y};
         } break;
         case AnchorFlag::VCenterWide: {
             position = {0, center_y};
-            size = {parent_size.x, actual_size.y};
+            size = {parent_size.x, minimal_size.y};
         } break;
         case AnchorFlag::HCenterWide: {
             position = {center_x, 0};
-            size = {actual_size.x, parent_size.y};
+            size = {minimal_size.x, parent_size.y};
         } break;
         case AnchorFlag::FullRect: {
             position = {0, 0};
