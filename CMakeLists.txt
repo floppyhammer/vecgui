@@ -89,7 +89,8 @@ if (APPLE)
     )
 endif ()
 
-file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
+# Copy the assets to the binary directory.
+file(COPY "assets" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 # Has to be 20 or above.
 target_compile_features(vecgui PUBLIC cxx_std_20)
@@ -189,9 +190,6 @@ if (VECGUI_FRIBIDI)
 
     target_compile_definitions(vecgui PUBLIC VECGUI_USE_FRIBIDI)
 endif ()
-
-# Copy the assets to the binary directory.
-file(COPY "assets" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 # Build examples.
 if (VECGUI_BUILD_EXAMPLES)
