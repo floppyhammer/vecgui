@@ -10,8 +10,6 @@
 #include "servers/input_server.h"
 #include "servers/render_server.h"
 #include "servers/vector_server.h"
-#include "pathfinder/gpu/gl/window_builder.h"
-#include "pathfinder/gpu/vk/window_builder.h"
 
 namespace vecgui {
 
