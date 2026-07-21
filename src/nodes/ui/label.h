@@ -68,6 +68,12 @@ public:
 
     void set_vertical_alignment(Alignment alignment);
 
+    float get_line_spacing() const { return line_spacing_; }
+    void set_line_spacing(float spacing);
+
+    float get_letter_spacing() const { return letter_spacing_; }
+    void set_letter_spacing(float spacing);
+
     void calc_minimum_size() override;
 
     void adjust_layout() override;
@@ -158,6 +164,9 @@ private:
     Alignment horizontal_alignment = Alignment::Center;
     Alignment vertical_alignment = Alignment::Center;
     Vec2F alignment_shift{0};
+
+    float line_spacing_ = 0.0f;
+    float letter_spacing_ = 0.0f;
 
     BidiAlignment bidi_alignment_ = BidiAlignment::Auto;
 };

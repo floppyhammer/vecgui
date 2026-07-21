@@ -65,8 +65,9 @@ std::vector<Pathfinder::Range> get_line_breakable_groups(const std::vector<Layou
 std::vector<Line> get_lines_with_word_wrap(float limited_width,
                                            const std::vector<Line> &original_paras,
                                            const std::vector<LayoutGlyph> &glyphs,
-                                           Vec2F &out_text_size) {
-    float tracking = 0;
+                                           Vec2F &out_text_size,
+                                           float letter_spacing) {
+    float tracking = letter_spacing;
 
     std::vector<Line> wrapped_lines;
 
@@ -358,6 +359,13 @@ void Label::measure() {
     }
     font->get_glyphs(spans_, font_size_, glyphs_, paragraphs_);
 
+    // Apply letter spacing to paragraph widths.
+    for (auto &para : paragraphs_) {
+        if (para.glyph_ranges.length() > 1) {
+            para.width += (para.glyph_ranges.length() - 1) * letter_spacing_;
+        }
+    }
+
     // Add emoji data.
     if (emoji_font && emoji_font->is_valid()) {
         for (auto &glyph : glyphs_) {
@@ -389,14 +397,14 @@ void Label::make_layout() {
     glyph_boxes.clear();
     character_boxes.clear();
 
-    float line_height = font_size_;
+    float line_height = font_size_ + line_spacing_;
 
     float cursor_x = 0;
     float cursor_y = 0;
 
     if (word_wrap_) {
         Vec2F text_size{};
-        lines_ = get_lines_with_word_wrap(size.x, paragraphs_, layout_glyphs_, text_size);
+        lines_ = get_lines_with_word_wrap(size.x, paragraphs_, layout_glyphs_, text_size, letter_spacing_);
     }
 
     const auto &effective_line_ranges = word_wrap_ ? lines_ : paragraphs_;
@@ -438,7 +446,7 @@ void Label::make_layout() {
             // The glyph's layout box in the text's local coordinates.
             // The origin is the top-left corner of the text box.
             RectF glyph_layout_box =
-                RectF(cursor_x + g.x_offset, cursor_y + g.y_offset, cursor_x + g.x_advance, cursor_y + line_height);
+                RectF(cursor_x + g.x_offset, cursor_y + g.y_offset, cursor_x + g.x_advance, cursor_y + (float)font_size_);
 
             glyph_positions[i] = {cursor_x + g.x_offset, cursor_y + g.y_offset};
 
@@ -447,6 +455,9 @@ void Label::make_layout() {
 
             // Advance x.
             cursor_x += g.x_advance;
+            if (i < range.end - 1) {
+                cursor_x += letter_spacing_;
+            }
         }
 
         cursor_x = 0;
@@ -586,6 +597,22 @@ void Label::set_vertical_alignment(Alignment alignment) {
     queue_relayout();
 }
 
+void Label::set_line_spacing(float spacing) {
+    if (line_spacing_ == spacing) {
+        return;
+    }
+    line_spacing_ = spacing;
+    queue_relayout();
+}
+
+void Label::set_letter_spacing(float spacing) {
+    if (letter_spacing_ == spacing) {
+        return;
+    }
+    letter_spacing_ = spacing;
+    queue_relayout();
+}
+
 void Label::calc_minimum_size() {
     if (need_to_remeasure) {
         measure();
@@ -614,7 +641,12 @@ Vec2F Label::get_text_minimum_size() const {
         effective_max_para_width = std::max(effective_max_para_width, line.width);
     }
 
-    Vec2F text_bbox = {effective_max_para_width, effecttive_lines.size() * (float)font_size_};
+    float total_height = 0;
+    if (!effecttive_lines.empty()) {
+        total_height = (float)effecttive_lines.size() * (float)font_size_ + (float)(effecttive_lines.size() - 1) * line_spacing_;
+    }
+
+    Vec2F text_bbox = {effective_max_para_width, total_height};
 
     if (word_wrap_) {
         return Vec2F(0, text_bbox.y);
@@ -640,6 +672,11 @@ float Label::get_glyph_right_edge_position(int32_t glyph_index) {
 
     for (int i = 0; i <= glyph_index; i++) {
         pos += glyphs_[i].x_advance;
+        if (i < (int)glyphs_.size() - 1) {
+            // Check if next glyph is on the same line.
+            // This is a bit simplified, ideally we'd check paragraph/line boundaries.
+            pos += letter_spacing_;
+        }
     }
 
     return pos;
@@ -652,6 +689,7 @@ float Label::get_glyph_left_edge_position(int32_t glyph_index) {
 
     for (int i = 0; i < glyph_index; i++) {
         pos += glyphs_[i].x_advance;
+        pos += letter_spacing_;
     }
 
     return pos;
