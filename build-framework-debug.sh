@@ -1,4 +1,4 @@
-mkdir -p build && cd build
+mkdir -p build-debug-macos && cd build-debug-macos
 
 cmake .. -DVECGUI_WINDOW=OFF -DCMAKE_BUILD_TYPE=Debug
 
