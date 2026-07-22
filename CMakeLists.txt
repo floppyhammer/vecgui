@@ -54,6 +54,13 @@ endif ()
 
 add_library(vecgui STATIC ${VECGUI_SRC_FILES})
 
+# Copy the assets to the runtime output directory.
+add_custom_command(TARGET vecgui POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets
+)
+
 if (VECGUI_WINDOW)
     target_compile_definitions(vecgui PUBLIC VECGUI_USE_WINDOW)
 endif ()
@@ -190,13 +197,6 @@ endif ()
 
 # Build examples.
 if (VECGUI_BUILD_EXAMPLES)
-    # Copy the assets to the runtime output directory.
-    add_custom_command(TARGET vecgui POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets
-            ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets
-    )
-
     add_subdirectory(examples/file_selection)
     add_subdirectory(examples/container_layout)
     add_subdirectory(examples/texture_rect)
