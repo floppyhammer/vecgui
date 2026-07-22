@@ -402,13 +402,14 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         // The combined_shadow_path already has local transforms baked in.
         canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform);
 
-        if (style.shadow_radius > 0 && style.shadow_color.is_visible()) {
+        if (style.shadow_color.is_visible()) {
             canvas->set_shadow_color(style.shadow_color.apply_alpha(alpha * style.alpha));
             canvas->set_shadow_blur(style.shadow_radius);
             // Note: offset is already baked into combined_shadow_path transforms.
             canvas->set_shadow_offset({0, 0});
 
-            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.shadow_color.apply_alpha(alpha * style.alpha)));
+            // Set a transparent color, as we don't need to draw the glyphs itself but only their shadows.
+            canvas->set_fill_paint(Pathfinder::Paint::from_color(ColorU::transparent_black()));
             canvas->fill_path(combined_shadow_path, Pathfinder::FillRule::Winding);
         }
 
