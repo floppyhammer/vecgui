@@ -36,6 +36,7 @@ class RichTextNode : public Node {
         style3.color = ColorU::blue();
         style3.shadow_color = ColorU::black();
         style3.shadow_radius = 16.0;
+        style3.shadow_offset = Vec2F(8.0, 8.0);
         label->add_span({"Label\n", style3});
 
         // 4. Mixed Style in Chinese
