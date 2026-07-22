@@ -445,8 +445,8 @@ void Label::make_layout() {
 
             // The glyph's layout box in the text's local coordinates.
             // The origin is the top-left corner of the text box.
-            RectF glyph_layout_box =
-                RectF(cursor_x + g.x_offset, cursor_y + g.y_offset, cursor_x + g.x_advance, cursor_y + (float)font_size_);
+            RectF glyph_layout_box = RectF(
+                cursor_x + g.x_offset, cursor_y + g.y_offset, cursor_x + g.x_advance, cursor_y + (float)font_size_);
 
             glyph_positions[i] = {cursor_x + g.x_offset, cursor_y + g.y_offset};
 
@@ -597,6 +597,15 @@ void Label::set_vertical_alignment(Alignment alignment) {
     queue_relayout();
 }
 
+void Label::set_bidi_alignment(BidiAlignment alignment) {
+    if (bidi_alignment_ == alignment) {
+        return;
+    }
+
+    bidi_alignment_ = alignment;
+    queue_relayout();
+}
+
 void Label::set_line_spacing(float spacing) {
     if (line_spacing_ == spacing) {
         return;
@@ -643,7 +652,8 @@ Vec2F Label::get_text_minimum_size() const {
 
     float total_height = 0;
     if (!effecttive_lines.empty()) {
-        total_height = (float)effecttive_lines.size() * (float)font_size_ + (float)(effecttive_lines.size() - 1) * line_spacing_;
+        total_height =
+            (float)effecttive_lines.size() * (float)font_size_ + (float)(effecttive_lines.size() - 1) * line_spacing_;
     }
 
     Vec2F text_bbox = {effective_max_para_width, total_height};

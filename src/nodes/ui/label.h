@@ -68,6 +68,8 @@ public:
 
     void set_vertical_alignment(Alignment alignment);
 
+    void set_bidi_alignment(BidiAlignment alignment);
+
     float get_line_spacing() const { return line_spacing_; }
     void set_line_spacing(float spacing);
 
