@@ -89,9 +89,6 @@ if (APPLE)
     )
 endif ()
 
-# Copy the assets to the binary directory.
-file(COPY "assets" DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-
 # Has to be 20 or above.
 target_compile_features(vecgui PUBLIC cxx_std_20)
 
@@ -193,6 +190,13 @@ endif ()
 
 # Build examples.
 if (VECGUI_BUILD_EXAMPLES)
+    # Copy the assets to the runtime output directory.
+    add_custom_command(TARGET vecgui POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets
+            ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets
+    )
+
     add_subdirectory(examples/file_selection)
     add_subdirectory(examples/container_layout)
     add_subdirectory(examples/texture_rect)
