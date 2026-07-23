@@ -249,6 +249,7 @@ void VectorServer::draw_style_line(const StyleLine &style_line, const Vec2F &sta
     canvas->set_transform(dpi_scaling_xform * global_transform_offset);
     canvas->set_stroke_paint(Pathfinder::Paint::from_color(style_line.color));
     canvas->set_line_width(style_line.width);
+    canvas->set_line_cap(Pathfinder::LineCap::Round);
     canvas->stroke_path(path);
 
     canvas->restore_state();
