@@ -377,7 +377,8 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
 
             if (p.y == current_line_y && g.style.shadow_color == style.shadow_color &&
                 g.style.shadow_radius == style.shadow_radius && g.style.shadow_offset == style.shadow_offset &&
-                g.style.local_transform == style.local_transform && g.style.alpha == style.alpha) {
+                g.style.shadow_strength == style.shadow_strength && g.style.local_transform == style.local_transform &&
+                g.style.alpha == style.alpha) {
                 if (!g.skip_drawing) {
                     auto shadow_pos = p + style.shadow_offset;
                     auto baseline_xform = Transform2::from_translation({0, g.ascent});
@@ -404,6 +405,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
 
         if (style.shadow_color.is_visible()) {
             canvas->set_shadow_color(style.shadow_color.apply_alpha(alpha * style.alpha));
+            canvas->set_shadow_strength(style.shadow_strength);
             canvas->set_shadow_blur(style.shadow_radius);
             // Note: offset is already baked into combined_shadow_path transforms.
             canvas->set_shadow_offset({0, 0});

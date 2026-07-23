@@ -214,6 +214,7 @@ struct TextStyle {
 
     // Shadow.
     ColorU shadow_color = ColorU::transparent_black();
+    float shadow_strength = 1.0f;
     float shadow_radius = 0;
     Vec2F shadow_offset;
 

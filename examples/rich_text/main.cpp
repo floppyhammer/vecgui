@@ -35,6 +35,7 @@ class RichTextNode : public Node {
         TextStyle style3;
         style3.color = ColorU::blue();
         style3.shadow_color = ColorU::black();
+        style3.shadow_strength = 1.0;
         style3.shadow_radius = 8.0;
         style3.shadow_offset = Vec2F(4.0, 4.0);
         label->add_span({"Label\n", style3});
