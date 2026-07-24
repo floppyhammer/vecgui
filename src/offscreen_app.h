@@ -34,6 +34,8 @@ public:
      */
     void render(std::shared_ptr<Pathfinder::Texture> target_texture);
 
+    void set_render_target_size(Vec2I size);
+
     std::shared_ptr<Node> get_tree_root() const;
 
 private:

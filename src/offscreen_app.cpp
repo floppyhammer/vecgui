@@ -68,6 +68,12 @@ void OffscreenApp::render(std::shared_ptr<Pathfinder::Texture> target_texture) {
     root_target->post_draw_propagation();
 }
 
+void OffscreenApp::set_render_target_size(Vec2I size) {
+    auto root = std::dynamic_pointer_cast<RenderTarget>(tree->get_root());
+    root->set_size(size);
+    root->when_parent_size_changed(size.to_f32());
+}
+
 std::shared_ptr<Node> OffscreenApp::get_tree_root() const {
     return tree->get_root();
 }
