@@ -923,6 +923,21 @@ void Font::get_glyphs(const std::vector<TextSpan> &spans,
         for (int i = spans.size() - 1; i >= 0; --i) {
             if (glyph.start >= span_offsets[i]) {
                 glyph.style = spans[i].style;
+
+                // Local font size.
+                if (spans[i].style.font_size.has_value()) {
+                    float scale = (float)spans[i].style.font_size.value() / (float)font_size;
+
+                    glyph.bbox = glyph.bbox * scale;
+                    glyph.box = glyph.box * scale;
+                    glyph.x_advance = glyph.x_advance * scale;
+                    glyph.y_advance = glyph.y_advance * scale;
+                    glyph.ascent = glyph.ascent * scale;
+                    glyph.descent = glyph.descent * scale;
+
+                    glyph.path.transform(Transform2::from_scale(Vec2F(scale)));
+                }
+
                 break;
             }
         }

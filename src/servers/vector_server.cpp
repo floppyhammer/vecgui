@@ -478,7 +478,9 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
 
         // Build a combined path for this styling run to apply gradient correctly across all letters.
         for (int k = i; k < j; k++) {
-            if (glyphs[k].skip_drawing || glyphs[k].emoji) continue;
+            if (glyphs[k].skip_drawing || glyphs[k].emoji) {
+                continue;
+            }
 
             auto baseline_xform = Transform2::from_translation({0, glyphs[k].ascent});
             auto local_glyph_transform = Transform2::from_translation(glyph_positions[k]) * baseline_xform;

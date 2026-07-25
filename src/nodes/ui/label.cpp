@@ -397,8 +397,6 @@ void Label::make_layout() {
     glyph_boxes.clear();
     character_boxes.clear();
 
-    float line_height = font_size_ + line_spacing_;
-
     float cursor_x = 0;
     float cursor_y = 0;
 
@@ -440,15 +438,37 @@ void Label::make_layout() {
             } break;
         }
 
+        uint32_t max_font_size_in_line = font_size_;
+
+        for (int i = range.start; i < range.end; i++) {
+            const auto &g = glyphs_[i];
+            if (g.style.font_size.has_value()) {
+                max_font_size_in_line = std::max(max_font_size_in_line, g.style.font_size.value());
+            }
+        }
+
         for (int i = range.start; i < range.end; i++) {
             const auto &g = glyphs_[i];
 
+            uint32_t current_font_size = font_size_;
+            if (g.style.font_size.has_value()) {
+                current_font_size = g.style.font_size.value();
+            }
+
+            // Calculate the height difference between the current character's box and the maximum line height.
+            // Since the origin is at the top and Y is positive downward, smaller fonts need to be shifted downward.
+            float bottom_offset_y = (float)(max_font_size_in_line - current_font_size);
+
             // The glyph's layout box in the text's local coordinates.
             // The origin is the top-left corner of the text box.
-            RectF glyph_layout_box = RectF(
-                cursor_x + g.x_offset, cursor_y + g.y_offset, cursor_x + g.x_advance, cursor_y + (float)font_size_);
+            RectF glyph_layout_box = RectF(cursor_x + g.x_offset,
+                                           cursor_y + g.y_offset,
+                                           cursor_x + g.x_advance,
+                                           cursor_y + (float)current_font_size);
 
-            glyph_positions[i] = {cursor_x + g.x_offset, cursor_y + g.y_offset};
+            // After adding bottom_offset_y, the bottom of this character will align with the line's unified bottom
+            // boundary.
+            glyph_positions[i] = {cursor_x + g.x_offset, cursor_y + g.y_offset + bottom_offset_y};
 
             // The whole text's layout box.
             layout_box = layout_box.union_rect(glyph_layout_box);
@@ -461,7 +481,7 @@ void Label::make_layout() {
         }
 
         cursor_x = 0;
-        cursor_y += line_height;
+        cursor_y += max_font_size_in_line + line_spacing_;
     }
 }
 
