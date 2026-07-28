@@ -925,8 +925,8 @@ void Font::get_glyphs(const std::vector<TextSpan> &spans,
                 glyph.style = spans[i].style;
 
                 // Local font size.
-                if (spans[i].style.font_size.has_value()) {
-                    float scale = (float)spans[i].style.font_size.value() / (float)font_size;
+                if (spans[i].style.font_size != font_size) {
+                    float scale = (float)spans[i].style.font_size / (float)font_size;
 
                     glyph.bbox = glyph.bbox * scale;
                     glyph.box = glyph.box * scale;

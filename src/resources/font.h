@@ -204,8 +204,7 @@ inline std::wstring utf8_to_ws(std::string const &utf8) {
 struct TextStyle {
     ColorU color = ColorU::white();
 
-    /// Optional: custom font size.
-    std::optional<uint32_t> font_size;
+    uint32_t font_size = 24u;
 
     bool italic = false;
     bool bold = false;

@@ -442,18 +442,13 @@ void Label::make_layout() {
 
         for (int i = range.start; i < range.end; i++) {
             const auto &g = glyphs_[i];
-            if (g.style.font_size.has_value()) {
-                max_font_size_in_line = std::max(max_font_size_in_line, g.style.font_size.value());
-            }
+            max_font_size_in_line = std::max(max_font_size_in_line, g.style.font_size);
         }
 
         for (int i = range.start; i < range.end; i++) {
             const auto &g = glyphs_[i];
 
-            uint32_t current_font_size = font_size_;
-            if (g.style.font_size.has_value()) {
-                current_font_size = g.style.font_size.value();
-            }
+            uint32_t current_font_size = g.style.font_size;
 
             // Calculate the height difference between the current character's box and the maximum line height.
             // Since the origin is at the top and Y is positive downward, smaller fonts need to be shifted downward.
