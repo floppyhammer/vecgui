@@ -11,12 +11,6 @@ using Pathfinder::Transform2;
 
 namespace vecgui {
 
-enum class Bidi {
-    Auto,
-    LeftToRight,
-    RightToLeft,
-};
-
 std::vector<Pathfinder::Range> get_line_breakable_groups(const std::vector<LayoutGlyph> &glyphs, int offset) {
     std::vector<Pathfinder::Range> groups;
 
@@ -224,7 +218,7 @@ Label::Label() {
     }
     // emoji_font = Font::from_file("assets/fonts/EmojiOneColor.otf");
 
-    font_size_ = default_theme->font_size;
+    text_style.font_size = default_theme->font_size;
 }
 
 void Label::set_text(const std::string &new_text) {
@@ -354,10 +348,12 @@ std::vector<LayoutGlyph> convert_to_in_context_glyphs(const std::vector<Glyph> &
 }
 
 void Label::measure() {
+    uint32_t font_size = get_font_size();
+
     if (spans_.empty() && !text_.empty()) {
         spans_.push_back({text_, text_style});
     }
-    font->get_glyphs(spans_, font_size_, glyphs_, paragraphs_);
+    font->get_glyphs(spans_, font_size, glyphs_, paragraphs_);
 
     // Apply letter spacing to paragraph widths.
     for (auto &para : paragraphs_) {
@@ -378,8 +374,8 @@ void Label::measure() {
 
                 glyph.svg = emoji_font->get_glyph_svg(glyph_index);
                 if (!glyph.svg.empty() && glyph.index == 0) {
-                    glyph.x_advance = font_size_;
-                    glyph.box = {0, 0, (float)font_size_, (float)font_size_};
+                    glyph.x_advance = font_size;
+                    glyph.box = {0, 0, (float)font_size, (float)font_size};
                 }
             }
         }
@@ -438,7 +434,7 @@ void Label::make_layout() {
             } break;
         }
 
-        uint32_t max_font_size_in_line = font_size_;
+        uint32_t max_font_size_in_line = get_font_size();
 
         for (int i = range.start; i < range.end; i++) {
             const auto &g = glyphs_[i];
@@ -492,12 +488,16 @@ void Label::set_font(std::shared_ptr<Font> new_font) {
 }
 
 void Label::set_font_size(uint32_t new_font_size) {
-    if (font_size_ == new_font_size) {
+    if (text_style.font_size == new_font_size) {
         return;
     }
-    font_size_ = new_font_size;
+    text_style.font_size = new_font_size;
     need_to_remeasure = true;
     queue_relayout();
+}
+
+uint32_t Label::get_font_size() const {
+    return text_style.font_size;
 }
 
 void Label::set_word_wrap(bool word_wrap) {
@@ -646,7 +646,7 @@ void Label::calc_minimum_size() {
     auto min_size = get_text_minimum_size();
 
     // A Label has a minimal height even when the text is empty.
-    min_size.y = std::max(min_size.y, (float)font_size_);
+    min_size.y = std::max(min_size.y, (float)get_font_size());
 
     calculated_minimum_size = min_size;
 }
@@ -667,8 +667,8 @@ Vec2F Label::get_text_minimum_size() const {
 
     float total_height = 0;
     if (!effecttive_lines.empty()) {
-        total_height =
-            (float)effecttive_lines.size() * (float)font_size_ + (float)(effecttive_lines.size() - 1) * line_spacing_;
+        total_height = (float)effecttive_lines.size() * (float)get_font_size() +
+                       (float)(effecttive_lines.size() - 1) * line_spacing_;
     }
 
     Vec2F text_bbox = {effective_max_para_width, total_height};

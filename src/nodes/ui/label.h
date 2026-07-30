@@ -54,13 +54,9 @@ public:
 
     void set_font_size(uint32_t new_font_size);
 
-    uint32_t get_font_size() const {
-        return font_size_;
-    }
+    uint32_t get_font_size() const;
 
     void set_text_style(TextStyle new_text_style);
-
-    void update(double dt) override;
 
     void draw() override;
 
@@ -108,7 +104,9 @@ public:
     std::optional<TextStyle> theme_override_text_style;
     TextStyle text_style;
 
-private:
+protected:
+    void update(double dt) override;
+
     void measure();
 
     void make_layout();
@@ -130,8 +128,6 @@ private:
     /// text_u32_ is related to navigation, glyphs_ is more about rendering.
 
     std::shared_ptr<Font> font, emoji_font;
-
-    uint32_t font_size_;
 
     bool clip = false;
 
