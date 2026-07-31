@@ -181,7 +181,7 @@ std::shared_ptr<Theme> Theme::default_dark() {
         theme->slider.colors["grabber_fill_pressed"] = ColorU(235, 235, 235, 150);
     }
 
-    theme->load_unifont();
+    theme->load_font("unifont-17.0.03.otf");
 
     return theme;
 }
@@ -356,7 +356,7 @@ std::shared_ptr<Theme> Theme::default_light() {
         theme->slider.colors["grabber_fill_pressed"] = ColorU(255, 255, 255, 150);
     }
 
-    theme->load_unifont();
+    theme->load_font("unifont-17.0.03.otf");
 
     return theme;
 }
@@ -365,14 +365,14 @@ std::shared_ptr<Theme> Theme::from_json(const std::string& json) {
     return nullptr;
 }
 
-void Theme::load_unifont() {
+void Theme::load_font(const std::string& font_path) {
     font = DefaultResource::get_singleton()->get_default_font();
 
-    const auto new_font = Font::from_file(get_asset_dir("unifont-17.0.03.otf"));
+    const auto new_font = Font::from_file(get_asset_dir(font_path));
     if (new_font) {
         font = new_font;
     } else {
-        Logger::warn("Unifont not found", "vecgui");
+        Logger::warn("Font not found: " + font_path, "vecgui");
     }
 }
 

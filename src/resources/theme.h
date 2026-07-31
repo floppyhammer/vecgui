@@ -19,7 +19,7 @@ public:
     // TODO
     static std::shared_ptr<Theme> from_json(const std::string& json);
 
-    void load_unifont();
+    void load_font(const std::string& font_path);
 
     std::shared_ptr<Font> font;
 
