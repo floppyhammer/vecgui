@@ -108,8 +108,7 @@ void handle_cmd(android_app *app_ctx, int32_t cmd) {
                     Pathfinder::Vec2I(ANativeWindow_getWidth(app_ctx->window),
                                       ANativeWindow_getHeight(app_ctx->window));
 
-            app = new vecgui::App(app_ctx->window, app_ctx->activity->assetManager, window_size,
-                                  true, USE_VULKAN);
+            app = new vecgui::App(app_ctx->window, app_ctx->activity->assetManager, window_size, USE_VULKAN);
             app->set_custom_scaling_factor(dpi_scale);
 
             app->get_tree_root()->add_child(std::make_shared<MyNode>());

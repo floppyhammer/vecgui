@@ -84,7 +84,7 @@ private:
 };
 
 int main() {
-    App app({800, 600}, true);
+    App app({800, 600});
     app.set_window_title("Anchor Flag Demo");
 
     auto root = app.get_tree_root();

@@ -181,8 +181,6 @@ std::shared_ptr<Theme> Theme::default_dark() {
         theme->slider.colors["grabber_fill_pressed"] = ColorU(235, 235, 235, 150);
     }
 
-    theme->load_font("unifont-17.0.03.otf");
-
     return theme;
 }
 
@@ -355,8 +353,6 @@ std::shared_ptr<Theme> Theme::default_light() {
         theme->slider.colors["grabber_fill_hovered"] = ColorU(255, 255, 255);
         theme->slider.colors["grabber_fill_pressed"] = ColorU(255, 255, 255, 150);
     }
-
-    theme->load_font("unifont-17.0.03.otf");
 
     return theme;
 }

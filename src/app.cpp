@@ -14,14 +14,12 @@
 namespace vecgui {
 
 #ifndef __ANDROID__
-App::App(Vec2I primary_window_size, const bool dark_mode, bool use_vulkan) {
+App::App(Vec2I primary_window_size, bool use_vulkan) {
     // Set logger level.
     Logger::set_global_level(Logger::Level::Info);
     Logger::set_module_level("vecgui", Logger::Level::Info);
 
-    dark_mode_ = dark_mode;
-
-    DefaultResource::get_singleton()->init(dark_mode_);
+    DefaultResource::get_singleton()->init(true);
 
     auto render_context = RenderContext::get_singleton();
 
@@ -52,16 +50,14 @@ App::App(Vec2I primary_window_size, const bool dark_mode, bool use_vulkan) {
 }
 
 #else
-App::App(ANativeWindow* native_window, void* asset_manager, Vec2I window_size, const bool dark_mode, bool use_vulkan) {
+App::App(ANativeWindow* native_window, void* asset_manager, Vec2I window_size, bool use_vulkan) {
     // Set logger level.
     Logger::set_global_level(Logger::Level::Info);
     Logger::set_module_level("vecgui", Logger::Level::Info);
 
-    dark_mode_ = dark_mode;
-
     Engine::get_singleton()->asset_manager = asset_manager;
 
-    DefaultResource::get_singleton()->init(dark_mode_);
+    DefaultResource::get_singleton()->init(true);
 
     auto render_context = RenderContext::get_singleton();
 

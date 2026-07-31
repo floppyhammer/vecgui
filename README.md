@@ -60,7 +60,7 @@ class MyScene : public Node {
 
 int main() {
     // Initialize App with 1280x720 window
-    App app({1280, 720}, true); 
+    App app({1280, 720}); 
     
     // Add your scene to the tree
     app.get_tree_root()->add_child(std::make_shared<MyScene>());

@@ -40,7 +40,7 @@ public:
 };
 
 int main() {
-    App app({640, 480}, true);
+    App app({640, 480});
 
     // Menu of a menu button.
     auto menu_button_top = std::make_shared<MenuButton>();

@@ -31,7 +31,7 @@ class MyNode : public NodeUi {
 };
 
 int main() {
-    App app({960, 480}, true);
+    App app({960, 480});
 
     app.get_tree_root()->add_child(std::make_shared<MyNode>());
 

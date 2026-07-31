@@ -11,15 +11,12 @@ namespace vecgui {
 
 OffscreenApp::OffscreenApp(std::shared_ptr<Pathfinder::Device> device,
                            std::shared_ptr<Pathfinder::Queue> queue,
-                           Vec2I size,
-                           bool dark_mode) {
-    dark_mode_ = dark_mode;
-
+                           Vec2I size) {
     // Initialize Servers with provided hardware interface.
     auto render_context = RenderContext::get_singleton();
     render_context->init(nullptr, device, queue);
 
-    DefaultResource::get_singleton()->init(dark_mode_);
+    DefaultResource::get_singleton()->init(true);
 
     auto vector_server = VectorServer::get_singleton();
     vector_server->init(size, device, queue, Pathfinder::RenderMode::Hybrid);

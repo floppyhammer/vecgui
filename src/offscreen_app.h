@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+
 #include "common/geometry.h"
 #include "nodes/node.h"
 #include "nodes/scene_tree.h"
@@ -9,7 +10,7 @@ namespace Pathfinder {
 class Device;
 class Queue;
 class Texture;
-}
+} // namespace Pathfinder
 
 namespace vecgui {
 
@@ -17,8 +18,7 @@ class OffscreenApp {
 public:
     OffscreenApp(std::shared_ptr<Pathfinder::Device> device,
                  std::shared_ptr<Pathfinder::Queue> queue,
-                 Vec2I size,
-                 bool dark_mode);
+                 Vec2I size);
 
     ~OffscreenApp();
 
@@ -40,8 +40,6 @@ public:
 
 private:
     std::unique_ptr<SceneTree> tree;
-
-    bool dark_mode_ = false;
 };
 
 } // namespace vecgui

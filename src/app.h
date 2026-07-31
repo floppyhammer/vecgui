@@ -19,9 +19,9 @@ namespace vecgui {
 class App {
 public:
 #ifndef __ANDROID__
-    App(Vec2I primary_window_size, bool dark_mode, bool use_vulkan = true);
+    App(Vec2I primary_window_size, bool use_vulkan = true);
 #else
-    App(ANativeWindow* native_window, void* asset_manager, Vec2I window_size, bool dark_mode, bool use_vulkan = true);
+    App(ANativeWindow* native_window, void* asset_manager, Vec2I window_size, bool use_vulkan = true);
 #endif
 
     ~App();
@@ -44,8 +44,6 @@ public:
 
 private:
     std::unique_ptr<SceneTree> tree;
-
-    bool dark_mode_ = false;
 };
 
 } // namespace vecgui
