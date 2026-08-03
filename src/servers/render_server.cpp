@@ -31,11 +31,7 @@ void RenderContext::init(std::shared_ptr<Pathfinder::WindowBuilder> window_build
 }
 
 void RenderContext::destroy() {
-    impl_->queue_.reset();
-    impl_->device_.reset();
-#ifdef VECGUI_USE_WINDOW
-    impl_->window_builder_.reset();
-#endif
+    impl_.reset();
 }
 
 std::shared_ptr<Pathfinder::WindowBuilder> RenderContext::get_window_builder() const {
