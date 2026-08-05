@@ -105,22 +105,24 @@ endif ()
 
 # Debug information settings
 if (APPLE)
-    # Generate full DWARF debug info for Debug builds
-    target_compile_options(vecgui PUBLIC
-            "$<$<CONFIG:Debug>:-g>"
-            "$<$<CONFIG:Debug>:-gdwarf-4>"
-    )
+    # 1. Use global compile options so that sub-libraries (pathfinder, etc.) also get debug symbols
+    add_compile_options("$<$<CONFIG:Debug>:-g>")
+    add_compile_options("$<$<CONFIG:Debug>:-gdwarf-4>")
 
-    # Map source file paths so debugger can find them
-    target_compile_options(vecgui PUBLIC
-            "-fdebug-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}=."
-            "-fdebug-compilation-dir=${CMAKE_CURRENT_SOURCE_DIR}"
-    )
+    # 2. Configure target properties for vecgui
+    # We remove -fdebug-prefix-map to allow Xcode to find local source files by absolute path.
 
-    # Preserve debug symbols in the framework
     set_target_properties(vecgui PROPERTIES
-            XCODE_ATTRIBUTE_STRIP_DEBUG_SYMBOLS_DURING_COPY "NO"
-            XCODE_ATTRIBUTE_COPY_PHASE_STRIP "NO"
+            # Preserve debug symbols in the framework for Debug config
+            XCODE_ATTRIBUTE_STRIP_DEBUG_SYMBOLS_DURING_COPY "$<$<CONFIG:Debug>:NO>$<$<CONFIG:Release>:YES>"
+            XCODE_ATTRIBUTE_COPY_PHASE_STRIP "$<$<CONFIG:Debug>:NO>$<$<CONFIG:Release>:YES>"
+            XCODE_ATTRIBUTE_STRIP_INSTALLED_PRODUCT "$<$<CONFIG:Debug>:NO>$<$<CONFIG:Release>:YES>"
+
+            # Use 'dwarf' for Debug to keep symbols inside the binary (easier for local dev)
+            # Use 'dwarf-with-dsym' for Release to generate external symbol files
+            XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug>:dwarf>$<$<CONFIG:Release>:dwarf-with-dsym>"
+
+            XCODE_ATTRIBUTE_GCC_GENERATE_DEBUGGING_SYMBOLS "$<$<CONFIG:Debug>:YES>$<$<CONFIG:Release>:NO>"
     )
 endif ()
 
@@ -214,4 +216,5 @@ if (VECGUI_BUILD_EXAMPLES)
     add_subdirectory(examples/split_container)
     add_subdirectory(examples/slider)
     add_subdirectory(examples/anchor_flag)
+    add_subdirectory(examples/subtitle_demo)
 endif ()
