@@ -10,6 +10,7 @@ namespace vecgui {
 
 NodeUi::NodeUi() {
     type = NodeType::NodeUi;
+    calculated_global_transform = Pathfinder::Transform2();
 }
 
 void NodeUi::calc_minimum_size() {
@@ -44,9 +45,9 @@ void NodeUi::draw() {
     if (visible_ && debug_box.has_value()) {
         auto vector_server = VectorServer::get_singleton();
 
-        auto draw_position = get_draw_position();
+        auto global_transform = get_global_transform();
 
-        vector_server->draw_style_box(debug_box.value(), draw_position, size);
+        vector_server->draw_style_box(debug_box.value(), global_transform, size);
     }
 }
 
@@ -59,19 +60,21 @@ void NodeUi::input(InputEvent &event) {
         return;
     }
 
-    auto draw_position = get_draw_position();
+    auto global_to_local = calculated_global_transform.inverse();
 
-    auto active_rect = RectF(draw_position, draw_position + size);
+    // Hit testing rect in local space.
+    auto local_rect = RectF(-pivot * size, -pivot * size + size);
 
     // Handle mouse input propagation.
     bool consume_flag = false;
 
     switch (event.type) {
         case InputEventType::MouseMotion: {
-            // Mouse position relative to the node's origin.
-            local_mouse_position = event.args.mouse_motion.position - draw_position;
+            auto local_pos = global_to_local * event.args.mouse_motion.position;
+            // Mouse position relative to the node's top-left.
+            local_mouse_position = local_pos + pivot * size;
 
-            if (active_rect.contains_point(event.args.mouse_motion.position)) {
+            if (local_rect.contains_point(local_pos)) {
                 if (!event.consumed) {
                     if (!is_cursor_inside) {
                         cursor_entered();
@@ -89,9 +92,10 @@ void NodeUi::input(InputEvent &event) {
         } break;
         case InputEventType::MouseButton: {
             auto args = event.args.mouse_button;
+            auto local_pos = global_to_local * args.position;
 
             if (!event.consumed && args.pressed) {
-                if (active_rect.contains_point(args.position)) {
+                if (local_rect.contains_point(local_pos)) {
                     grab_focus();
 
                     consume_flag = true;
@@ -119,8 +123,25 @@ Vec2F NodeUi::get_draw_position() const {
     return calculated_global_position - pivot * size;
 }
 
-void NodeUi::calc_global_position(Vec2F parent_global_position) {
-    calculated_global_position = parent_global_position + position;
+Transform2 NodeUi::get_local_transform() const {
+    // Correct order for local transform:
+    // T = Translation(position) * Rotation(rotation) * Scale(scale) * Translation(-pivot * size)
+    // In Pathfinder API, A.op(B) means Op(B) * A.
+    // So we start from the innermost (last applied) operation.
+    return Transform2::from_translation(-pivot * size).scale(scale).rotate(rotation).translate(position);
+}
+
+Transform2 NodeUi::get_global_transform() const {
+    return calculated_global_transform;
+}
+
+void NodeUi::calc_global_transform(const Transform2 &parent_global_transform) {
+    calculated_global_transform = parent_global_transform * get_local_transform();
+    calculated_global_position = position;
+    if (parent && parent->is_ui_node()) {
+        auto ui_parent = dynamic_cast<NodeUi *>(parent);
+        calculated_global_position = ui_parent->get_global_position() + position;
+    }
 }
 
 void NodeUi::set_mouse_filter(MouseFilter filter) {
@@ -133,6 +154,30 @@ void NodeUi::set_pivot(Vec2F new_pivot) {
 
 Vec2F NodeUi::get_pivot() const {
     return pivot;
+}
+
+void NodeUi::set_rotation(float new_rotation) {
+    rotation = new_rotation;
+}
+
+float NodeUi::get_rotation() const {
+    return rotation;
+}
+
+void NodeUi::set_rotation_degree(float degree) {
+    rotation = degree * (Pathfinder::PI / 180.0f);
+}
+
+float NodeUi::get_rotation_degree() const {
+    return rotation * (180.0f / Pathfinder::PI);
+}
+
+void NodeUi::set_scale(Vec2F new_scale) {
+    scale = new_scale;
+}
+
+Vec2F NodeUi::get_scale() const {
+    return scale;
 }
 
 void NodeUi::set_position(Vec2F new_position) {

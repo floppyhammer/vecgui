@@ -116,7 +116,11 @@ public:
 
     Vec2F get_draw_position() const;
 
-    void calc_global_position(Vec2F parent_global_position);
+    Transform2 get_local_transform() const;
+
+    Transform2 get_global_transform() const;
+
+    void calc_global_transform(const Transform2 &parent_global_transform);
 
     virtual bool ignore_mouse_input_outside_rect() const {
         return false;
@@ -129,6 +133,18 @@ public:
     void set_pivot(Vec2F new_pivot);
 
     Vec2F get_pivot() const;
+
+    void set_rotation(float new_rotation);
+
+    float get_rotation() const;
+
+    void set_rotation_degree(float degree);
+
+    float get_rotation_degree() const;
+
+    void set_scale(Vec2F new_scale);
+
+    Vec2F get_scale() const;
 
     ContainerSizing container_sizing{};
 
@@ -180,6 +196,8 @@ protected:
     Vec2F pivot{0};
 
     Vec2F calculated_global_position{0};
+
+    Transform2 calculated_global_transform;
 
     bool layout_is_dirty = true;
 

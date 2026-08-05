@@ -50,7 +50,14 @@ public:
 
     void draw_style_box(const StyleBox &style_box, Vec2F position, Vec2F size, float alpha = 1.0f);
 
+    void draw_style_box(const StyleBox &style_box, const Transform2 &transform, Vec2F size, float alpha = 1.0f);
+
     void draw_style_line(const StyleLine &style_line, const Vec2F &start, const Vec2F &end);
+
+    void draw_style_line(const StyleLine &style_line,
+                         const Transform2 &transform,
+                         const Vec2F &start,
+                         const Vec2F &end);
 
     /**
      * @param transform

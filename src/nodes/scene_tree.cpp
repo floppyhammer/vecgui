@@ -112,17 +112,17 @@ void input_system(Node* root, std::vector<InputEvent>& input_queue) {
     }
 }
 
-void propagate_transform(NodeUi* node, Vec2F parent_global_transform) {
+void propagate_transform(NodeUi* node, Pathfinder::Transform2 parent_global_transform) {
     if (node == nullptr) {
         return;
     }
 
-    node->calc_global_position(parent_global_transform);
+    node->calc_global_transform(parent_global_transform);
 
     for (auto& child : node->get_all_children()) {
         if (child->is_ui_node()) {
             auto ui_child = dynamic_cast<NodeUi*>(child.get());
-            propagate_transform(ui_child, node->get_global_position());
+            propagate_transform(ui_child, node->get_global_transform());
         }
     }
 }
@@ -148,10 +148,10 @@ void transform_system(Node* root) {
 
 // There's no transform dependency between orphan UI nodes.
 #if defined(__APPLE__) || defined(__ANDROID__)
-    std::ranges::for_each(orphan_ui_nodes, [](NodeUi* ui_node) { propagate_transform(ui_node, Vec2F{}); });
+    std::ranges::for_each(orphan_ui_nodes, [](NodeUi* ui_node) { propagate_transform(ui_node, Pathfinder::Transform2()); });
 #else
     std::for_each(std::execution::par, orphan_ui_nodes.begin(), orphan_ui_nodes.end(), [](NodeUi* ui_node) {
-        propagate_transform(ui_node, Vec2F{});
+        propagate_transform(ui_node, Pathfinder::Transform2());
     });
 #endif
 }

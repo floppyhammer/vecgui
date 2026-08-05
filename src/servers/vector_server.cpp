@@ -179,6 +179,17 @@ void VectorServer::draw_style_box(const StyleBox &style_box, Vec2F position, Vec
         }
     }
 
+    draw_style_box(style_box, Pathfinder::Transform2::from_translation(position), size, alpha);
+}
+
+void VectorServer::draw_style_box(const StyleBox &style_box,
+                                  const Transform2 &transform,
+                                  Vec2F size,
+                                  float alpha) {
+    if (size.x <= 0 || size.y <= 0) {
+        return;
+    }
+
     auto path = Pathfinder::Path2d();
     if (style_box.corner_radii.has_value()) {
         path.add_rect_with_corners({{}, size}, style_box.corner_radii.value());
@@ -193,7 +204,6 @@ void VectorServer::draw_style_box(const StyleBox &style_box, Vec2F position, Vec
 
     const auto dpi_scaling_xform = Pathfinder::Transform2::from_scale(Vec2F(global_scale_, global_scale_));
 
-    const auto transform = Pathfinder::Transform2::from_translation(position);
     canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform);
 
     canvas->set_fill_paint(Pathfinder::Paint::from_color(style_box.bg_color.apply_alpha(alpha)));
@@ -210,7 +220,7 @@ void VectorServer::draw_style_box(const StyleBox &style_box, Vec2F position, Vec
         }
         if (widths.right > 0) {
             auto line = Pathfinder::Path2d();
-            line.add_line(Vec2F(0, size.x), size);
+            line.add_line(Vec2F(size.x, 0), size);
             canvas->set_stroke_paint(Pathfinder::Paint::from_color(style_box.border_color.apply_alpha(alpha)));
             canvas->set_line_width(widths.right);
             canvas->stroke_path(line);
@@ -224,7 +234,7 @@ void VectorServer::draw_style_box(const StyleBox &style_box, Vec2F position, Vec
         }
         if (widths.bottom > 0) {
             auto line = Pathfinder::Path2d();
-            line.add_line(Vec2F(0, size.y), Vec2F(0, size.y));
+            line.add_line(Vec2F(0, size.y), Vec2F(size.x, size.y));
             canvas->set_stroke_paint(Pathfinder::Paint::from_color(style_box.border_color.apply_alpha(alpha)));
             canvas->set_line_width(widths.bottom);
             canvas->stroke_path(line);
@@ -239,6 +249,13 @@ void VectorServer::draw_style_box(const StyleBox &style_box, Vec2F position, Vec
 }
 
 void VectorServer::draw_style_line(const StyleLine &style_line, const Vec2F &start, const Vec2F &end) {
+    draw_style_line(style_line, Pathfinder::Transform2(), start, end);
+}
+
+void VectorServer::draw_style_line(const StyleLine &style_line,
+                                   const Transform2 &transform,
+                                   const Vec2F &start,
+                                   const Vec2F &end) {
     auto path = Pathfinder::Path2d();
     path.add_line(start, end);
 
@@ -246,7 +263,7 @@ void VectorServer::draw_style_line(const StyleLine &style_line, const Vec2F &sta
 
     auto dpi_scaling_xform = Pathfinder::Transform2::from_scale(Vec2F(global_scale_, global_scale_));
 
-    canvas->set_transform(dpi_scaling_xform * global_transform_offset);
+    canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform);
     canvas->set_stroke_paint(Pathfinder::Paint::from_color(style_line.color));
     canvas->set_line_width(style_line.width);
     canvas->set_line_cap(Pathfinder::LineCap::Round);

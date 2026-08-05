@@ -568,7 +568,7 @@ void Label::draw() {
 
     NodeUi::draw();
 
-    auto draw_position = get_draw_position();
+    auto global_transform = get_global_transform();
 
     auto vector_server = VectorServer::get_singleton();
 
@@ -580,9 +580,9 @@ void Label::draw() {
     }
     auto theme_background = theme_override_bg.value_or(default_theme->label.styles["background"]);
 
-    vector_server->draw_style_box(theme_background, draw_position, size, alpha);
+    vector_server->draw_style_box(theme_background, global_transform, size, alpha);
 
-    auto translation = Transform2::from_translation(draw_position + alignment_shift);
+    auto translation = global_transform * Transform2::from_translation(alignment_shift);
 
     RectF clip_box;
     //    if (clip) {
