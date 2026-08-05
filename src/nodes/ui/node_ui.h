@@ -36,7 +36,7 @@ enum class AnchorFlag {
     RightWide,
     TopWide,
     BottomWide,
-    
+
     VCenterWide,
     HCenterWide,
 
@@ -114,6 +114,8 @@ public:
 
     Vec2F get_global_position() const;
 
+    Vec2F get_draw_position() const;
+
     void calc_global_position(Vec2F parent_global_position);
 
     virtual bool ignore_mouse_input_outside_rect() const {
@@ -123,6 +125,10 @@ public:
     void draw() override;
 
     void set_mouse_filter(MouseFilter filter);
+
+    void set_pivot(Vec2F new_pivot);
+
+    Vec2F get_pivot() const;
 
     ContainerSizing container_sizing{};
 
@@ -163,11 +169,15 @@ public:
     std::optional<StyleBox> debug_box;
 
 protected:
-    Vec2F position{0};
     Vec2F size{16, 16};
+
+    /// Transform.
+    Vec2F position{0};
     Vec2F scale{1};
-    Vec2F pivot_offset{0}; // Top-left as the default pivot.
     float rotation = 0;
+
+    /// Transform origin. Unit: normalized.
+    Vec2F pivot{0};
 
     Vec2F calculated_global_position{0};
 

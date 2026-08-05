@@ -19,6 +19,15 @@ StyleBox StyleBox::from_empty() {
     return box;
 }
 
+StyleBox StyleBox::simple_outline() {
+    StyleBox box;
+    box.bg_color = ColorU::transparent_black();
+    box.border_color = ColorU::white();
+    box.corner_radius = 0;
+    box.border_width = 1;
+    return box;
+}
+
 StyleBox StyleBox::lerp_style_box(const StyleBox target_box, const float t) const {
     StyleBox box;
     box.border_width = Pathfinder::lerp(border_width, target_box.border_width, t);

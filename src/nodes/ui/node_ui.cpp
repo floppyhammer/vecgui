@@ -44,9 +44,9 @@ void NodeUi::draw() {
     if (visible_ && debug_box.has_value()) {
         auto vector_server = VectorServer::get_singleton();
 
-        auto global_position = get_global_position();
+        auto draw_position = get_draw_position();
 
-        vector_server->draw_style_box(debug_box.value(), global_position, size);
+        vector_server->draw_style_box(debug_box.value(), draw_position, size);
     }
 }
 
@@ -59,9 +59,9 @@ void NodeUi::input(InputEvent &event) {
         return;
     }
 
-    auto global_position = get_global_position();
+    auto draw_position = get_draw_position();
 
-    auto active_rect = RectF(global_position, global_position + size);
+    auto active_rect = RectF(draw_position, draw_position + size);
 
     // Handle mouse input propagation.
     bool consume_flag = false;
@@ -69,7 +69,7 @@ void NodeUi::input(InputEvent &event) {
     switch (event.type) {
         case InputEventType::MouseMotion: {
             // Mouse position relative to the node's origin.
-            local_mouse_position = event.args.mouse_motion.position - global_position;
+            local_mouse_position = event.args.mouse_motion.position - draw_position;
 
             if (active_rect.contains_point(event.args.mouse_motion.position)) {
                 if (!event.consumed) {
@@ -115,12 +115,24 @@ Vec2F NodeUi::get_global_position() const {
     return calculated_global_position;
 }
 
+Vec2F NodeUi::get_draw_position() const {
+    return calculated_global_position - pivot * size;
+}
+
 void NodeUi::calc_global_position(Vec2F parent_global_position) {
     calculated_global_position = parent_global_position + position;
 }
 
 void NodeUi::set_mouse_filter(MouseFilter filter) {
     mouse_filter = filter;
+}
+
+void NodeUi::set_pivot(Vec2F new_pivot) {
+    pivot = new_pivot;
+}
+
+Vec2F NodeUi::get_pivot() const {
+    return pivot;
 }
 
 void NodeUi::set_position(Vec2F new_position) {
@@ -189,9 +201,9 @@ ColorU NodeUi::get_global_modulate() {
     if (parent && parent->is_ui_node()) {
         auto cast_parent = dynamic_cast<NodeUi *>(parent);
         return ColorU(modulate.to_f32() * cast_parent->get_global_modulate().to_f32());
-    } else {
-        return ColorU::white();
     }
+
+    return ColorU::white();
 }
 
 bool NodeUi::is_inside_container() const {

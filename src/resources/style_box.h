@@ -23,6 +23,8 @@ struct StyleBox {
 
     static StyleBox from_empty();
 
+    static StyleBox simple_outline();
+
     StyleBox lerp_style_box(StyleBox target_box, float t) const;
 };
 
