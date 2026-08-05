@@ -649,6 +649,13 @@ void Label::calc_minimum_size() {
     min_size.y = std::max(min_size.y, (float)get_font_size());
 
     calculated_minimum_size = min_size;
+
+    if (size.x < min_size.x) {
+        size.x = min_size.x;
+    }
+    if (size.y < min_size.y) {
+        size.y = min_size.y;
+    }
 }
 
 void Label::adjust_layout() {
