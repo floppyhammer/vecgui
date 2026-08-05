@@ -217,8 +217,6 @@ Label::Label() {
         font = DefaultResource::get_singleton()->get_default_font();
     }
     // emoji_font = Font::from_file("assets/fonts/EmojiOneColor.otf");
-
-    text_style.font_size = default_theme->font_size;
 }
 
 void Label::set_text(const std::string &new_text) {
@@ -231,7 +229,7 @@ void Label::set_text(const std::string &new_text) {
     utf8_to_utf32(text_, text_u32_);
 
     spans_.clear();
-    spans_.push_back({text_, text_style});
+    spans_.push_back({.text = text_, .style = get_text_style()});
 
     need_to_remeasure = true;
     queue_relayout();
@@ -351,7 +349,9 @@ void Label::measure() {
     uint32_t font_size = get_font_size();
 
     if (spans_.empty() && !text_.empty()) {
-        spans_.push_back({text_, text_style});
+        // NOTE: The style (especially colors) is "baked" into the glyphs during the measurement phase.
+        // If the system theme changes, labels using default colors may not update until re-measurement is triggered.
+        spans_.push_back({.text = text_, .style = get_text_style()});
     }
     font->get_glyphs(spans_, font_size, glyphs_, paragraphs_);
 
@@ -488,16 +488,23 @@ void Label::set_font(std::shared_ptr<Font> new_font) {
 }
 
 void Label::set_font_size(uint32_t new_font_size) {
-    if (text_style.font_size == new_font_size) {
+    if (get_font_size() == new_font_size) {
         return;
     }
-    text_style.font_size = new_font_size;
+    // Reuse old text style if there is any.
+    if (!text_style_.has_value()) {
+        text_style_ = get_text_style();
+    }
+    text_style_->font_size = new_font_size;
+
     need_to_remeasure = true;
     queue_relayout();
 }
 
 uint32_t Label::get_font_size() const {
-    return text_style.font_size;
+    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+
+    return text_style_.has_value() ? text_style_->font_size : default_theme->font_size;
 }
 
 void Label::set_word_wrap(bool word_wrap) {
@@ -551,11 +558,11 @@ void Label::update(double dt) {
     NodeUi::update(dt);
 }
 
-void Label::set_text_style(TextStyle _text_style) {
-    text_style = _text_style;
+void Label::set_text_style(TextStyle new_text_style) {
+    text_style_ = new_text_style;
     if (spans_.size() <= 1) {
         spans_.clear();
-        spans_.push_back({text_, text_style});
+        spans_.push_back({.text = text_, .style = new_text_style});
     }
     need_to_remeasure = true;
     queue_relayout();
@@ -574,10 +581,7 @@ void Label::draw() {
 
     auto default_theme = DefaultResource::get_singleton()->get_default_theme();
 
-    // Apply theme color if not overridden.
-    if (!theme_override_text_style.has_value() && text_style.color == ColorU::white()) {
-        text_style.color = default_theme->label.colors["text"];
-    }
+    TextStyle draw_style = get_text_style();
     auto theme_background = theme_override_bg.value_or(default_theme->label.styles["background"]);
 
     vector_server->draw_style_box(theme_background, global_transform, size, alpha);
@@ -591,7 +595,7 @@ void Label::draw() {
     //        clip_box = {{}, calc_minimum_size()};
     //    }
 
-    vector_server->draw_glyphs(glyphs_, glyph_positions, text_style, translation, clip_box, alpha);
+    vector_server->draw_glyphs(glyphs_, glyph_positions, draw_style, translation, clip_box, alpha);
 }
 
 void Label::set_horizontal_alignment(Alignment alignment) {
@@ -712,6 +716,19 @@ float Label::get_glyph_right_edge_position(int32_t glyph_index) {
     }
 
     return pos;
+}
+
+TextStyle Label::get_text_style() const {
+    // Apply theme color if not overridden.
+    if (!text_style_.has_value()) {
+        const auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+        TextStyle text_style;
+        text_style.color = default_theme->label.colors["text"];
+        text_style.font_size = default_theme->font_size;
+        return text_style;
+    }
+
+    return *text_style_;
 }
 
 float Label::get_glyph_left_edge_position(int32_t glyph_index) {

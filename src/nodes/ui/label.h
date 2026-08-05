@@ -35,8 +35,12 @@ public:
     void set_text(const std::string &new_text);
 
     void clear_spans();
+
     void add_span(const TextSpan &span);
-    const std::vector<TextSpan>& get_spans() const { return spans_; }
+
+    const std::vector<TextSpan> &get_spans() const {
+        return spans_;
+    }
 
     std::string get_text() const;
 
@@ -66,10 +70,14 @@ public:
 
     void set_bidi_alignment(BidiAlignment alignment);
 
-    float get_line_spacing() const { return line_spacing_; }
+    float get_line_spacing() const {
+        return line_spacing_;
+    }
     void set_line_spacing(float spacing);
 
-    float get_letter_spacing() const { return letter_spacing_; }
+    float get_letter_spacing() const {
+        return letter_spacing_;
+    }
     void set_letter_spacing(float spacing);
 
     void calc_minimum_size() override;
@@ -77,13 +85,21 @@ public:
     void adjust_layout() override;
 
     std::vector<Glyph> &get_glyphs();
-    const std::vector<Vec2F>& get_glyph_positions() const { return glyph_positions; }
+    const std::vector<Vec2F> &get_glyph_positions() const {
+        return glyph_positions;
+    }
 
     std::shared_ptr<Font> get_font() const;
 
-    Vec2F get_alignment_shift() const { return alignment_shift; }
+    Vec2F get_alignment_shift() const {
+        return alignment_shift;
+    }
 
-    RectF get_layout_box() const { return layout_box; }
+    RectF get_layout_box() const {
+        return layout_box;
+    }
+
+    TextStyle get_text_style() const;
 
     float get_glyph_left_edge_position(int32_t glyph_index);
 
@@ -101,8 +117,7 @@ public:
     void set_multi_line(bool enabled);
 
     std::optional<StyleBox> theme_override_bg;
-    std::optional<TextStyle> theme_override_text_style;
-    TextStyle text_style;
+    std::optional<TextStyle> text_style_;
 
 protected:
     void update(double dt) override;
