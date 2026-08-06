@@ -435,10 +435,11 @@ void Label::make_layout() {
         }
 
         uint32_t max_font_size_in_line = get_font_size();
-
+        float min_descent = 0;
         for (int i = range.start; i < range.end; i++) {
             const auto &g = glyphs_[i];
             max_font_size_in_line = std::max(max_font_size_in_line, g.style.font_size);
+            min_descent = std::min(min_descent, g.descent);
         }
 
         for (int i = range.start; i < range.end; i++) {
@@ -446,9 +447,14 @@ void Label::make_layout() {
 
             uint32_t current_font_size = g.style.font_size;
 
+            // Aligns baselines by compensating for different descender depths.
+            // Since descent is negative, (g.descent - min_descent) is the positive distance
+            // from this glyph's baseline to the line's deepest descender.
+            float descent_diff = g.descent - min_descent;
+
             // Calculate the height difference between the current character's box and the maximum line height.
             // Since the origin is at the top and Y is positive downward, smaller fonts need to be shifted downward.
-            float bottom_offset_y = (float)(max_font_size_in_line - current_font_size);
+            float bottom_offset_y = (float)(max_font_size_in_line - current_font_size - descent_diff);
 
             // The glyph's layout box in the text's local coordinates.
             // The origin is the top-left corner of the text box.
