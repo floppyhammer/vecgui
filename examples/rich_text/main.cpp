@@ -1,6 +1,5 @@
-#include <resources/default_resource.h>
-#include "app.h"
-#include "nodes/ui/subtitle/subtitle.h"
+#include "vecgui/resources/default_resource.h"
+#include "vecgui/app.h"
 
 using namespace vecgui;
 
@@ -69,10 +68,7 @@ class RichTextNode : public Node {
 
 int main() {
     App app({1280, 720});
-    auto s1 = std::make_shared<RichTextNode>();
-    auto s2 = std::make_shared<Subtitle>(true);
-    s2->set_anchor_flag(AnchorFlag::Center);
-    app.get_tree_root()->add_child(s2);
+    app.get_tree_root()->add_child(std::make_shared<RichTextNode>());
 
     app.main_loop();
 

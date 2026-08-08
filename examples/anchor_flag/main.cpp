@@ -2,11 +2,11 @@
 #include <string>
 #include <vector>
 
-#include "app.h"
-#include "nodes/ui/button/menu_button.h"
-#include "nodes/ui/label.h"
-#include "nodes/ui/panel.h"
-#include "nodes/ui/popup_menu.h"
+#include "vecgui/app.h"
+#include "vecgui/nodes/ui/button/menu_button.h"
+#include "vecgui/nodes/ui/label.h"
+#include "vecgui/nodes/ui/panel.h"
+#include "vecgui/nodes/ui/popup_menu.h"
 
 using namespace vecgui;
 

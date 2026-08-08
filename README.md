@@ -38,7 +38,7 @@ bitmap-based which suffer from blurriness on HiDPI screens. **VecGui** offers a 
 Creating a simple UI with a button in a horizontal container:
 
 ```cpp
-#include "src/app.h"
+#include "vecgui/app.h"
 
 using namespace vecgui;
 

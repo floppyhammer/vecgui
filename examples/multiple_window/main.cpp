@@ -1,8 +1,8 @@
 #include <iostream>
 #include <random>
 
-#include "app.h"
-#include "nodes/proxy_window.h"
+#include "vecgui/app.h"
+#include "vecgui/nodes/proxy_window.h"
 
 using namespace vecgui;
 

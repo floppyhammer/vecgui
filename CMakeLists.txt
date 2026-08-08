@@ -17,22 +17,22 @@ option(VECGUI_BUILD_EXAMPLES "Build native examples" OFF)
 option(VECGUI_WINDOW "Build with GLFW dependency and window management" ON)
 
 file(GLOB_RECURSE VECGUI_SRC_FILES CONFIGURE_DEPENDS
-        src/*.cpp
+        vecgui/*.cpp
         third_party/tinyfiledialogs/tinyfiledialogs.c
 )
 
 if (NOT VECGUI_WINDOW)
     list(REMOVE_ITEM VECGUI_SRC_FILES
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/app.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/vecgui/app.cpp"
     )
     list(REMOVE_ITEM VECGUI_SRC_FILES
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/nodes/proxy_window.cpp"
+            "${CMAKE_CURRENT_SOURCE_DIR}/vecgui/nodes/proxy_window.cpp"
     )
 endif ()
 
 # All headers
 file(GLOB_RECURSE VECGUI_HDR_FILES CONFIGURE_DEPENDS
-        src/*.h
+        vecgui/*.h
 )
 
 # Collect pathfinder headers that are needed by public API.
@@ -44,7 +44,7 @@ if (APPLE)
     enable_language(OBJC OBJCXX)
 
     file(GLOB_RECURSE VECGUI_SRC_FILES_APPLE CONFIGURE_DEPENDS
-            src/*.mm
+            vecgui/*.mm
     )
 
     file(GLOB VECGUI_SRC_FILES ${VECGUI_SRC_FILES} ${VECGUI_SRC_FILES_APPLE} ${VECGUI_HDR_FILES} ${PATHFINDER_HDR_FILES})
@@ -69,7 +69,7 @@ if (APPLE)
     # Preserve directory structure for vecgui headers.
     foreach (HDR ${VECGUI_HDR_FILES})
         get_filename_component(HDR_DIR "${HDR}" DIRECTORY)
-        file(RELATIVE_PATH REL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src" "${HDR_DIR}")
+        file(RELATIVE_PATH REL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vecgui" "${HDR_DIR}")
 
         if (REL_DIR STREQUAL "")
             set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers/vecgui")
@@ -127,7 +127,7 @@ if (APPLE)
 endif ()
 
 # Include external and third-party headers.
-target_include_directories(vecgui PUBLIC "src" "third_party")
+target_include_directories(vecgui PUBLIC "." "third_party")
 
 # Do this before add_subdirectory
 if (VECGUI_VULKAN)

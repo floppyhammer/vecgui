@@ -5,7 +5,7 @@
 #include <iostream>
 #include <random>
 
-#include "src/app.h"
+#include "vecgui/app.h"
 
 vecgui::App *app;
 

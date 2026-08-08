@@ -1,7 +1,7 @@
 #include <iostream>
 #include <random>
 
-#include "app.h"
+#include "vecgui/app.h"
 
 using namespace vecgui;
 

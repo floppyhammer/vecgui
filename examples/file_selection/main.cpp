@@ -1,8 +1,8 @@
 #include <iostream>
 #include <random>
 
-#include "app.h"
-#include "resources/default_resource.h"
+#include "vecgui/app.h"
+#include "vecgui/resources/default_resource.h"
 
 using namespace vecgui;
 
