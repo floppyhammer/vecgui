@@ -86,12 +86,11 @@ if (APPLE)
         set_source_files_properties("${HDR}" PROPERTIES MACOSX_PACKAGE_LOCATION "Headers/${REL_DIR}")
     endforeach ()
 
+    set(VECGUI_HDR_FILES ${VECGUI_HDR_FILES} PARENT_SCOPE)
+    set(PATHFINDER_HDR_FILES ${PATHFINDER_HDR_FILES} PARENT_SCOPE)
+
     set_target_properties(vecgui PROPERTIES
-            FRAMEWORK TRUE
-            MACOSX_FRAMEWORK_IDENTIFIER com.vecgui.framework
-            MACOSX_FRAMEWORK_BUNDLE_VERSION "0.1.0"
-            MACOSX_FRAMEWORK_SHORT_VERSION_STRING "0.1"
-            RESOURCE "assets"
+            FRAMEWORK FALSE
             XCODE_ATTRIBUTE_DEFINES_MODULE "YES"
             XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
     )
