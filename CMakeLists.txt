@@ -57,7 +57,7 @@ add_library(vecgui STATIC ${VECGUI_SRC_FILES})
 # Copy the assets to the runtime output directory.
 add_custom_command(TARGET vecgui POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/assets
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets
 )
 
