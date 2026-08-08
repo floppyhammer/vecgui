@@ -12,7 +12,7 @@ class MyNode : public Node {
     std::shared_ptr<HBoxContainer> water_fill_hbox;
     float timer = 0;
 
-    void custom_ready() override {
+    void on_ready() override {
         auto hbox_container = std::make_shared<HBoxContainer>();
         hbox_container->set_separation(8);
         hbox_container->set_position({100, 100});
@@ -134,7 +134,7 @@ class MyNode : public Node {
         }
     }
 
-    void custom_update(double dt) override {
+    void on_update(double dt) override {
         if (water_fill_hbox) {
             timer += (float)dt;
             // 让宽度在 320 (最小宽度) 到 700 之间循环振荡

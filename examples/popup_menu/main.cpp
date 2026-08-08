@@ -12,7 +12,7 @@ class MyNodeUi : public NodeUi {
 public:
     std::weak_ptr<PopupMenu> menu_;
 
-    void custom_ready() override {
+    void on_ready() override {
         auto menu = std::make_shared<PopupMenu>();
         for (int i = 0; i < 20; i++) {
             menu->create_item("Item " + std::to_string(i));
@@ -23,7 +23,7 @@ public:
         add_child(menu);
     }
 
-    void custom_input(InputEvent &event) override {
+    void on_input(InputEvent &event) override {
         if (event.type == InputEventType::MouseButton) {
             auto args = event.args.mouse_button;
 

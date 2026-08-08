@@ -56,16 +56,6 @@ void Button::calc_minimum_size() {
     calculated_minimum_size = container_size;
 }
 
-void Button::ready() {
-    if (ready_) {
-        return;
-    }
-
-    ready_ = true;
-
-    custom_ready();
-}
-
 void Button::input(InputEvent &event) {
     auto global_position = get_global_position();
 

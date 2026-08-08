@@ -6,7 +6,7 @@ using Pathfinder::Vec2;
 using Pathfinder::Vec3;
 
 class MyNode : public Node {
-    void custom_ready() override {
+    void on_ready() override {
         auto tab_container = std::make_shared<TabContainer>();
         tab_container->set_anchor_flag(AnchorFlag::FullRect);
         add_child(tab_container);

@@ -43,7 +43,7 @@ Creating a simple UI with a button in a horizontal container:
 using namespace vecgui;
 
 class MyScene : public Node {
-    void custom_ready() override {
+    void on_ready() override {
         // 1. Create a container
         auto hbox = std::make_shared<HBoxContainer>();
         hbox->set_separation(10);

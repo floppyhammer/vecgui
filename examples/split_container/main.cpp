@@ -9,7 +9,7 @@ using Pathfinder::Vec2;
 using Pathfinder::Vec3;
 
 class MyNode : public Node {
-    void custom_ready() override {
+    void on_ready() override {
         auto split_container = std::make_shared<SplitContainer>();
         split_container->set_position({100, 100});
         add_child(split_container);

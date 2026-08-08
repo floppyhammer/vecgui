@@ -80,18 +80,6 @@ public:
     virtual void post_draw_children() {
     }
 
-    virtual void custom_ready() {
-    }
-
-    virtual void custom_update(double dt) {
-    }
-
-    virtual void custom_input(InputEvent &event) {
-    }
-
-    virtual void custom_draw() {
-    }
-
     virtual void add_child(const std::shared_ptr<Node> &new_child);
 
     virtual void add_child_at_index(const std::shared_ptr<Node> &new_child, uint32_t index);
@@ -137,6 +125,19 @@ public:
     virtual void connect_signal(const std::string &signal, const AnyCallable<void> &callback);
 
     SceneTree *get_tree() const;
+
+protected:
+    virtual void on_ready() {
+    }
+
+    virtual void on_update(double dt) {
+    }
+
+    virtual void on_input(InputEvent &event) {
+    }
+
+    virtual void on_draw() {
+    }
 
 protected:
     NodeType type = NodeType::Node;

@@ -6,7 +6,7 @@ using Pathfinder::Vec2;
 using Pathfinder::Vec3;
 
 class MyProgressBar : public ProgressBar {
-    void custom_update(double dt) override {
+    void on_update(double dt) override {
         float new_value = value + dt * 10.0f;
         if (new_value > max_value) {
             new_value -= max_value;
@@ -16,7 +16,7 @@ class MyProgressBar : public ProgressBar {
 };
 
 class MyNode : public Node {
-    void custom_ready() override {
+    void on_ready() override {
         auto vbox_container = std::make_shared<VBoxContainer>();
         add_child(vbox_container);
 

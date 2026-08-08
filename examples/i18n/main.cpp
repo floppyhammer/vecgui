@@ -11,7 +11,7 @@ using Pathfinder::Vec2;
 using Pathfinder::Vec3;
 
 class MyNode : public Node {
-    void custom_ready() override {
+    void on_ready() override {
         auto margin_container = std::make_shared<MarginContainer>();
         margin_container->set_margin_all(32);
         margin_container->set_anchor_flag(AnchorFlag::FullRect);

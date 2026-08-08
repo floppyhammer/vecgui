@@ -21,7 +21,7 @@ using Pathfinder::Vec3;
 class MyNode : public Node {
     std::shared_ptr<ToggleButtonGroup> button_group;
 
-    void custom_ready() override {
+    void on_ready() override {
         auto vbox_container = std::make_shared<VBoxContainer>();
         vbox_container->set_separation(8);
         vbox_container->set_position({10, 10});

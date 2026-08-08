@@ -12,7 +12,7 @@ using namespace vecgui;
 
 class AnchorDemo : public NodeUi {
 public:
-    void custom_ready() override {
+    void on_ready() override {
         set_anchor_flag(AnchorFlag::FullRect);
 
         // 1. Create a background panel to visualize the parent area.

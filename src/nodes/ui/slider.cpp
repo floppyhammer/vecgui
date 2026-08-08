@@ -20,7 +20,7 @@ void Slider::ready() {
 
     ready_ = true;
 
-    custom_ready();
+    on_ready();
 
     callbacks_cursor_entered.emplace_back([this] {
         hovered = true;

@@ -1,10 +1,11 @@
 #include <resources/default_resource.h>
 #include "app.h"
+#include "nodes/ui/subtitle/subtitle.h"
 
 using namespace vecgui;
 
 class RichTextNode : public Node {
-    void custom_ready() override {
+    void on_ready() override {
         auto margin_container = std::make_shared<MarginContainer>();
         margin_container->set_margin_all(32);
         margin_container->set_anchor_flag(AnchorFlag::FullRect);
@@ -35,7 +36,7 @@ class RichTextNode : public Node {
         // 3. Normal Blue
         TextStyle style3;
         style3.color = ColorU::blue();
-        style3.font_size = 24;
+        style3.font_size = 12;
         style3.shadow_color = ColorU::black();
         style3.shadow_strength = 1.0;
         style3.shadow_radius = 8.0;
@@ -68,8 +69,10 @@ class RichTextNode : public Node {
 
 int main() {
     App app({1280, 720});
-
-    app.get_tree_root()->add_child(std::make_shared<RichTextNode>());
+    auto s1 = std::make_shared<RichTextNode>();
+    auto s2 = std::make_shared<Subtitle>(true);
+    s2->set_anchor_flag(AnchorFlag::Center);
+    app.get_tree_root()->add_child(s2);
 
     app.main_loop();
 

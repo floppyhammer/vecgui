@@ -6,7 +6,7 @@ using Pathfinder::Vec2;
 using Pathfinder::Vec3;
 
 class MyNode : public Node {
-    void custom_ready() override {
+    void on_ready() override {
         auto raste_image = std::make_shared<RasterImage>(get_asset_dir("duck.png"));
         auto vector_image = std::make_shared<VectorImage>(get_asset_dir("icons/Node_Button.svg"));
 

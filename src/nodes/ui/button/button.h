@@ -19,8 +19,6 @@ class Button : public NodeUi {
 public:
     Button();
 
-    void ready() override;
-
     void input(InputEvent &event) override;
 
     void draw() override;

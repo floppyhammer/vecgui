@@ -6,7 +6,7 @@ using Pathfinder::Vec2;
 using Pathfinder::Vec3;
 
 class MyNode : public Node {
-    void custom_ready() override {
+    void on_ready() override {
         auto panel = std::make_shared<Panel>();
         panel->set_position({100, 100});
         panel->set_size({200, 300});

@@ -6,7 +6,7 @@ using Pathfinder::Vec2;
 using Pathfinder::Vec3;
 
 class MyNode : public Node {
-    void custom_ready() override {
+    void on_ready() override {
         auto collasping_panel = std::make_shared<CollapseContainer>(CollapseButtonType::Default);
         collasping_panel->set_position({400, 200});
         collasping_panel->set_size({500, 400});

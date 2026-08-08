@@ -118,15 +118,15 @@ void Node::ready() {
 
     ready_ = true;
 
-    custom_ready();
+    on_ready();
 }
 
 void Node::input(InputEvent &event) {
-    custom_input(event);
+    on_input(event);
 }
 
 void Node::update(double dt) {
-    custom_update(dt);
+    on_update(dt);
 }
 
 void Node::draw() {
@@ -134,7 +134,7 @@ void Node::draw() {
         return;
     }
 
-    custom_draw();
+    on_draw();
 }
 
 Node *Node::get_parent() const {

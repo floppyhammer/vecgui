@@ -7,7 +7,7 @@
 using namespace vecgui;
 
 class MyNode : public Node {
-    void custom_ready() override {
+    void on_ready() override {
         auto panel = std::make_shared<Panel>();
         panel->set_anchor_flag(AnchorFlag::FullRect);
         add_child(panel);
