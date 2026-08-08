@@ -52,6 +52,7 @@ if (APPLE)
     set(VECGUI_FRIBIDI ON)
 endif ()
 
+# Change to SHARED if you need to build an APPLE framework.
 add_library(vecgui STATIC ${VECGUI_SRC_FILES})
 
 # Copy the assets to the runtime output directory.
