@@ -11,6 +11,8 @@
 
 namespace vecgui {
 
+class ToggleButtonGroup;
+
 class Button : public NodeUi {
     friend class ToggleButtonGroup;
 
