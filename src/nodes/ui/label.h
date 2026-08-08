@@ -38,9 +38,7 @@ public:
 
     void add_span(const TextSpan &span);
 
-    const std::vector<TextSpan> &get_spans() const {
-        return spans_;
-    }
+    const std::vector<TextSpan> &get_spans() const;
 
     std::string get_text() const;
 
@@ -54,10 +52,9 @@ public:
 
     void set_size(Vec2F new_size) override;
 
-    void set_font(std::shared_ptr<Font> new_font);
+    void set_font(const std::shared_ptr<Font> &new_font);
 
     void set_font_size(uint32_t new_font_size);
-
     uint32_t get_font_size() const;
 
     void set_text_style(TextStyle new_text_style);
@@ -70,14 +67,10 @@ public:
 
     void set_bidi_alignment(BidiAlignment alignment);
 
-    float get_line_spacing() const {
-        return line_spacing_;
-    }
+    float get_line_spacing() const;
     void set_line_spacing(float spacing);
 
-    float get_letter_spacing() const {
-        return letter_spacing_;
-    }
+    float get_letter_spacing() const;
     void set_letter_spacing(float spacing);
 
     void calc_minimum_size() override;
@@ -85,19 +78,14 @@ public:
     void adjust_layout() override;
 
     std::vector<Glyph> &get_glyphs();
-    const std::vector<Vec2F> &get_glyph_positions() const {
-        return glyph_positions;
-    }
+
+    const std::vector<Vec2F> &get_glyph_positions() const;
 
     std::shared_ptr<Font> get_font() const;
 
-    Vec2F get_alignment_shift() const {
-        return alignment_shift;
-    }
+    Vec2F get_alignment_shift() const;
 
-    RectF get_layout_box() const {
-        return layout_box;
-    }
+    RectF get_layout_box() const;
 
     TextStyle get_text_style() const;
 
@@ -108,16 +96,12 @@ public:
     /// Get the caret position of a given codepoint index.
     float get_codepoint_right_edge_position(int32_t codepoint_index);
 
-    bool get_word_wrap() const {
-        return word_wrap_;
-    }
-
+    bool get_word_wrap() const;
     void set_word_wrap(bool word_wrap);
 
     void set_multi_line(bool enabled);
 
     std::optional<StyleBox> theme_override_bg;
-    std::optional<TextStyle> text_style_;
 
 protected:
     void update(double dt) override;
@@ -182,6 +166,8 @@ private:
     float letter_spacing_ = 0.0f;
 
     BidiAlignment bidi_alignment_ = BidiAlignment::Auto;
+
+    std::optional<TextStyle> text_style_;
 };
 
 } // namespace vecgui

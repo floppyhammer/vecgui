@@ -287,6 +287,10 @@ std::string Label::get_sub_text(uint32_t codepoint_position, uint32_t count) con
     return subtext;
 }
 
+const std::vector<TextSpan> &Label::get_spans() const {
+    return spans_;
+}
+
 std::string Label::get_text() const {
     return text_;
 }
@@ -482,7 +486,7 @@ void Label::make_layout() {
     }
 }
 
-void Label::set_font(std::shared_ptr<Font> new_font) {
+void Label::set_font(const std::shared_ptr<Font> &new_font) {
     if (new_font == nullptr) {
         return;
     }
@@ -631,12 +635,20 @@ void Label::set_bidi_alignment(BidiAlignment alignment) {
     queue_relayout();
 }
 
+float Label::get_line_spacing() const {
+    return line_spacing_;
+}
+
 void Label::set_line_spacing(float spacing) {
     if (line_spacing_ == spacing) {
         return;
     }
     line_spacing_ = spacing;
     queue_relayout();
+}
+
+float Label::get_letter_spacing() const {
+    return letter_spacing_;
 }
 
 void Label::set_letter_spacing(float spacing) {
@@ -701,8 +713,20 @@ std::vector<Glyph> &Label::get_glyphs() {
     return glyphs_;
 }
 
+const std::vector<Vec2F> &Label::get_glyph_positions() const {
+    return glyph_positions;
+}
+
 std::shared_ptr<Font> Label::get_font() const {
     return font;
+}
+
+Vec2F Label::get_alignment_shift() const {
+    return alignment_shift;
+}
+
+RectF Label::get_layout_box() const {
+    return layout_box;
 }
 
 float Label::get_glyph_right_edge_position(int32_t glyph_index) {
@@ -777,6 +801,10 @@ float Label::get_codepoint_right_edge_position(int32_t codepoint_index) {
     }
 
     return pos;
+}
+
+bool Label::get_word_wrap() const {
+    return word_wrap_;
 }
 
 } // namespace vecgui
