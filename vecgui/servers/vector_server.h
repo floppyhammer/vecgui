@@ -71,7 +71,8 @@ public:
                      TextStyle text_style,
                      const Transform2 &transform,
                      const RectF &clip_box,
-                     float alpha = 1.0f);
+                     float alpha = 1.0f,
+                     const std::vector<Line> &lines = {});
 
     std::shared_ptr<Pathfinder::SvgScene> load_svg(const std::string &path, bool override_with_accent_color = false);
 

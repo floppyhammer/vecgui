@@ -182,10 +182,7 @@ void VectorServer::draw_style_box(const StyleBox &style_box, Vec2F position, Vec
     draw_style_box(style_box, Pathfinder::Transform2::from_translation(position), size, alpha);
 }
 
-void VectorServer::draw_style_box(const StyleBox &style_box,
-                                  const Transform2 &transform,
-                                  Vec2F size,
-                                  float alpha) {
+void VectorServer::draw_style_box(const StyleBox &style_box, const Transform2 &transform, Vec2F size, float alpha) {
     if (size.x <= 0 || size.y <= 0) {
         return;
     }
@@ -277,11 +274,22 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
                                TextStyle text_style,
                                const Transform2 &transform,
                                const RectF &clip_box,
-                               float alpha) {
+                               float alpha,
+                               const std::vector<Line> &lines) {
     if (glyphs.size() != glyph_positions.size()) {
         Logger::error("Glyph count mismatches glyph position count!", "vecgui");
         return;
     }
+
+    // Helper: Find which line a glyph belongs to.
+    auto get_line_index = [&](int glyph_idx) {
+        for (int k = 0; k < (int)lines.size(); ++k) {
+            if (glyph_idx >= lines[k].glyph_ranges.start && glyph_idx < lines[k].glyph_ranges.end) {
+                return k;
+            }
+        }
+        return -1;
+    };
 
     text_style.color = text_style.color.apply_alpha(alpha);
     text_style.stroke_color = text_style.stroke_color.apply_alpha(alpha);
@@ -308,7 +316,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         }
 
         const TextStyle &style = glyphs[i].style;
-        float current_y = glyph_positions[i].y;
+        int current_line_idx = get_line_index(i);
         float current_ascent = glyphs[i].ascent;
 
         // Find the range of glyphs on the same line with the same background style.
@@ -317,10 +325,9 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         bool all_transforms_match = true;
         while (end < glyphs.size()) {
             const auto &ge = glyphs[end];
-            const auto &pe = glyph_positions[end];
 
             // Must be on the same line and have identical background styling.
-            if (pe.y != current_y || !(ge.style.background_color == style.background_color) ||
+            if (get_line_index(end) != current_line_idx || !(ge.style.background_color == style.background_color) ||
                 ge.style.background_corner_radius != style.background_corner_radius ||
                 ge.style.background_padding != style.background_padding) {
                 break;
@@ -384,7 +391,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         }
 
         const TextStyle &style = glyphs[i].style;
-        float current_line_y = glyph_positions[i].y;
+        int current_line_idx = get_line_index(i);
         Pathfinder::Path2d combined_shadow_path;
 
         // Batching: Group consecutive glyphs that share identical shadow properties AND are on the same line.
@@ -393,7 +400,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             const auto &g = glyphs[j];
             const auto &p = glyph_positions[j];
 
-            if (p.y == current_line_y && g.style.shadow_color == style.shadow_color &&
+            if (get_line_index(j) == current_line_idx && g.style.shadow_color == style.shadow_color &&
                 g.style.shadow_radius == style.shadow_radius && g.style.shadow_offset == style.shadow_offset &&
                 g.style.shadow_strength == style.shadow_strength && g.style.local_transform == style.local_transform &&
                 g.style.alpha == style.alpha) {
@@ -481,11 +488,11 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         }
 
         TextStyle style = g.style;
-        float current_y = glyph_positions[i].y;
+        int current_line_idx = get_line_index(i);
 
         // Grouping: Find consecutive glyphs on the same line with identical styling.
         int j = i + 1;
-        while (j < glyphs.size() && glyphs[j].style == style && glyph_positions[j].y == current_y) {
+        while (j < glyphs.size() && glyphs[j].style == style && get_line_index(j) == current_line_idx) {
             j++;
         }
 
@@ -522,8 +529,14 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             }
 
             // Define the gradient line in Label-Local space.
-            Vec2F p0 = {word_min_x, current_y};
-            Vec2F p1 = {word_max_x, current_y};
+            // Using glyph_positions[i].y as a reference Y for the horizontal gradient.
+            Vec2F p0 = {word_min_x, glyph_positions[i].y};
+            Vec2F p1 = {word_max_x, glyph_positions[i].y};
+
+            // RTL support: If the script is Arabic or Hebrew, the progressive coloring should go from right to left.
+            if (glyphs[i].script == Script::Arabic || glyphs[i].script == Script::Hebrew) {
+                std::swap(p0, p1);
+            }
 
             // CRITICAL: Transform the gradient line to SCENE space to match the rendered path.
             // This ensures the gradient "sticks" to the text as it moves/scales.

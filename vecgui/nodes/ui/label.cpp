@@ -605,7 +605,8 @@ void Label::draw() {
     //        clip_box = {{}, calc_minimum_size()};
     //    }
 
-    vector_server->draw_glyphs(glyphs_, glyph_positions, draw_style, translation, clip_box, alpha);
+    vector_server->draw_glyphs(
+        glyphs_, glyph_positions, draw_style, translation, clip_box, alpha, word_wrap_ ? lines_ : paragraphs_);
 }
 
 void Label::set_horizontal_alignment(Alignment alignment) {
