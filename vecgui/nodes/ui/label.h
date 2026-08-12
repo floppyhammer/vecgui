@@ -168,6 +168,8 @@ private:
     BidiAlignment bidi_alignment_ = BidiAlignment::Auto;
 
     std::optional<TextStyle> text_style_;
+
+    float max_atomic_group_width_ = 0.0f;
 };
 
 } // namespace vecgui

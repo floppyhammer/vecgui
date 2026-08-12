@@ -81,7 +81,8 @@ std::vector<std::pair<Script, Pathfinder::Range>> get_text_script(const std::u32
             scripts.push_back(Script::Devanagari);
         } else if (codepoint >= 0x0590 && codepoint <= 0x05FF) {
             scripts.push_back(Script::Hebrew);
-        } else if (codepoint >= 0x4E00 && codepoint <= 0x9FFF) {
+        } else if ((codepoint >= 0x4E00 && codepoint <= 0x9FFF) || (codepoint >= 0x3000 && codepoint <= 0x303F) ||
+                   (codepoint >= 0x3400 && codepoint <= 0x4DBF) || (codepoint >= 0xFF00 && codepoint <= 0xFFEF)) {
             scripts.push_back(Script::Cjk);
         } else if (codepoint >= 0x3040 && codepoint <= 0x309F) {
             scripts.push_back(Script::Hiragana);

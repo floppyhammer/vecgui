@@ -1,7 +1,9 @@
 #include "label.h"
 
+#include <algorithm>
 #include <list>
 #include <string>
+#include <vector>
 
 #include "../../resources/default_resource.h"
 
@@ -77,52 +79,52 @@ std::vector<Line> get_lines_with_word_wrap(float limited_width,
         }
 
         // Get line-breakable groups in this paragraph.
-        auto groups_in_para = get_line_breakable_groups(para_glyphs, para_range.start);
+        auto groups_in_para_vec = get_line_breakable_groups(para_glyphs, para_range.start);
+        std::list<Pathfinder::Range> groups_in_para(groups_in_para_vec.begin(), groups_in_para_vec.end());
 
         std::vector<float> group_widths_in_para;
 
         // For RTL paragraphs, we handle the groups reversely.
         if (para.rtl) {
-            std::reverse(groups_in_para.begin(), groups_in_para.end());
+            groups_in_para.reverse();
         }
 
         // Break groups that are too long.
-        for (auto p_group = groups_in_para.begin(); p_group != groups_in_para.end(); p_group++) {
+        auto p_group = groups_in_para.begin();
+        while (p_group != groups_in_para.end()) {
             auto group = *p_group;
-
             float group_width = 0;
+            bool split_occurred = false;
 
-            for (int j = para.rtl ? p_group->length() - 1 : 0; para.rtl ? j >= 0 : j < p_group->length();
+            for (int j = para.rtl ? group.length() - 1 : 0; para.rtl ? j >= 0 : j < (int)group.length();
                  para.rtl ? j-- : j++) {
-                int glyph_idx = p_group->start + j;
-
+                int glyph_idx = group.start + j;
                 const Glyph &glyph = glyphs[glyph_idx].glyph_;
                 float glyph_width = glyph.x_advance;
 
-                // Handle some abonormal graphs which are too wide.
                 if (group_width == 0 && glyph_width > limited_width) {
+                    // Even a single glyph doesn't fit. We must allow it to stay as its own group.
+                    group_width = glyph_width + tracking;
                     break;
                 }
 
-                // Break the current group if it is too wide.
                 if ((group_width + glyph_width + tracking) > limited_width) {
-                    // Break the current group into two ones.
+                    // Split the group.
                     Pathfinder::Range range_pre;
                     Pathfinder::Range range_next;
 
                     if (para.rtl) {
-                        range_pre = {p_group->start + j + 1, p_group->start + p_group->length()};
-                        range_next = {p_group->start, p_group->start + j + 1};
+                        range_pre = {group.start + j + 1, group.start + group.length()};
+                        range_next = {group.start, group.start + j + 1};
                     } else {
-                        range_pre = {p_group->start, p_group->start + j};
-                        range_next = {p_group->start + j, p_group->start + p_group->length()};
+                        range_pre = {group.start, group.start + (uint32_t)j};
+                        range_next = {group.start + (uint32_t)j, group.start + group.length()};
                     }
 
-                    // Replace the old group with the two newly created groups.
-                    *p_group = range_next;
-                    p_group = groups_in_para.insert(p_group, range_pre);
-
-                    // Move on to handle the next group.
+                    // Update current and insert remaining.
+                    *p_group = range_pre;
+                    groups_in_para.insert(std::next(p_group), range_next);
+                    split_occurred = true;
                     break;
                 }
 
@@ -130,8 +132,11 @@ std::vector<Line> get_lines_with_word_wrap(float limited_width,
                 group_width += tracking;
             }
 
-            group_width -= tracking;
-            group_widths_in_para.push_back(group_width);
+            if (!split_occurred) {
+                group_widths_in_para.push_back(group_width - (group_width > 0 ? tracking : 0));
+                p_group++;
+            }
+            // else: repeat loop on p_group (which now holds range_pre) to re-split if still too long.
         }
 
         // Up to this point, all the groups in the paragraph meet the width requirement.
@@ -149,8 +154,17 @@ std::vector<Line> get_lines_with_word_wrap(float limited_width,
 
             float current_group_width = group_widths_in_para[current_group_idx];
 
+            // Check if group is pure whitespace.
+            bool is_whitespace = true;
+            for (int k = current_group.start; k < current_group.end; k++) {
+                if (glyphs[k].glyph_.text != " " && glyphs[k].glyph_.text != "\t" && glyphs[k].glyph_.text != "\n") {
+                    is_whitespace = false;
+                    break;
+                }
+            }
+
             // Handle some abonormal graphs which are too wide.
-            if (current_line_groups.empty() && current_group_width > limited_width) {
+            if (current_line_groups.empty() && current_group_width > limited_width && !is_whitespace) {
                 Pathfinder::Range new_range = {current_group.start, current_group.end};
                 wrapped_lines.push_back({new_range, para.rtl, current_group_width});
 
@@ -160,7 +174,10 @@ std::vector<Line> get_lines_with_word_wrap(float limited_width,
             }
 
             // Finish a line.
-            if (current_line_width + current_group_width + tracking > limited_width) {
+            // Whitespace groups at the end of the line don't trigger overflow (hanging whitespace).
+            float effective_width = is_whitespace ? 0 : current_group_width;
+
+            if (current_line_width + effective_width + tracking > limited_width && !current_line_groups.empty()) {
                 uint32_t line_start = current_line_groups.front().start;
                 uint32_t line_end = current_line_groups.front().end;
 
@@ -308,6 +325,22 @@ void Label::set_size(Vec2F new_size) {
     queue_relayout();
 }
 
+bool is_cjk_beginning_forbidden(const std::string &text) {
+    static const std::vector<std::string> forbidden = {"！", "）", "，", "。", "：", "；", "？", "》",
+                                                       "」", "』", "】", "”",  "’",  "、", "·",  "!",
+                                                       ")",  ",",  ".",  ":",  ";",  "?",  ">",  "]"};
+    return std::find(forbidden.begin(), forbidden.end(), text) != forbidden.end();
+}
+
+bool is_cjk_ending_forbidden(const std::string &text) {
+    static const std::vector<std::string> forbidden = {"（", "《", "「", "『", "【", "“", "‘", "(", "<", "[", "{"};
+    return std::find(forbidden.begin(), forbidden.end(), text) != forbidden.end();
+}
+
+bool is_ideographic_script(Script script) {
+    return script == Script::Cjk || script == Script::Hiragana || script == Script::Katakana;
+}
+
 /// A very crude way for line-breaking.
 std::vector<LayoutGlyph> convert_to_in_context_glyphs(const std::vector<Glyph> &glyphs,
                                                       const std::vector<Line> &paragraphs) {
@@ -315,7 +348,7 @@ std::vector<LayoutGlyph> convert_to_in_context_glyphs(const std::vector<Glyph> &
     in_context_glyphs.resize(glyphs.size());
 
     // Add line-breaking info.
-    for (auto &para : paragraphs)
+    for (auto &para : paragraphs) {
         for (int glyph_idx = para.glyph_ranges.start; glyph_idx < para.glyph_ranges.end; glyph_idx++) {
             const auto &glyph = glyphs[glyph_idx];
 
@@ -323,28 +356,45 @@ std::vector<LayoutGlyph> convert_to_in_context_glyphs(const std::vector<Glyph> &
             in_context_glyph.glyph_ = glyph;
             in_context_glyph.line_breakable_ = false;
 
-            if (glyph.script == Script::Cjk) {
-                in_context_glyph.line_breakable_ = true;
-            } else {
-                if (para.rtl) {
-                    if (glyph_idx < para.glyph_ranges.end - 1) {
-                        auto &previous_glyph = glyphs[glyph_idx + 1];
-                        if (previous_glyph.text == " ") {
-                            in_context_glyph.line_breakable_ = true;
-                        }
-                    }
-                } else {
-                    if (glyph_idx > para.glyph_ranges.start) {
-                        auto &previous_glyph = glyphs[glyph_idx - 1];
-                        if (previous_glyph.text == " ") {
-                            in_context_glyph.line_breakable_ = true;
-                        }
+            bool can_break = false;
+
+            if (glyph_idx > para.glyph_ranges.start) {
+                const auto &prev_glyph = glyphs[glyph_idx - 1];
+
+                // 1. Break between different scripts (e.g. English to Chinese).
+                if (glyph.script != prev_glyph.script) {
+                    can_break = true;
+                }
+                // 2. Break within ideographic scripts (Chinese/Japanese).
+                else if (is_ideographic_script(glyph.script)) {
+                    can_break = true;
+                }
+                // 3. Break after a space (standard Western rule).
+                else if (prev_glyph.text == " " || prev_glyph.text == "\t") {
+                    can_break = true;
+                }
+            }
+
+            // Kinsoku Shori (Japanese/Chinese Line Breaking Rules)
+            if (can_break) {
+                // Rule 1: A "beginning forbidden" character cannot start a line.
+                if (is_cjk_beginning_forbidden(glyph.text)) {
+                    can_break = false;
+                }
+
+                // Rule 2: A character following an "ending forbidden" character cannot start a line.
+                if (glyph_idx > para.glyph_ranges.start) {
+                    const auto &prev_glyph = glyphs[glyph_idx - 1];
+                    if (is_cjk_ending_forbidden(prev_glyph.text)) {
+                        can_break = false;
                     }
                 }
             }
 
+            in_context_glyph.line_breakable_ = can_break;
             in_context_glyphs[glyph_idx] = in_context_glyph;
         }
+    }
 
     return in_context_glyphs;
 }
@@ -386,6 +436,30 @@ void Label::measure() {
     }
 
     layout_glyphs_ = convert_to_in_context_glyphs(glyphs_, paragraphs_);
+
+    // Calculate max atomic group width using the actual line breaker logic.
+    max_atomic_group_width_ = 0;
+    if (word_wrap_) {
+        for (const auto &para : paragraphs_) {
+            const auto &para_range = para.glyph_ranges;
+            std::vector<LayoutGlyph> para_glyphs;
+            for (int i = para_range.start; i < para_range.end; ++i) {
+                para_glyphs.push_back(layout_glyphs_[i]);
+            }
+
+            auto groups = get_line_breakable_groups(para_glyphs, para_range.start);
+            for (const auto &group : groups) {
+                float group_width = 0;
+                for (int k = group.start; k < group.end; ++k) {
+                    group_width += glyphs_[k].x_advance + letter_spacing_;
+                }
+                if (group_width > 0) {
+                    group_width -= letter_spacing_;
+                }
+                max_atomic_group_width_ = std::max(max_atomic_group_width_, group_width);
+            }
+        }
+    }
 }
 
 void Label::make_layout() {
@@ -522,6 +596,8 @@ void Label::set_word_wrap(bool word_wrap) {
         return;
     }
     word_wrap_ = word_wrap;
+
+    need_to_remeasure = true;
     queue_relayout();
 }
 
@@ -704,7 +780,7 @@ Vec2F Label::get_text_minimum_size() const {
     Vec2F text_bbox = {effective_max_para_width, total_height};
 
     if (word_wrap_) {
-        return Vec2F(0, text_bbox.y);
+        return Vec2F(max_atomic_group_width_, text_bbox.y);
     }
 
     return text_bbox;
