@@ -601,41 +601,30 @@ void Label::set_word_wrap(bool word_wrap) {
     queue_relayout();
 }
 
-void Label::set_multi_line(bool enabled) {
-    if (multi_line_ == enabled) {
-        return;
-    }
-    multi_line_ = enabled;
-    queue_relayout();
-}
-
 void Label::consider_alignment() {
     alignment_shift = Vec2F(0);
 
-    // For multi-line label, the text box always occupies the whole label area.
-    if (multi_line_) {
-        return;
-    }
-
     switch (horizontal_alignment) {
-        case Alignment::Begin:
-            break;
+        case Alignment::Begin: {
+            alignment_shift.x = -layout_box.min_x();
+        } break;
         case Alignment::Center: {
             alignment_shift.x = size.x * 0.5f - layout_box.center().x;
         } break;
         case Alignment::End: {
-            alignment_shift.x = size.x - layout_box.width();
+            alignment_shift.x = size.x - layout_box.max_x();
         } break;
     }
 
     switch (vertical_alignment) {
-        case Alignment::Begin:
-            break;
+        case Alignment::Begin: {
+            alignment_shift.y = -layout_box.min_y();
+        } break;
         case Alignment::Center: {
             alignment_shift.y = size.y * 0.5f - layout_box.center().y;
         } break;
         case Alignment::End: {
-            alignment_shift.y = size.y - layout_box.height();
+            alignment_shift.y = size.y - layout_box.max_y();
         } break;
     }
 }

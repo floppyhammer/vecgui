@@ -99,8 +99,6 @@ public:
     bool get_word_wrap() const;
     void set_word_wrap(bool word_wrap);
 
-    void set_multi_line(bool enabled);
-
     std::optional<StyleBox> theme_override_bg;
 
 protected:
@@ -129,8 +127,6 @@ private:
     std::shared_ptr<Font> font, emoji_font;
 
     bool clip = false;
-
-    bool multi_line_ = false;
 
     /// If automatically break lines at suitable positions.
     bool word_wrap_ = false;
