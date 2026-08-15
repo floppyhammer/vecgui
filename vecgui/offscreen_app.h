@@ -16,9 +16,7 @@ namespace vecgui {
 
 class OffscreenApp {
 public:
-    OffscreenApp(std::shared_ptr<Pathfinder::Device> device,
-                 std::shared_ptr<Pathfinder::Queue> queue,
-                 Vec2I size);
+    OffscreenApp(std::shared_ptr<Pathfinder::Device> device, std::shared_ptr<Pathfinder::Queue> queue, Vec2I size);
 
     ~OffscreenApp();
 
@@ -37,6 +35,8 @@ public:
     void set_render_target_size(Vec2I size);
 
     std::shared_ptr<Node> get_tree_root() const;
+
+    void register_fallback_font(Script script, const std::shared_ptr<Font> &font);
 
 private:
     std::unique_ptr<SceneTree> tree;

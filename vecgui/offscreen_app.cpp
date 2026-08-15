@@ -5,6 +5,7 @@
 #include "servers/engine.h"
 #include "servers/input_server.h"
 #include "servers/render_server.h"
+#include "servers/text_server.h"
 #include "servers/vector_server.h"
 
 namespace vecgui {
@@ -73,6 +74,11 @@ void OffscreenApp::set_render_target_size(Vec2I size) {
 
 std::shared_ptr<Node> OffscreenApp::get_tree_root() const {
     return tree->get_root();
+}
+
+void OffscreenApp::register_fallback_font(Script script, const std::shared_ptr<Font> &font) {
+    auto text_server = TextServer::get_singleton();
+    text_server->register_fallback_font(script, font);
 }
 
 } // namespace vecgui
