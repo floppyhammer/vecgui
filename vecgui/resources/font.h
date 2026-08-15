@@ -377,6 +377,8 @@ private:
     std::vector<char> font_data;
 
     float update_metrics(uint32_t size, float &ascent, float &descent);
+
+    void get_tofu_metrics(float scale, float &ascent, float &descent, float &width) const;
 };
 
 } // namespace vecgui

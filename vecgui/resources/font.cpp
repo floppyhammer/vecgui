@@ -242,6 +242,17 @@ Pathfinder::Path2d Font::get_glyph_path(uint16_t glyph_index, float scale) const
 
     // Glyph has no shape (e.g. Space).
     if (vertices == nullptr) {
+        if (glyph_index == 0) {
+            // Manually generate a "tofu" (missing glyph) box if the font doesn't provide one.
+            float ascent, descent, width;
+            get_tofu_metrics(scale, ascent, descent, width);
+
+            path.move_to(0, -ascent);
+            path.line_to(width, -ascent);
+            path.line_to(width, -descent);
+            path.line_to(0, -descent);
+            path.close_path();
+        }
         return path;
     }
 
@@ -961,6 +972,16 @@ RectI Font::get_glyph_bounds(uint16_t glyph_index, float scale) const {
                             &bounding_box.right,
                             &bounding_box.bottom);
 
+    if (glyph_index == 0 && bounding_box.left == bounding_box.right) {
+        float ascent, descent, width;
+        get_tofu_metrics(scale, ascent, descent, width);
+
+        bounding_box.left = 0;
+        bounding_box.top = (int)-ascent;
+        bounding_box.right = (int)width;
+        bounding_box.bottom = (int)-descent;
+    }
+
     return bounding_box;
 }
 
@@ -976,7 +997,26 @@ float Font::get_glyph_advance(uint16_t glyph_index, float scale) const {
 
     stbtt_GetGlyphHMetrics(stbtt_info, glyph_index, &advance_width, &left_side_bearing);
 
-    return (float)advance_width * scale;
+    float advance = (float)advance_width * scale;
+
+    if (glyph_index == 0 && advance == 0) {
+        float ascent, descent, width;
+        get_tofu_metrics(scale, ascent, descent, width);
+        advance = width;
+    }
+
+    return advance;
+}
+
+void Font::get_tofu_metrics(float scale, float &ascent, float &descent, float &width) const {
+    int unscaled_ascent;
+    int unscaled_descent;
+    int unscaled_line_gap;
+    stbtt_GetFontVMetrics(stbtt_info, &unscaled_ascent, &unscaled_descent, &unscaled_line_gap);
+
+    ascent = (float)unscaled_ascent * scale;
+    descent = (float)unscaled_descent * scale;
+    width = ascent * 0.6f;
 }
 
 bool Font::is_valid() const {
