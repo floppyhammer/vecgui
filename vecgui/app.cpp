@@ -9,6 +9,7 @@
 #include "servers/engine.h"
 #include "servers/input_server.h"
 #include "servers/render_server.h"
+#include "servers/text_server.h"
 #include "servers/vector_server.h"
 
 namespace vecgui {

@@ -36,6 +36,7 @@
 #include <optional>
 
 #include "../servers/engine.h"
+#include "../servers/text_server.h"
 #include "default_resource.h"
 
 namespace vecgui {
@@ -47,6 +48,12 @@ hb_script_t to_harfbuzz_script(Script script) {
         }
         case Script::Hebrew: {
             return HB_SCRIPT_HEBREW;
+        }
+        case Script::Han: {
+            return HB_SCRIPT_HAN;
+        }
+        case Script::Hangul: {
+            return HB_SCRIPT_HANGUL;
         }
         case Script::Bengali: {
             return HB_SCRIPT_BENGALI;
@@ -81,9 +88,15 @@ std::vector<std::pair<Script, Pathfinder::Range>> get_text_script(const std::u32
             scripts.push_back(Script::Devanagari);
         } else if (codepoint >= 0x0590 && codepoint <= 0x05FF) {
             scripts.push_back(Script::Hebrew);
-        } else if ((codepoint >= 0x4E00 && codepoint <= 0x9FFF) || (codepoint >= 0x3000 && codepoint <= 0x303F) ||
-                   (codepoint >= 0x3400 && codepoint <= 0x4DBF) || (codepoint >= 0xFF00 && codepoint <= 0xFFEF)) {
-            scripts.push_back(Script::Cjk);
+        } else if ((codepoint >= 0xAC00 && codepoint <= 0xD7AF) || (codepoint >= 0x1100 && codepoint <= 0x11FF) ||
+                   (codepoint >= 0x3130 && codepoint <= 0x318F) || (codepoint >= 0xA960 && codepoint <= 0xA97F) ||
+                   (codepoint >= 0xD7B0 && codepoint <= 0xD7FF)) {
+            scripts.push_back(Script::Hangul);
+        } else if ((codepoint >= 0x4E00 && codepoint <= 0x9FFF) || (codepoint >= 0x3400 && codepoint <= 0x4DBF) ||
+                   (codepoint >= 0x20000 && codepoint <= 0x2A6DF) || (codepoint >= 0xF900 && codepoint <= 0xFAFF) ||
+                   (codepoint >= 0x2F800 && codepoint <= 0x2FA1F) || (codepoint >= 0x3000 && codepoint <= 0x303F) ||
+                   (codepoint >= 0xFF00 && codepoint <= 0xFFEF)) {
+            scripts.push_back(Script::Han);
         } else if (codepoint >= 0x3040 && codepoint <= 0x309F) {
             scripts.push_back(Script::Hiragana);
         } else if (codepoint >= 0x30A0 && codepoint <= 0x30FF) {
@@ -396,8 +409,20 @@ void Font::get_glyphs(const std::string &text,
 
                 auto run_script = get_text_script(run_text_u32).front().first;
 
+                Font *font_to_use = this;
+                if (allow_fallback && !glyphs_exist_in_font(run_text_u32, this)) {
+                    auto script_font = TextServer::get_singleton()->get_font_for_script(run_script);
+                    if (!script_font) {
+                        script_font = TextServer::get_singleton()->get_font_for_script(Script::Common);
+                    }
+
+                    if (script_font) {
+                        font_to_use = script_font.get();
+                    }
+                }
+
                 float ascent, descent;
-                float scale = update_metrics(font_size, ascent, descent);
+                float scale = font_to_use->update_metrics(font_size, ascent, descent);
 
                 // Buffers are sequences of Unicode characters that use the same font
                 // and have the same text direction, script, and language.
@@ -410,7 +435,7 @@ void Font::get_glyphs(const std::string &text,
                 hb_buffer_set_direction(hb_buffer, run_is_rtl ? HB_DIRECTION_RTL : HB_DIRECTION_LTR);
                 hb_buffer_set_script(hb_buffer, to_harfbuzz_script(run_script));
 
-                hb_shape(harfbuzz_data->font, hb_buffer, nullptr, 0);
+                hb_shape(font_to_use->harfbuzz_data->font, hb_buffer, nullptr, 0);
 
                 unsigned int glyph_count;
                 hb_glyph_info_t *glyph_info = hb_buffer_get_glyph_infos(hb_buffer, &glyph_count);
@@ -521,14 +546,14 @@ void Font::get_glyphs(const std::string &text,
                         para_width += glyph.x_advance;
 
                         // Get glyph path.
-                        glyph.path = get_glyph_path(glyph.index, scale);
+                        glyph.path = font_to_use->get_glyph_path(glyph.index, scale);
 
                         // The glyph's layout box in the glyph's local coordinates.
                         // The origin is the baseline. The Y axis is downward.
                         glyph.box = RectF(0, (float)-ascent, glyph.x_advance, (float)-descent);
 
                         // Get the glyph path's bounding box. The Y axis points down.
-                        RectI bounding_box = get_glyph_bounds(glyph.index, scale);
+                        RectI bounding_box = font_to_use->get_glyph_bounds(glyph.index, scale);
 
                         // BBox in the glyph's local coordinates.
                         glyph.bbox = bounding_box.to_f32();
@@ -725,13 +750,17 @@ void Font::get_glyphs(const std::string &text,
                 uint32_t script_length = script_end - script_start;
 
                 std::u32string script_text_u32 = para_text_u32.substr(script_start, script_length);
-                bool use_fallback_font = !glyphs_exist_in_font(script_text_u32, this);
 
-                Font *font_to_use;
-                if (allow_fallback && use_fallback_font) {
-                    font_to_use = DefaultResource::get_singleton()->get_default_font().get();
-                } else {
-                    font_to_use = this;
+                Font *font_to_use = this;
+                if (allow_fallback && !glyphs_exist_in_font(script_text_u32, this)) {
+                    auto script_font = TextServer::get_singleton()->get_font_for_script(script);
+                    if (!script_font) {
+                        script_font = TextServer::get_singleton()->get_font_for_script(Script::Common);
+                    }
+
+                    if (script_font) {
+                        font_to_use = script_font.get();
+                    }
                 }
 
                 float ascent, descent;

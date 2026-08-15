@@ -16,8 +16,6 @@ class MyNode : public Node {
         margin_container->set_anchor_flag(AnchorFlag::FullRect);
         add_child(margin_container);
 
-        auto font = Font::from_file("assets/unifont-17.0.03.otf");
-
         auto s_container = std::make_shared<SplitContainer>();
         s_container->set_separation(16);
         margin_container->add_child(s_container);
@@ -43,8 +41,6 @@ class MyNode : public Node {
             auto label = std::make_shared<Label>();
             label->set_text(text);
             label->container_sizing.flag_h = ContainerSizingFlag::Fill;
-            label->set_font(font);
-            label->set_font_size(32);
             label->debug_box = StyleBox::simple_outline();
 
             s_container->add_child(label);
@@ -56,7 +52,6 @@ class MyNode : public Node {
             label->set_word_wrap(true);
             label->set_text(text);
             label->container_sizing.flag_h = ContainerSizingFlag::Fill;
-            label->set_font(font);
             label->debug_box = StyleBox::simple_outline();
 
             s_container->add_child(label);

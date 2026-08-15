@@ -362,8 +362,6 @@ std::shared_ptr<Theme> Theme::from_json(const std::string& json) {
 }
 
 void Theme::load_font(const std::string& font_path) {
-    font = DefaultResource::get_singleton()->get_default_font();
-
     const auto new_font = Font::from_file(get_asset_dir(font_path));
     if (new_font) {
         font = new_font;

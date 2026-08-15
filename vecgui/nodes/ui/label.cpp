@@ -338,7 +338,7 @@ bool is_cjk_ending_forbidden(const std::string &text) {
 }
 
 bool is_ideographic_script(Script script) {
-    return script == Script::Cjk || script == Script::Hiragana || script == Script::Katakana;
+    return script == Script::Han || script == Script::Hangul || script == Script::Hiragana || script == Script::Katakana;
 }
 
 /// A very crude way for line-breaking.

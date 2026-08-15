@@ -9,17 +9,21 @@ namespace vecgui {
 
 class TextServer {
 public:
-    std::shared_ptr<std::vector<char>> get_font(std::string font_id);
+    static TextServer *get_singleton() {
+        static TextServer singleton;
+        return &singleton;
+    }
+
+    TextServer() = default;
 
     void cleanup();
 
+    void register_fallback_font(Script script, const std::shared_ptr<Font> &font);
+
+    std::shared_ptr<Font> get_font_for_script(Script script);
+
 private:
-    std::string clipboard;
-
-    // Cache for raw font data.
-    std::unordered_map<std::string, std::shared_ptr<std::vector<char>>> raw_font_cache;
-
-    std::unordered_map<std::string, std::shared_ptr<Font>> font_cache;
+    std::unordered_map<Script, std::shared_ptr<Font>> script_fallback_map;
 };
 
 } // namespace vecgui

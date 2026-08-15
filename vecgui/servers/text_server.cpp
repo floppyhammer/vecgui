@@ -2,17 +2,23 @@
 
 namespace vecgui {
 
-std::shared_ptr<std::vector<char>> TextServer::get_font(std::string font_id) {
-    auto find = raw_font_cache.find(font_id);
-    if (find != raw_font_cache.end()) {
-        return raw_font_cache[font_id];
-    }
-    return nullptr;
+void TextServer::cleanup() {
+    script_fallback_map.clear();
 }
 
-void TextServer::cleanup() {
-    font_cache.clear();
-    raw_font_cache.clear();
+void TextServer::register_fallback_font(Script script, const std::shared_ptr<Font> &font) {
+    if (!font) {
+        return;
+    }
+    script_fallback_map[script] = font;
+}
+
+std::shared_ptr<Font> TextServer::get_font_for_script(Script script) {
+    auto find = script_fallback_map.find(script);
+    if (find != script_fallback_map.end()) {
+        return find->second;
+    }
+    return nullptr;
 }
 
 } // namespace vecgui
