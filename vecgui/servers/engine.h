@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <map>
 
 namespace vecgui {
 
@@ -23,15 +22,14 @@ public:
 
     float get_fps();
 
-    int get_fps_int();
+    int32_t get_fps_int();
 
     void *asset_manager{};
 
 private:
     std::chrono::time_point<std::chrono::steady_clock> last_time_updated_fps;
 
-    std::map<int64_t, float> frametimes;
-    int64_t fps_average_window = 1000000000; // ns
+    float smoothed_fps = 0.0f;
 
     double elapsed = 0;
     double dt = 0;

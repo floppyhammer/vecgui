@@ -7,30 +7,7 @@
 namespace vecgui {
 
 /// Period to print the frame time, in seconds.
-constexpr float FRAME_TIME_PRINT_PERIOD = 5;
-
-float remove_elements_less_than(std::map<int64_t, float>& my_map, const int64_t target_key) {
-    float sum = 0;
-    size_t count = 0;
-
-    for (auto it = my_map.begin(); it != my_map.end();) {
-        if (it->first < target_key) {
-            // Erase the element and update the iterator to the next element
-            it = my_map.erase(it);
-        } else {
-            sum += it->second;
-            count++;
-            // Move to the next element
-            ++it;
-        }
-    }
-
-    if (count == 0) {
-        return sum;
-    }
-
-    return sum / (float)count;
-}
+static constexpr float FRAME_TIME_PRINT_PERIOD = 5;
 
 Engine::Engine() {
     last_time_updated_fps = std::chrono::steady_clock::now();
@@ -49,24 +26,28 @@ void Engine::tick() {
     }
 
     dt = new_elapsed - elapsed;
-
     elapsed = new_elapsed;
 
-    // Print frame time.
-    // ----------------------------------------
-    std::chrono::duration<double> duration = current_time - last_time_updated_fps;
+    // Update smoothed FPS using Exponential Moving Average (EMA).
+    // Alpha (0.05) controls the smoothing; lower is smoother, higher is more responsive.
+    if (dt > 0) {
+        float instant_fps = static_cast<float>(1.0 / dt);
+        if (smoothed_fps == 0.0f) {
+            smoothed_fps = instant_fps;
+        } else {
+            constexpr float alpha = 0.05f;
+            smoothed_fps = instant_fps * alpha + smoothed_fps * (1.0f - alpha);
+        }
+    }
 
+    // Print frame time periodically.
+    std::chrono::duration<double> duration = current_time - last_time_updated_fps;
     if (duration.count() > FRAME_TIME_PRINT_PERIOD) {
-        // Show frame time.
         std::ostringstream string_stream;
-        string_stream << "Frame time: " << round(dt * 1000.f * 100.f) * 0.01f << " ms";
+        string_stream << "Frame time: " << round(dt * 1000.f * 100.f) * 0.01f << " ms | FPS: " << get_fps_int();
         Logger::info(string_stream.str(), "vecgui");
         last_time_updated_fps = current_time;
     }
-    // ----------------------------------------
-
-    int64_t nanoseconds = current_time.time_since_epoch().count();
-    frametimes[nanoseconds] = dt;
 }
 
 double Engine::get_dt() const {
@@ -78,19 +59,11 @@ double Engine::get_elapsed() const {
 }
 
 float Engine::get_fps() {
-    auto current_time = std::chrono::steady_clock::now();
-    int64_t nanoseconds = current_time.time_since_epoch().count();
-
-    float average = remove_elements_less_than(frametimes, nanoseconds - fps_average_window);
-    if (average == 0) {
-        return 0;
-    }
-
-    return 1.0f / average;
+    return smoothed_fps;
 }
 
-int Engine::get_fps_int() {
-    return int(round(get_fps()));
+int32_t Engine::get_fps_int() {
+    return int32_t(round(smoothed_fps));
 }
 
 } // namespace vecgui
