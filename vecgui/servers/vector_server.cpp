@@ -274,7 +274,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
                                TextStyle text_style,
                                const Transform2 &transform,
                                const RectF &clip_box,
-                               float alpha,
+                               float opacity,
                                const std::vector<Line> &lines) {
     if (glyphs.size() != glyph_positions.size()) {
         Logger::error("Glyph count mismatches glyph position count!", "vecgui");
@@ -291,9 +291,9 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         return -1;
     };
 
-    text_style.color = text_style.color.apply_alpha(alpha);
-    text_style.stroke_color = text_style.stroke_color.apply_alpha(alpha);
-    text_style.shadow_color = text_style.shadow_color.apply_alpha(alpha);
+    text_style.color = text_style.color.apply_alpha(opacity);
+    text_style.stroke_color = text_style.stroke_color.apply_alpha(opacity);
+    text_style.shadow_color = text_style.shadow_color.apply_alpha(opacity);
 
     canvas->save_state();
 
@@ -310,7 +310,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
     // 0. Draw backgrounds.
     for (int i = 0; i < glyphs.size();) {
         if (glyphs[i].skip_drawing || !glyphs[i].style.background_color.is_visible() ||
-            glyphs[i].style.alpha * alpha <= 0.0f) {
+            glyphs[i].style.opacity * opacity <= 0.0f) {
             i++;
             continue;
         }
@@ -375,7 +375,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             bg_path.add_rect(union_rect, style.background_corner_radius);
 
             canvas->set_fill_paint(
-                Pathfinder::Paint::from_color(style.background_color.apply_alpha(alpha * style.alpha)));
+                Pathfinder::Paint::from_color(style.background_color.apply_alpha(opacity * style.opacity)));
             canvas->fill_path(bg_path, Pathfinder::FillRule::Winding);
         }
 
@@ -385,7 +385,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
     // 1. Draw shadows (Line-Batched).
     for (int i = 0; i < glyphs.size();) {
         if (glyphs[i].skip_drawing || !glyphs[i].style.shadow_color.is_visible() ||
-            glyphs[i].style.alpha * alpha <= 0.0f) {
+            glyphs[i].style.opacity * opacity <= 0.0f) {
             i++;
             continue;
         }
@@ -403,7 +403,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             if (get_line_index(j) == current_line_idx && g.style.shadow_color == style.shadow_color &&
                 g.style.shadow_radius == style.shadow_radius && g.style.shadow_offset == style.shadow_offset &&
                 g.style.shadow_strength == style.shadow_strength && g.style.local_transform == style.local_transform &&
-                g.style.alpha == style.alpha) {
+                g.style.opacity == style.opacity) {
                 if (!g.skip_drawing) {
                     auto shadow_pos = p + style.shadow_offset;
                     auto baseline_xform = Transform2::from_translation({0, g.ascent});
@@ -429,7 +429,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform);
 
         if (style.shadow_color.is_visible()) {
-            canvas->set_shadow_color(style.shadow_color.apply_alpha(alpha * style.alpha));
+            canvas->set_shadow_color(style.shadow_color.apply_alpha(opacity * style.opacity));
             canvas->set_shadow_strength(style.shadow_strength);
             canvas->set_shadow_blur(style.shadow_radius);
             // Note: offset is already baked into combined_shadow_path transforms.
@@ -449,12 +449,12 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         auto &g = glyphs[i];
         auto &p = glyph_positions[i];
 
-        if (g.emoji || g.skip_drawing || g.style.alpha * alpha <= 0.0f) {
+        if (g.emoji || g.skip_drawing || g.style.opacity * opacity <= 0.0f) {
             continue;
         }
 
         TextStyle style = g.style;
-        style.stroke_color = style.stroke_color.apply_alpha(alpha * style.alpha);
+        style.stroke_color = style.stroke_color.apply_alpha(opacity * style.opacity);
 
         auto baseline_xform = Transform2::from_translation({0, g.ascent});
 
@@ -469,7 +469,8 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         canvas->set_transform(glyph_global_transform * skew_xform);
 
         // Add stroke if needed.
-        canvas->set_stroke_paint(Pathfinder::Paint::from_color(style.stroke_color.apply_alpha(alpha * style.alpha)));
+        canvas->set_stroke_paint(
+            Pathfinder::Paint::from_color(style.stroke_color.apply_alpha(opacity * style.opacity)));
         float stroke_width = style.stroke_width;
         if (style.bold) {
             stroke_width += STROKE_WIDTH_FOR_PSEUDO_BOLD_TEXT;
@@ -482,7 +483,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
     // 3. Draw glyph fills (Batched for Styles & Karaoke).
     for (int i = 0; i < glyphs.size();) {
         auto &g = glyphs[i];
-        if (g.skip_drawing || g.style.alpha * alpha <= 0.0f) {
+        if (g.skip_drawing || g.style.opacity * opacity <= 0.0f) {
             i++;
             continue;
         }
@@ -546,15 +547,15 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             float prg = std::clamp(style.karaoke_progress, 0.0f, 1.0f);
 
             // 4-stop chain for maximum robustness across different GPU drivers.
-            gradient.add_color_stop(style.color.apply_alpha(alpha * style.alpha), prg);
-            gradient.add_color_stop(style.color.apply_alpha(alpha * style.alpha), 1.0f);
+            gradient.add_color_stop(style.color.apply_alpha(opacity * style.opacity), prg);
+            gradient.add_color_stop(style.color.apply_alpha(opacity * style.opacity), 1.0f);
 
-            gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(alpha * style.alpha), 0.0f);
-            gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(alpha * style.alpha), prg);
+            gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(opacity * style.opacity), 0.0f);
+            gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(opacity * style.opacity), prg);
 
             canvas->set_fill_paint(Pathfinder::Paint::from_gradient(gradient));
         } else {
-            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.color.apply_alpha(alpha * style.alpha)));
+            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.color.apply_alpha(opacity * style.opacity)));
         }
 
         // Draw the entire word at once.
@@ -582,7 +583,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             } else if (gk.style.bold) {
                 canvas->set_transform(glyph_global_transform * skew_xform);
                 canvas->set_stroke_paint(
-                    Pathfinder::Paint::from_color(gk.style.color.apply_alpha(alpha * style.alpha)));
+                    Pathfinder::Paint::from_color(gk.style.color.apply_alpha(opacity * style.opacity)));
                 canvas->set_line_width(STROKE_WIDTH_FOR_PSEUDO_BOLD_TEXT);
                 canvas->set_line_join(Pathfinder::LineJoin::Round);
                 canvas->stroke_path(gk.path);

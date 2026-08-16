@@ -230,7 +230,7 @@ struct TextStyle {
 
     Transform2 local_transform;
 
-    float alpha = 1.0f;
+    float opacity = 1.0f;
 
     bool debug = false;
 
@@ -242,7 +242,7 @@ struct TextStyle {
                background_corner_radius == rhs.background_corner_radius &&
                background_padding == rhs.background_padding && karaoke_progress == rhs.karaoke_progress &&
                karaoke_reached_color == rhs.karaoke_reached_color && local_transform == rhs.local_transform &&
-               alpha == rhs.alpha && debug == rhs.debug;
+               opacity == rhs.opacity && debug == rhs.debug;
     }
 };
 
