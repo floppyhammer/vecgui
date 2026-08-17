@@ -234,10 +234,12 @@ void Label::on_ready() {
 
     auto default_theme = context->default_resource->get_default_theme();
 
-    if (default_theme->font) {
-        font = default_theme->font;
-    } else {
-        font = context->default_resource->get_default_font();
+    if (!font) {
+        if (default_theme->font) {
+            font = default_theme->font;
+        } else {
+            font = context->default_resource->get_default_font();
+        }
     }
 }
 
