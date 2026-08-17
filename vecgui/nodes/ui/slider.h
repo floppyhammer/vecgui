@@ -17,6 +17,8 @@ public:
 
     void ready() override;
 
+    void on_ready() override;
+
     void input(InputEvent &event) override;
 
     void update(double dt) override;

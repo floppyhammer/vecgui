@@ -2,8 +2,10 @@
 
 #include <string>
 
+#include "../../common/context.h"
 #include "../../common/utils.h"
 #include "../../resources/default_resource.h"
+#include "../../servers/vector_server.h"
 
 namespace vecgui {
 
@@ -16,11 +18,16 @@ void Panel::draw() {
         return;
     }
 
-    auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto vector_server = context->vector_server;
 
     auto global_position = get_global_position();
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+    auto default_theme = context->default_resource->get_default_theme();
 
     auto theme_panel = theme_override_bg_.value_or(default_theme->panel.styles["background"]);
 

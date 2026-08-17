@@ -1,5 +1,6 @@
 #include "render_target.h"
 
+#include "../common/context.h"
 #include "../servers/render_server.h"
 #include "../servers/vector_server.h"
 
@@ -8,11 +9,15 @@ namespace vecgui {
 RenderTarget::RenderTarget(const Vec2I size) {
     type = NodeType::RenderTarget;
     size_ = size;
+}
 
-    auto render_context = RenderContext::get_singleton();
-    if (render_context->get_device()) {
-        vector_target_ = render_context->get_device()->create_texture({size_, Pathfinder::TextureFormat::Rgba8Unorm},
-                                                                      "render target texture");
+void RenderTarget::on_ready() {
+    auto context = get_context();
+    if (context && context->render_context && context->render_context->get_device()) {
+        if (!vector_target_) {
+            vector_target_ = context->render_context->get_device()->create_texture(
+                {size_, Pathfinder::TextureFormat::Rgba8Unorm}, "render target texture");
+        }
     }
 }
 
@@ -25,13 +30,17 @@ void RenderTarget::pre_draw_propagation() {
         return;
     }
 
-    auto render_context = RenderContext::get_singleton();
-    if (size_ != vector_target_->get_size() && !size_.is_any_zero()) {
-        vector_target_ = render_context->get_device()->create_texture({size_, Pathfinder::TextureFormat::Rgba8Unorm},
-                                                                      "render target texture");
+    auto context = get_context();
+    if (!context || !context->render_context || !context->vector_server) {
+        return;
     }
 
-    auto vector_server = VectorServer::get_singleton();
+    if (size_ != vector_target_->get_size() && !size_.is_any_zero()) {
+        vector_target_ = context->render_context->get_device()->create_texture(
+            {size_, Pathfinder::TextureFormat::Rgba8Unorm}, "render target texture");
+    }
+
+    auto vector_server = context->vector_server;
 
     vector_server->set_global_scale(dpi_scale_);
     vector_server->set_canvas_size(vector_target_->get_size());
@@ -39,8 +48,13 @@ void RenderTarget::pre_draw_propagation() {
 }
 
 void RenderTarget::post_draw_propagation() {
-    auto vector_server = VectorServer::get_singleton();
-    auto render_context = RenderContext::get_singleton();
+    auto context = get_context();
+    if (!context || !context->render_context || !context->vector_server) {
+        return;
+    }
+
+    auto vector_server = context->vector_server;
+    auto render_context = context->render_context;
 
     // Submit vector commands.
     vector_server->submit_and_clear();
@@ -77,7 +91,12 @@ void RenderTarget::set_blit_texture(std::shared_ptr<Pathfinder::Texture> texture
 
     if (blit_target_) {
         if (!blit_) {
-            auto render_context = RenderContext::get_singleton();
+            auto context = get_context();
+            if (!context || !context->render_context) {
+                return;
+            }
+            auto render_context = context->render_context;
+
             blit_ = std::make_shared<Pathfinder::Blit>(
                 render_context->get_device(), render_context->get_queue(), texture->get_format());
 

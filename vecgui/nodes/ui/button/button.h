@@ -117,6 +117,8 @@ protected:
     void notify_triggered();
 
     void notify_toggled(bool toggled);
+
+    void on_ready() override;
 };
 
 class ToggleButtonGroup {

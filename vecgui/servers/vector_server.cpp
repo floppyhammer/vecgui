@@ -11,26 +11,51 @@ void VectorServer::init(Pathfinder::Vec2I size,
                         const std::shared_ptr<Pathfinder::Device> &device,
                         const std::shared_ptr<Pathfinder::Queue> &queue,
                         Pathfinder::RenderMode mode) {
-    canvas = std::make_shared<Pathfinder::Canvas>(size, device, queue, mode);
+    device_ = device;
+    queue_ = queue;
+    mode_ = mode;
+
+    if (size.x > 0 && size.y > 0) {
+        canvas = std::make_shared<Pathfinder::Canvas>(size, device, queue, mode);
+    }
 }
 
-void VectorServer::cleanup() {
+void VectorServer::destroy() {
     canvas.reset();
+    queue_.reset();
+    device_.reset();
 }
 
 void VectorServer::set_canvas_size(const Vec2I new_size) {
-    const auto new_view_box = RectI({}, new_size).to_f32();
-    canvas->get_scene()->set_bounds(new_view_box);
-    canvas->get_scene()->set_view_box(new_view_box);
+    if (new_size.x <= 0 || new_size.y <= 0) {
+        return;
+    }
+
+    if (!canvas || (canvas->get_scene()->get_view_box().size() != new_size.to_f32())) {
+        // If canvas is null or size mismatch, try to (re)initialize.
+        if (device_ && queue_) {
+            canvas = std::make_shared<Pathfinder::Canvas>(new_size, device_, queue_, mode_);
+        }
+    }
+
+    if (canvas) {
+        const auto new_view_box = RectI({}, new_size).to_f32();
+        canvas->get_scene()->set_bounds(new_view_box);
+        canvas->get_scene()->set_view_box(new_view_box);
+    }
 }
 
 void VectorServer::set_dst_texture(const std::shared_ptr<Pathfinder::Texture> &texture) {
-    canvas->set_dst_texture(texture);
+    if (canvas) {
+        canvas->set_dst_texture(texture);
+    }
 }
 
 void VectorServer::submit_and_clear() {
-    canvas->draw(true);
-    canvas->take_scene();
+    if (canvas) {
+        canvas->draw(true);
+        canvas->take_scene();
+    }
 }
 
 std::shared_ptr<Pathfinder::Canvas> VectorServer::get_canvas() const {
@@ -619,18 +644,26 @@ std::string replace_all(std::string str, const std::string &from, const std::str
     return str;
 }
 
-std::shared_ptr<Pathfinder::SvgScene> VectorServer::load_svg(const std::string &path, bool override_with_accent_color) {
+std::shared_ptr<Pathfinder::SvgScene> VectorServer::load_svg(const GuiContext *context,
+                                                             const std::string &path,
+                                                             bool override_with_accent_color) {
+    if (!context || !context->engine) {
+        return nullptr;
+    }
+
 #ifndef __ANDROID__
     auto bytes = Pathfinder::load_file_as_bytes(path);
 #else
-    auto bytes = Pathfinder::load_asset(Engine::get_singleton()->asset_manager, path);
+    auto bytes = Pathfinder::load_asset(context->engine->asset_manager, path);
 #endif
 
     auto str = std::string(bytes.begin(), bytes.end());
 
     if (override_with_accent_color) {
-        auto default_theme = DefaultResource::get_singleton()->get_default_theme();
-        str = replace_all(str, "#000000", default_theme->accent_color.to_hex());
+        if (context->default_resource) {
+            auto default_theme = context->default_resource->get_default_theme();
+            str = replace_all(str, "#000000", default_theme->accent_color.to_hex());
+        }
     }
 
     auto svg_scene = std::make_shared<Pathfinder::SvgScene>(str, *canvas);

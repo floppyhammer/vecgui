@@ -6,12 +6,6 @@ namespace vecgui {
 
 class Engine {
 public:
-    static Engine *get_singleton() {
-        static Engine singleton;
-
-        return &singleton;
-    }
-
     Engine();
 
     void tick();

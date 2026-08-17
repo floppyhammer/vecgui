@@ -3,8 +3,8 @@
 #include <ranges>
 #include <string>
 
-#include "../servers/render_server.h"
 #include "proxy_window.h"
+#include "scene_tree.h"
 #include "ui/node_ui.h"
 
 namespace vecgui {
@@ -169,60 +169,69 @@ std::vector<std::shared_ptr<Node>> Node::get_all_children_reversed() {
 void Node::add_child(const std::shared_ptr<Node> &new_child) {
     assert(new_child && new_child.get() != this);
 
-    if (std::find(children.begin(), children.end(), new_child) != children.end()) {
-        std::cout << "Attempted to add a repeated child!" << std::endl;
-        return;
+    pending_children.push_back({new_child});
+}
+
+void Node::add_embedded_child(const std::shared_ptr<Node> &new_child) {
+    assert(new_child && new_child.get() != this);
+
+    pending_embedded_children.push_back(new_child);
+}
+
+void Node::flush_pending_children() {
+    ready();
+
+    for (auto &pending : pending_children) {
+        auto &new_child = pending.node;
+
+        if (std::find(children.begin(), children.end(), new_child) != children.end()) {
+            std::cout << "Attempted to add a repeated child!" << std::endl;
+            continue;
+        }
+
+        // Set self as the parent of the new node.
+        new_child->parent = this;
+        new_child->set_tree_recursive(tree_);
+
+        if (pending.index >= children.size()) {
+            children.push_back(new_child);
+        } else {
+            children.insert(children.begin() + pending.index, new_child);
+        }
+
+        new_child->flush_pending_children();
+
+        if (this->is_ui_node()) {
+            dynamic_cast<NodeUi *>(this)->queue_relayout();
+        }
     }
+    pending_children.clear();
 
-    // Set self as the parent of the new node.
-    new_child->parent = this;
-    new_child->tree_ = tree_;
+    for (auto &new_child : pending_embedded_children) {
+        if (std::find(embedded_children.begin(), embedded_children.end(), new_child) != embedded_children.end()) {
+            std::cout << "Attempted to add a repeated child!" << std::endl;
+            continue;
+        }
 
-    children.push_back(new_child);
+        // Set self as the parent of the new node.
+        new_child->parent = this;
+        new_child->set_tree_recursive(tree_);
 
-    if (this->is_ui_node()) {
-        dynamic_cast<NodeUi *>(this)->queue_relayout();
+        embedded_children.push_back(new_child);
+
+        new_child->flush_pending_children();
+
+        if (this->is_ui_node()) {
+            dynamic_cast<NodeUi *>(this)->queue_relayout();
+        }
     }
+    pending_embedded_children.clear();
 }
 
 void Node::add_child_at_index(const std::shared_ptr<Node> &new_child, uint32_t index) {
     assert(new_child && new_child.get() != this);
 
-    if (std::find(children.begin(), children.end(), new_child) != children.end()) {
-        std::cout << "Attempted to add a repeated child!" << std::endl;
-        return;
-    }
-
-    if (index >= children.size()) {
-        std::cout << "Attempted to add a child at a non-exist index!" << std::endl;
-    }
-
-    // Set self as the parent of the new node.
-    new_child->parent = this;
-    new_child->tree_ = tree_;
-
-    children.insert(children.begin() + index, new_child);
-
-    if (this->is_ui_node()) {
-        dynamic_cast<NodeUi *>(this)->queue_relayout();
-    }
-}
-
-void Node::add_embedded_child(const std::shared_ptr<Node> &new_child) {
-    if (std::find(embedded_children.begin(), embedded_children.end(), new_child) != embedded_children.end()) {
-        std::cout << "Attempted to add a repeated embedded child!" << std::endl;
-        return;
-    }
-
-    // Set self as the parent of the new node.
-    new_child->parent = this;
-    new_child->tree_ = tree_;
-
-    embedded_children.push_back(new_child);
-
-    if (this->is_ui_node()) {
-        dynamic_cast<NodeUi *>(this)->queue_relayout();
-    }
+    pending_children.push_back({new_child, index});
 }
 
 std::shared_ptr<Node> Node::get_child(size_t index) {
@@ -335,6 +344,22 @@ NodeType Node::get_node_type() const {
 
 SceneTree *Node::get_tree() const {
     return tree_;
+}
+
+GuiContext *Node::get_context() const {
+    return tree_ ? tree_->get_context() : nullptr;
+}
+
+void Node::set_tree_recursive(SceneTree *tree) {
+    if (tree_ == tree) {
+        return;
+    }
+
+    tree_ = tree;
+
+    for (auto &child : get_all_children()) {
+        child->set_tree_recursive(tree);
+    }
 }
 
 } // namespace vecgui

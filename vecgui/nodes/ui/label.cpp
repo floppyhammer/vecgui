@@ -223,22 +223,27 @@ std::vector<Line> get_lines_with_word_wrap(float limited_width,
 
 Label::Label() {
     type = NodeType::Label;
-
     text_ = "Label";
+}
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+void Label::on_ready() {
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto default_theme = context->default_resource->get_default_theme();
 
     if (default_theme->font) {
         font = default_theme->font;
     } else {
-        font = DefaultResource::get_singleton()->get_default_font();
+        font = context->default_resource->get_default_font();
     }
-    // emoji_font = Font::from_file("assets/fonts/EmojiOneColor.otf");
 }
 
 void Label::set_text(const std::string &new_text) {
     // Only update glyphs when the text has been changed.
-    if (text_ == new_text || font == nullptr) {
+    if (text_ == new_text) {
         return;
     }
 
@@ -338,7 +343,8 @@ bool is_cjk_ending_forbidden(const std::string &text) {
 }
 
 bool is_ideographic_script(Script script) {
-    return script == Script::Han || script == Script::Hangul || script == Script::Hiragana || script == Script::Katakana;
+    return script == Script::Han || script == Script::Hangul || script == Script::Hiragana ||
+           script == Script::Katakana;
 }
 
 /// A very crude way for line-breaking.
@@ -402,12 +408,17 @@ std::vector<LayoutGlyph> convert_to_in_context_glyphs(const std::vector<Glyph> &
 void Label::measure() {
     uint32_t font_size = get_font_size();
 
+    auto context = get_context();
+    if (!context || !font) {
+        return;
+    }
+
     if (spans_.empty() && !text_.empty()) {
         // NOTE: The style (especially colors) is "baked" into the glyphs during the measurement phase.
         // If the system theme changes, labels using default colors may not update until re-measurement is triggered.
         spans_.push_back({.text = text_, .style = get_text_style()});
     }
-    font->get_glyphs(spans_, font_size, glyphs_, paragraphs_);
+    font->get_glyphs(context->text_server, spans_, font_size, glyphs_, paragraphs_);
 
     // Apply letter spacing to paragraph widths.
     for (auto &para : paragraphs_) {
@@ -586,7 +597,12 @@ void Label::set_font_size(uint32_t new_font_size) {
 }
 
 uint32_t Label::get_font_size() const {
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+    auto context = get_context();
+    if (!context) {
+        return 24;
+    }
+
+    auto default_theme = context->default_resource->get_default_theme();
 
     return text_style_.has_value() ? text_style_->font_size : default_theme->font_size;
 }
@@ -652,9 +668,13 @@ void Label::draw() {
 
     auto global_transform = get_global_transform();
 
-    auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+    auto vector_server = context->vector_server;
+    auto default_theme = context->default_resource->get_default_theme();
 
     TextStyle draw_style = get_text_style();
     auto theme_background = theme_override_bg.value_or(default_theme->label.styles["background"]);
@@ -754,16 +774,16 @@ void Label::adjust_layout() {
 Vec2F Label::get_text_minimum_size() const {
     float effective_max_para_width = 0;
 
-    const auto &effecttive_lines = word_wrap_ ? lines_ : paragraphs_;
+    const auto &effective_lines = word_wrap_ ? lines_ : paragraphs_;
 
-    for (const auto &line : effecttive_lines) {
+    for (const auto &line : effective_lines) {
         effective_max_para_width = std::max(effective_max_para_width, line.width);
     }
 
     float total_height = 0;
-    if (!effecttive_lines.empty()) {
-        total_height = (float)effecttive_lines.size() * (float)get_font_size() +
-                       (float)(effecttive_lines.size() - 1) * line_spacing_;
+    if (!effective_lines.empty()) {
+        total_height = (float)effective_lines.size() * (float)get_font_size() +
+                       (float)(effective_lines.size() - 1) * line_spacing_;
     }
 
     Vec2F text_bbox = {effective_max_para_width, total_height};
@@ -817,7 +837,12 @@ float Label::get_glyph_right_edge_position(int32_t glyph_index) {
 TextStyle Label::get_text_style() const {
     // Apply theme color if not overridden.
     if (!text_style_.has_value()) {
-        const auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+        auto context = get_context();
+        if (!context) {
+            return {};
+        }
+
+        const auto default_theme = context->default_resource->get_default_theme();
         TextStyle text_style;
         text_style.color = default_theme->label.colors["text"];
         text_style.font_size = default_theme->font_size;

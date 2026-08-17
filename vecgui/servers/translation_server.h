@@ -4,17 +4,10 @@
 
 #include <vector>
 
-#define FTR(TAG) vecgui::TranslationServer::get_singleton()->get_translation(TAG)
-
 namespace vecgui {
 
 class TranslationServer {
 public:
-    static TranslationServer *get_singleton() {
-        static TranslationServer singleton;
-        return &singleton;
-    }
-
     TranslationServer();
 
     void set_locale(const std::string &locale);

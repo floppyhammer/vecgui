@@ -1,6 +1,5 @@
 #include "menu_button.h"
 
-#include "../../../resources/default_resource.h"
 #include "../container/scroll_container.h"
 #include "../popup_menu.h"
 

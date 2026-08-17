@@ -20,7 +20,7 @@ class TreeItem {
     friend class Tree;
 
 public:
-    TreeItem();
+    explicit TreeItem(GuiContext* context);
 
     uint32_t add_child(const std::shared_ptr<TreeItem> &item);
 

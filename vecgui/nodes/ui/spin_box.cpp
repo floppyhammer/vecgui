@@ -3,8 +3,10 @@
 #include <iomanip>
 #include <iostream>
 
+#include "../../common/context.h"
 #include "../../common/geometry.h"
 #include "../../resources/vector_image.h"
+#include "../../servers/vector_server.h"
 
 namespace vecgui {
 
@@ -55,9 +57,6 @@ void SpinBox::input(InputEvent &event) {
             }
 
             drag_to_adjust_value = true;
-
-            // Capture cursor when dragging.
-            // InputServer::get_singleton()->set_cursor_captured(get_window()->get_real().get(), true);
         }
 
         if (active_rect.contains_point(args.position)) {
@@ -69,11 +68,6 @@ void SpinBox::input(InputEvent &event) {
         auto args = event.args.mouse_button;
 
         if (!args.pressed) {
-            if (pressed_inside) {
-                // Release cursor when dragging ends.
-                // InputServer::get_singleton()->set_cursor_captured(get_window()->get_real().get(), false);
-            }
-
             pressed_inside = false;
             drag_to_adjust_value = false;
         }
@@ -111,7 +105,12 @@ void SpinBox::draw() {
         return;
     }
 
-    auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto vector_server = context->vector_server;
 
     auto global_position = get_global_position();
 

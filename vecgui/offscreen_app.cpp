@@ -13,17 +13,32 @@ namespace vecgui {
 OffscreenApp::OffscreenApp(std::shared_ptr<Pathfinder::Device> device,
                            std::shared_ptr<Pathfinder::Queue> queue,
                            Vec2I size) {
-    // Initialize Servers with provided hardware interface.
-    auto render_context = RenderContext::get_singleton();
+    // Initialize Servers.
+    engine = std::make_unique<Engine>();
+    vector_server = std::make_unique<VectorServer>();
+    text_server = std::make_unique<TextServer>();
+    input_server = std::make_unique<InputServer>();
+    render_context = std::make_unique<RenderContext>();
+    default_resource = std::make_unique<DefaultResource>();
+    translation_server = std::make_unique<TranslationServer>();
+
+    // Fill the context container.
+    context.engine = engine.get();
+    context.vector_server = vector_server.get();
+    context.text_server = text_server.get();
+    context.input_server = input_server.get();
+    context.render_context = render_context.get();
+    context.default_resource = default_resource.get();
+    context.translation_server = translation_server.get();
+
     render_context->init(nullptr, device, queue);
-
-    DefaultResource::get_singleton()->init(true);
-
-    auto vector_server = VectorServer::get_singleton();
     vector_server->init(size, device, queue, Pathfinder::RenderMode::Hybrid);
 
+    // Initialize resources.
+    default_resource->init(&context, true);
+
     // Create a SceneTree with a generic RenderTarget as root.
-    tree = std::make_unique<SceneTree>();
+    tree = std::make_unique<SceneTree>(&context);
 
     // Ensure root has correct initial size.
     auto root = std::dynamic_pointer_cast<RenderTarget>(tree->get_root());
@@ -33,22 +48,21 @@ OffscreenApp::OffscreenApp(std::shared_ptr<Pathfinder::Device> device,
 
 OffscreenApp::~OffscreenApp() {
     tree.reset();
-    VectorServer::get_singleton()->cleanup();
-    RenderContext::get_singleton()->destroy();
+    vector_server->destroy();
+    render_context->destroy();
 }
 
 void OffscreenApp::update(double dt) {
     // Engine processing.
-    Engine::get_singleton()->tick();
+    engine->tick();
 
     // Update the scene tree.
     tree->process(dt);
 
-    InputServer::get_singleton()->clear_events();
+    input_server->clear_events();
 }
 
 void OffscreenApp::render(std::shared_ptr<Pathfinder::Texture> target_texture) {
-    auto render_context = RenderContext::get_singleton();
     render_context->get_device()->begin_frame();
     render_context->get_queue()->begin_frame(render_context->get_device()->get_current_frame_index());
 
@@ -77,7 +91,6 @@ std::shared_ptr<Node> OffscreenApp::get_tree_root() const {
 }
 
 void OffscreenApp::register_fallback_font(Script script, const std::shared_ptr<Font> &font) {
-    auto text_server = TextServer::get_singleton();
     text_server->register_fallback_font(script, font);
 }
 

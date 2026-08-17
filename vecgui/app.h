@@ -8,9 +8,16 @@
 #include <queue>
 #include <vector>
 
+#include "common/context.h"
 #include "common/geometry.h"
 #include "nodes/scene_tree.h"
+#include "resources/default_resource.h"
+#include "servers/engine.h"
+#include "servers/input_server.h"
+#include "servers/render_server.h"
+#include "servers/text_server.h"
 #include "servers/translation_server.h"
+#include "servers/vector_server.h"
 
 class ANativeWindow;
 
@@ -42,8 +49,23 @@ public:
 
     float get_scaling_factor() const;
 
+    const GuiContext& get_context() const {
+        return context;
+    }
+
 private:
     std::unique_ptr<SceneTree> tree;
+
+    // Server instances
+    std::unique_ptr<Engine> engine;
+    std::unique_ptr<VectorServer> vector_server;
+    std::unique_ptr<TextServer> text_server;
+    std::unique_ptr<InputServer> input_server;
+    std::unique_ptr<RenderContext> render_context;
+    std::unique_ptr<DefaultResource> default_resource;
+    std::unique_ptr<TranslationServer> translation_server;
+
+    GuiContext context;
 };
 
 } // namespace vecgui

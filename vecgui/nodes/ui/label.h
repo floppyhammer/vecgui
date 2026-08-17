@@ -102,6 +102,8 @@ public:
     std::optional<StyleBox> theme_override_bg;
 
 protected:
+    void on_ready() override;
+
     void update(double dt) override;
 
     void measure();

@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "../common/context.h"
 #include "../common/utils.h"
 #include "../servers/vector_server.h"
 #include "default_resource.h"
@@ -23,10 +24,10 @@ std::shared_ptr<VectorImage> VectorImage::from_empty(Vec2I _size) {
     return texture;
 }
 
-VectorImage::VectorImage(const std::string &path, bool override_with_accent_color) {
+VectorImage::VectorImage(const GuiContext *context, const std::string &path, bool override_with_accent_color) {
     type = ImageType::Vector;
 
-    svg_scene = VectorServer::get_singleton()->load_svg(path, override_with_accent_color);
+    svg_scene = context->vector_server->load_svg(context, path, override_with_accent_color);
 
     size = svg_scene->get_size().to_i32();
 }

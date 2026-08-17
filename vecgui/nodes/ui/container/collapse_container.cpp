@@ -8,18 +8,33 @@
 
 namespace vecgui {
 
-CollapseContainer::CollapseContainer(CollapseButtonType button_type) {
+CollapseContainer::CollapseContainer(CollapseButtonType button_type) : button_type_(button_type) {
     type = NodeType::CollapseContainer;
 
     set_color(ColorU(78, 135, 82));
 
-    switch (button_type) {
+    container_sizing.flag_h = ContainerSizingFlag::Fill;
+}
+
+void CollapseContainer::on_ready() {
+    NodeUi::on_ready();
+
+    if (collapse_button_) {
+        return;
+    }
+
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    switch (button_type_) {
         case CollapseButtonType::Check: {
             collapse_button_ = std::make_shared<CheckButton>();
             collapse_button_->set_icon_normal(
-                std::make_shared<VectorImage>(get_asset_dir("icons/toggle_off.svg"), true));
+                std::make_shared<VectorImage>(context, get_asset_dir("icons/toggle_off.svg"), true));
             collapse_button_->set_icon_pressed(
-                std::make_shared<VectorImage>(get_asset_dir("icons/toggle_on.svg"), true));
+                std::make_shared<VectorImage>(context, get_asset_dir("icons/toggle_on.svg"), true));
         } break;
         default: {
             collapse_button_ = std::make_shared<Button>();
@@ -27,15 +42,13 @@ CollapseContainer::CollapseContainer(CollapseButtonType button_type) {
     }
 
     collapse_button_->set_custom_minimum_size({0, title_bar_height_});
-    collapse_button_->set_text("Collapsing Container");
+    collapse_button_->set_text(title_);
     collapse_button_->set_flat(true);
     collapse_button_->set_toggle_mode(true);
     collapse_button_->connect_signal("toggled", [this](bool p_pressed) { set_collapse(!p_pressed); });
     collapse_button_->set_toggled_no_signal(!collapsed_);
 
     add_embedded_child(collapse_button_);
-
-    container_sizing.flag_h = ContainerSizingFlag::Fill;
 }
 
 void CollapseContainer::adjust_layout() {
@@ -49,7 +62,9 @@ void CollapseContainer::adjust_layout() {
         size = min_size;
     }
 
-    collapse_button_->set_size({size.x, title_bar_height_});
+    if (collapse_button_) {
+        collapse_button_->set_size({size.x, title_bar_height_});
+    }
 
     // Adjust child size.
     for (auto &child : children) {
@@ -74,7 +89,9 @@ void CollapseContainer::set_collapse(bool collapse) {
         return;
     }
     collapsed_ = collapse;
-    collapse_button_->set_toggled_no_signal(!collapse);
+    if (collapse_button_) {
+        collapse_button_->set_toggled_no_signal(!collapse);
+    }
 
     when_collapsed(collapsed_);
 
@@ -138,7 +155,10 @@ void CollapseContainer::calc_minimum_size() {
 }
 
 void CollapseContainer::set_title(std::string title) {
-    collapse_button_->set_text(title);
+    title_ = title;
+    if (collapse_button_) {
+        collapse_button_->set_text(title);
+    }
 }
 
 void CollapseContainer::update(double dt) {
@@ -152,11 +172,16 @@ void CollapseContainer::draw() {
         return;
     }
 
-    auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto vector_server = context->vector_server;
 
     auto global_position = get_global_position();
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+    auto default_theme = context->default_resource->get_default_theme();
 
     auto theme_title_bar = theme_override_title_bar_.value_or(default_theme->collapse_container.styles["title_bar"]);
     theme_title_bar.border_width = 2;

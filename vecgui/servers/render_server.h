@@ -8,7 +8,8 @@ struct RenderContextImpl;
 
 class RenderContext {
 public:
-    static RenderContext *get_singleton();
+    RenderContext();
+    ~RenderContext();
 
     void init(std::shared_ptr<Pathfinder::WindowBuilder> window_builder,
               std::shared_ptr<Pathfinder::Device> device,
@@ -21,6 +22,7 @@ public:
     std::shared_ptr<Pathfinder::Device> get_device() const;
     std::shared_ptr<Pathfinder::Queue> get_queue() const;
 
+private:
     std::unique_ptr<RenderContextImpl> impl_;
 };
 

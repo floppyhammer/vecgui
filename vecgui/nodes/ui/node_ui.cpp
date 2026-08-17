@@ -1,7 +1,9 @@
 #include "node_ui.h"
 
+#include "../../common/context.h"
 #include "../../common/geometry.h"
 #include "../../resources/default_resource.h"
+#include "../../servers/vector_server.h"
 #include "../scene_tree.h"
 
 using Pathfinder::Rect;
@@ -43,7 +45,12 @@ void NodeUi::draw() {
     Node::draw();
 
     if (visible_ && debug_box.has_value()) {
-        auto vector_server = VectorServer::get_singleton();
+        auto context = get_context();
+        if (!context) {
+            return;
+        }
+
+        auto vector_server = context->vector_server;
 
         auto global_transform = get_global_transform();
 

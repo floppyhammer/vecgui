@@ -13,6 +13,8 @@ class Window;
 
 namespace vecgui {
 
+class RenderContext;
+
 enum class InputEventType {
     MouseButton = 0,
     MouseMotion,
@@ -77,10 +79,10 @@ public:
 std::string cpp11_codepoint_to_utf8(char32_t codepoint);
 
 /// wstring to UTF8 string.
-std::string ws_to_utf8(std::wstring const &s);
+std::string ws_to_utf8(std::wstring const& s);
 
 /// UTF8 string to wstring.
-std::wstring utf8_to_ws(std::string const &utf8);
+std::wstring utf8_to_ws(std::string const& utf8);
 
 enum class CursorShape {
     // The regular arrow cursor.
@@ -103,29 +105,27 @@ struct GlfwData;
 
 class InputServer {
 public:
-    static InputServer *get_singleton();
-
     InputServer();
 
-    void initialize_window_callbacks(uint8_t window_index);
+    void initialize_window_callbacks(RenderContext* render_context, uint8_t window_index);
 
     void clear_events();
 
     std::string get_clipboard();
-    void set_clipboard(const std::string &text);
+    void set_clipboard(const std::string& text);
 
     Vec2F cursor_position;
     Vec2F last_cursor_position;
 
     std::vector<InputEvent> input_queue;
 
-    void set_cursor_captured(uint8_t window_index, bool captured);
+    void set_cursor_captured(RenderContext* render_context, uint8_t window_index, bool captured);
 
-    void hide_cursor(uint8_t window_index);
+    void hide_cursor(RenderContext* render_context, uint8_t window_index);
 
-    void restore_cursor(uint8_t window_index);
+    void restore_cursor(RenderContext* render_context, uint8_t window_index);
 
-    void set_cursor(uint8_t window_index, CursorShape shape);
+    void set_cursor(RenderContext* render_context, uint8_t window_index, CursorShape shape);
 
     bool is_key_pressed(KeyCode code) const;
 

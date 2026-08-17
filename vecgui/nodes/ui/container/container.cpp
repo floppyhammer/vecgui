@@ -51,7 +51,11 @@ void Container::draw() {
     }
 
     if (theme_override_bg.has_value()) {
-        auto vector_server = VectorServer::get_singleton();
+        auto context = get_context();
+        if (!context) {
+            return;
+        }
+        auto vector_server = context->vector_server;
 
         auto global_position = get_global_position();
 

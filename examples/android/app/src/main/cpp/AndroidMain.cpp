@@ -39,7 +39,7 @@ class MyNode : public Node {
         {
             auto button = std::make_shared<Button>();
             button->set_icon_normal(
-                    std::make_shared<VectorImage>(get_asset_dir("icons/Node_Button.svg")));
+                    std::make_shared<VectorImage>(&app->get_context(), get_asset_dir("icons/Node_Button.svg")));
             button->container_sizing.flag_h = ContainerSizingFlag::ShrinkStart;
             vbox_container->add_child(button);
         }
@@ -154,7 +154,7 @@ void handle_motion_event(GameActivityMotionEvent *event) {
     float x_pos = x / app->get_scaling_factor();
     float y_pos = y / app->get_scaling_factor();
 
-    auto input_server = InputServer::get_singleton();
+    auto input_server = app->get_context().input_server;
 
     switch (actionMasked) {
         case AMOTION_EVENT_ACTION_DOWN: {

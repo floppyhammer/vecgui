@@ -11,8 +11,6 @@ namespace vecgui {
 Button::Button() {
     type = NodeType::Button;
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
-
     // Don't add the label as a child since it's not a normal node but part of the button.
     label = std::make_shared<Label>();
     label->set_text("Button");
@@ -41,12 +39,16 @@ Button::Button() {
 
     callbacks_cursor_entered.emplace_back([this] {
         hovered = true;
-        // InputServer::get_singleton()->set_cursor(get_window_index(), CursorShape::Hand);
+        if (auto context = get_context()) {
+            // context->input_server->set_cursor(get_window_index(), CursorShape::Hand);
+        }
     });
 
     callbacks_cursor_exited.emplace_back([this] {
         hovered = false;
-        // InputServer::get_singleton()->set_cursor(get_window_index(), CursorShape::Arrow);
+        if (auto context = get_context()) {
+            // context->input_server->set_cursor(get_window_index(), CursorShape::Arrow);
+        }
     });
 }
 
@@ -133,13 +135,18 @@ void Button::draw() {
         return;
     }
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto default_theme = context->default_resource->get_default_theme();
     auto theme_normal = theme_override_normal.value_or(default_theme->button.styles["normal"]);
     auto theme_hovered = theme_override_hovered.value_or(default_theme->button.styles["hovered"]);
     auto theme_pressed = theme_override_pressed.value_or(default_theme->button.styles["pressed"]);
     auto theme_disabled = theme_override_disabled.value_or(default_theme->button.styles["disabled"]);
 
-    auto vector_server = VectorServer::get_singleton();
+    auto vector_server = context->vector_server;
 
     auto global_position = get_global_position();
 
@@ -295,6 +302,10 @@ void Button::set_toggled(bool p_toggled) {
 
 void Button::trigger() {
     notify_triggered();
+}
+
+void Button::on_ready() {
+    NodeUi::on_ready();
 }
 
 void ToggleButtonGroup::notify_toggled(const Button *toggled_button) {

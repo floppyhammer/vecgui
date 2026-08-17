@@ -3,6 +3,7 @@
 #include <map>
 
 #include "style_box.h"
+#include "../common/context.h"
 
 namespace vecgui {
 
@@ -16,10 +17,7 @@ public:
 
     static std::shared_ptr<Theme> default_light();
 
-    // TODO
-    static std::shared_ptr<Theme> from_json(const std::string& json);
-
-    void load_font(const std::string& font_path);
+    void load_font(const GuiContext* context, const std::string& font_path);
 
     std::shared_ptr<Font> font;
 

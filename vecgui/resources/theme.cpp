@@ -1,5 +1,6 @@
 #include "theme.h"
 
+#include "../common/context.h"
 #include "default_resource.h"
 #include "font.h"
 
@@ -357,12 +358,8 @@ std::shared_ptr<Theme> Theme::default_light() {
     return theme;
 }
 
-std::shared_ptr<Theme> Theme::from_json(const std::string& json) {
-    return nullptr;
-}
-
-void Theme::load_font(const std::string& font_path) {
-    const auto new_font = Font::from_file(get_asset_dir(font_path));
+void Theme::load_font(const GuiContext* context, const std::string& font_path) {
+    const auto new_font = Font::from_file(context, get_asset_dir(font_path));
     if (new_font) {
         font = new_font;
     } else {

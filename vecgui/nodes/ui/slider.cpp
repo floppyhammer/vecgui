@@ -2,15 +2,22 @@
 
 #include <optional>
 
+#include "../../common/context.h"
 #include "../../common/geometry.h"
 #include "../../resources/default_resource.h"
+#include "../../servers/input_server.h"
+#include "../../servers/vector_server.h"
 
 namespace vecgui {
 
 Slider::Slider() {
     type = NodeType::Slider;
+}
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+void Slider::on_ready() {
+    if (auto context = get_context()) {
+        auto default_theme = context->default_resource->get_default_theme();
+    }
 }
 
 void Slider::ready() {
@@ -24,7 +31,9 @@ void Slider::ready() {
 
     callbacks_cursor_entered.emplace_back([this] {
         hovered = true;
-        InputServer::get_singleton()->set_cursor(get_window_index(), CursorShape::Hand);
+        if (auto context = get_context()) {
+            context->input_server->set_cursor(context->render_context, get_window_index(), CursorShape::Hand);
+        }
 
         // if (theme_hovered.has_value()) {
         //     target_style_box = theme_hovered.value();
@@ -33,7 +42,9 @@ void Slider::ready() {
 
     callbacks_cursor_exited.emplace_back([this] {
         hovered = false;
-        InputServer::get_singleton()->set_cursor(get_window_index(), CursorShape::Arrow);
+        if (auto context = get_context()) {
+            context->input_server->set_cursor(context->render_context, get_window_index(), CursorShape::Arrow);
+        }
 
         // if (pressed) {
         //     target_style_box = theme_pressed;
@@ -106,11 +117,16 @@ void Slider::draw() {
         return;
     }
 
-    auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto vector_server = context->vector_server;
 
     const auto global_position = get_global_position();
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+    auto default_theme = context->default_resource->get_default_theme();
 
     vector_server->draw_line(global_position + Vec2F(grabber_margin_, size.y * 0.5),
                              global_position + Vec2F(size.x - grabber_margin_, size.y * 0.5),

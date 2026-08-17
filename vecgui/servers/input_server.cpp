@@ -15,6 +15,8 @@
 
 namespace vecgui {
 
+static InputServer *g_input_server = nullptr;
+
 std::string cpp11_codepoint_to_utf8(char32_t codepoint) {
     std::string result;
     uint32_t cp = static_cast<uint32_t>(codepoint);
@@ -51,12 +53,8 @@ struct GlfwData {
 #endif
 };
 
-InputServer *InputServer::get_singleton() {
-    static InputServer singleton;
-    return &singleton;
-}
-
 InputServer::InputServer() {
+    g_input_server = this;
 #if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
     glfw_data_ = std::make_shared<GlfwData>();
     // All remaining cursors are destroyed when glfwTerminate is called.
@@ -71,9 +69,9 @@ InputServer::InputServer() {
 #endif
 }
 
-void InputServer::initialize_window_callbacks(uint8_t window_index) {
+void InputServer::initialize_window_callbacks(RenderContext *render_context, uint8_t window_index) {
 #if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
-    auto render_context = RenderContext::get_singleton();
+    if (!render_context) return;
     auto window =
         (GLFWwindow *)render_context->get_window_builder()->get_window(window_index).lock()->get_glfw_handle();
 
@@ -96,7 +94,8 @@ void InputServer::initialize_window_callbacks(uint8_t window_index) {
         input_event.type = InputEventType::MouseMotion;
         input_event.window_index = pf_window->window_index;
         input_event.args.mouse_motion.position = {(float)x_pos, (float)y_pos};
-        auto input_server = get_singleton();
+        auto input_server = g_input_server;
+        if (!input_server) return;
         input_server->last_cursor_position = input_server->cursor_position;
         input_server->cursor_position = {(float)x_pos, (float)y_pos};
         input_event.args.mouse_motion.relative = input_server->cursor_position - input_server->last_cursor_position;
@@ -112,7 +111,8 @@ void InputServer::initialize_window_callbacks(uint8_t window_index) {
         input_event.window_index = pf_window->window_index;
         input_event.args.mouse_button.button = button;
         input_event.args.mouse_button.pressed = action == GLFW_PRESS;
-        auto input_server = get_singleton();
+        auto input_server = g_input_server;
+        if (!input_server) return;
         input_event.args.mouse_button.position = input_server->cursor_position;
         input_server->input_queue.push_back(input_event);
     };
@@ -127,13 +127,15 @@ void InputServer::initialize_window_callbacks(uint8_t window_index) {
         input_event.args.mouse_scroll.x_delta = x_offset;
         input_event.args.mouse_scroll.y_delta = y_offset;
 
-        auto input_server = get_singleton();
+        auto input_server = g_input_server;
+        if (!input_server) return;
         input_server->input_queue.push_back(input_event);
     };
     glfwSetScrollCallback(window, cursor_scroll_callback);
 
     auto key_callback = [](GLFWwindow *window, int key, int scancode, int action, int mods) {
-        auto input_server = get_singleton();
+        auto input_server = g_input_server;
+        if (!input_server) return;
 
         auto pf_window = reinterpret_cast<Pathfinder::Window *>(glfwGetWindowUserPointer(window));
 
@@ -214,7 +216,8 @@ void InputServer::initialize_window_callbacks(uint8_t window_index) {
         input_event.type = InputEventType::Text;
         input_event.window_index = pf_window->window_index;
         input_event.args.text.codepoint = codepoint;
-        auto input_server = get_singleton();
+        auto input_server = g_input_server;
+        if (!input_server) return;
         input_server->input_queue.push_back(input_event);
     };
 
@@ -241,9 +244,9 @@ void InputServer::set_clipboard(const std::string &text) {
 #endif
 }
 
-void InputServer::set_cursor(uint8_t window_index, CursorShape shape) {
+void InputServer::set_cursor(RenderContext *render_context, uint8_t window_index, CursorShape shape) {
 #if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
-    auto render_context = RenderContext::get_singleton();
+    if (!render_context) return;
     auto window =
         (GLFWwindow *)render_context->get_window_builder()->get_window(window_index).lock()->get_glfw_handle();
 
@@ -284,9 +287,9 @@ bool InputServer::is_key_pressed(KeyCode code) const {
     return keys_pressed.find(code) != keys_pressed.end();
 }
 
-void InputServer::set_cursor_captured(uint8_t window_index, bool captured) {
+void InputServer::set_cursor_captured(RenderContext *render_context, uint8_t window_index, bool captured) {
 #if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
-    auto render_context = RenderContext::get_singleton();
+    if (!render_context) return;
     auto window =
         (GLFWwindow *)render_context->get_window_builder()->get_window(window_index).lock()->get_glfw_handle();
 
@@ -294,9 +297,9 @@ void InputServer::set_cursor_captured(uint8_t window_index, bool captured) {
 #endif
 }
 
-void InputServer::hide_cursor(uint8_t window_index) {
+void InputServer::hide_cursor(RenderContext *render_context, uint8_t window_index) {
 #if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
-    auto render_context = RenderContext::get_singleton();
+    if (!render_context) return;
     auto window =
         (GLFWwindow *)render_context->get_window_builder()->get_window(window_index).lock()->get_glfw_handle();
 
@@ -304,9 +307,9 @@ void InputServer::hide_cursor(uint8_t window_index) {
 #endif
 }
 
-void InputServer::restore_cursor(uint8_t window_index) {
+void InputServer::restore_cursor(RenderContext *render_context, uint8_t window_index) {
 #if !defined(ANDROID) && defined(VECGUI_USE_WINDOW)
-    auto render_context = RenderContext::get_singleton();
+    if (!render_context) return;
     auto window =
         (GLFWwindow *)render_context->get_window_builder()->get_window(window_index).lock()->get_glfw_handle();
 

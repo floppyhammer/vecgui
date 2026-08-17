@@ -11,8 +11,6 @@ namespace vecgui {
 SplitContainer::SplitContainer() {
     type = NodeType::SplitContainer;
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
-
     container_sizing.flag_h = ContainerSizingFlag::Fill;
 }
 
@@ -132,21 +130,22 @@ void SplitContainer::input(InputEvent &event) {
         if (event.type == InputEventType::MouseMotion) {
             auto args = event.args.mouse_motion;
 
-            if (!event.consumed) {
+            auto context = get_context();
+            if (!event.consumed && context) {
                 if (RectF(global_position + Vec2F(grabber_left_edge_pos, 0),
                           global_position + Vec2F(grabber_left_edge_pos, 0) + Vec2F(grabber_size_, size.y))
                         .contains_point(args.position)) {
                     cursor_in_ = true;
-                    InputServer::get_singleton()->set_cursor(get_window_index(), CursorShape::ResizeH);
+                    context->input_server->set_cursor(context->render_context, get_window_index(), CursorShape::ResizeH);
                 } else {
                     if (cursor_in_) {
-                        InputServer::get_singleton()->set_cursor(get_window_index(), CursorShape::Arrow);
+                        context->input_server->set_cursor(context->render_context, get_window_index(), CursorShape::Arrow);
                     }
                     cursor_in_ = false;
                 }
             } else {
-                if (cursor_in_) {
-                    InputServer::get_singleton()->set_cursor(get_window_index(), CursorShape::Arrow);
+                if (cursor_in_ && context) {
+                    context->input_server->set_cursor(context->render_context, get_window_index(), CursorShape::Arrow);
                 }
                 cursor_in_ = false;
             }
@@ -193,7 +192,12 @@ void SplitContainer::draw() {
         return;
     }
 
-    const auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    const auto vector_server = context->vector_server;
 
     const auto global_position = get_global_position();
 
@@ -204,7 +208,7 @@ void SplitContainer::draw() {
             const auto start = global_position + Vec2F(grabber_left_edge_pos + grabber_size_ * 0.5f, size.y * 0.25f);
             const auto end = start + Vec2F(0, size.y * 0.5f);
 
-            const auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+            const auto default_theme = context->default_resource->get_default_theme();
             vector_server->draw_line(start, end, 2, default_theme->accent_color);
         }
     }

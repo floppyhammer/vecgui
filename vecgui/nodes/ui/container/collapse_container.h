@@ -39,8 +39,14 @@ public:
     std::optional<StyleBox> theme_override_title_bar_;
     std::optional<StyleBox> theme_override_bg_;
 
+protected:
+    void on_ready() override;
+
 private:
     void when_collapsed(bool collapsed);
+
+    CollapseButtonType button_type_;
+    std::string title_ = "Collapsing Container";
 
     bool collapsed_ = false;
 

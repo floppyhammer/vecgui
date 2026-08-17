@@ -8,8 +8,6 @@ namespace vecgui {
 TabContainer::TabContainer() {
     type = NodeType::TabContainer;
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
-
     button_scroll_container = std::make_shared<ScrollContainer>();
     button_scroll_container->enable_vscroll(false);
     add_embedded_child(button_scroll_container);
@@ -85,13 +83,18 @@ void TabContainer::set_current_tab(uint32_t index) {
 void TabContainer::draw() {
     Container::draw();
 
-    auto vs = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto vs = context->vector_server;
 
     auto global_pos = get_global_position();
 
     auto tab_button_height = button_container->get_effective_minimum_size().y;
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+    auto default_theme = context->default_resource->get_default_theme();
 
     auto theme_tab_bg = theme_override_tab_bg.value_or(default_theme->tab_container.styles["tab_background"]);
 

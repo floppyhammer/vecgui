@@ -1,8 +1,9 @@
 #include "render_image.h"
+#include "../common/context.h"
 
 namespace vecgui {
 
-RenderImage::RenderImage(Vec2I _size) {
+RenderImage::RenderImage(const GuiContext* context, Vec2I _size) {
     size = _size;
 
     const Pathfinder::TextureDescriptor desc = {
@@ -12,7 +13,7 @@ RenderImage::RenderImage(Vec2I _size) {
 
     type = ImageType::Render;
 
-    texture_ = RenderContext::get_singleton()->get_device()->create_texture(desc, "render image");
+    texture_ = context->render_context->get_device()->create_texture(desc, "render image");
 }
 
 RenderImage::RenderImage(const std::shared_ptr<Pathfinder::Texture>& existing_texture) {

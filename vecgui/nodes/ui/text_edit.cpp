@@ -2,9 +2,11 @@
 
 #include <string>
 
+#include "../../common/context.h"
 #include "../../common/utils.h"
 #include "../../resources/default_resource.h"
 #include "../../servers/input_server.h"
+#include "../../servers/vector_server.h"
 #include "container/margin_container.h"
 
 namespace vecgui {
@@ -40,11 +42,17 @@ TextEdit::TextEdit() {
 
     set_text("Enter text");
 
-    callbacks_cursor_entered.emplace_back(
-        [this] { InputServer::get_singleton()->set_cursor(get_window_index(), CursorShape::IBeam); });
+    callbacks_cursor_entered.emplace_back([this] {
+        if (auto context = get_context()) {
+            context->input_server->set_cursor(context->render_context, get_window_index(), CursorShape::IBeam);
+        }
+    });
 
-    callbacks_cursor_exited.emplace_back(
-        [this] { InputServer::get_singleton()->set_cursor(get_window_index(), CursorShape::Arrow); });
+    callbacks_cursor_exited.emplace_back([this] {
+        if (auto context = get_context()) {
+            context->input_server->set_cursor(context->render_context, get_window_index(), CursorShape::Arrow);
+        }
+    });
 }
 
 void TextEdit::set_text(std::string new_text) const {
@@ -60,7 +68,12 @@ std::string TextEdit::get_text() const {
 }
 
 void TextEdit::input(InputEvent &event) {
-    auto input_server = InputServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto input_server = context->input_server;
 
     // Handle mouse input propagation.
     bool consume_flag = false;
@@ -244,11 +257,16 @@ void TextEdit::update(double dt) {
 }
 
 void TextEdit::draw() {
-    auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto vector_server = context->vector_server;
 
     auto global_position = get_global_position();
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+    auto default_theme = context->default_resource->get_default_theme();
 
     auto theme_normal = theme_override_normal.value_or(default_theme->text_edit.styles["normal"]);
     auto theme_focused = theme_override_focused.value_or(default_theme->text_edit.styles["focused"]);

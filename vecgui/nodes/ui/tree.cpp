@@ -2,7 +2,9 @@
 
 #include <string>
 
+#include "../../common/context.h"
 #include "../../common/utils.h"
+#include "../../servers/vector_server.h"
 #include "../scene_tree.h"
 
 namespace vecgui {
@@ -27,7 +29,12 @@ void Tree::draw() {
         return;
     }
 
-    auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto vector_server = context->vector_server;
 
     if (theme_bg.has_value()) {
         vector_server->draw_style_box(theme_bg.value(), get_global_position(), size);
@@ -44,14 +51,16 @@ void Tree::input(InputEvent &event) {
 }
 
 std::shared_ptr<TreeItem> Tree::create_item(const std::shared_ptr<TreeItem> &parent, const std::string &text) {
+    auto context = get_context();
+
     if (parent == nullptr) {
-        root = std::make_shared<TreeItem>();
+        root = std::make_shared<TreeItem>(context);
         root->tree = this;
         root->set_text(text);
         return root;
     }
 
-    auto item = std::make_shared<TreeItem>();
+    auto item = std::make_shared<TreeItem>(context);
     item->tree = this;
     item->parent = parent.get();
     item->set_text(text);
@@ -76,7 +85,7 @@ void Tree::calc_minimum_size() {
     calculated_minimum_size = {minimum_size.x, item_height * uncollapsed_item_count};
 }
 
-TreeItem::TreeItem() {
+TreeItem::TreeItem(GuiContext* context) {
     label = std::make_shared<Label>();
     label->container_sizing.flag_v = ContainerSizingFlag::Fill;
     label->set_vertical_alignment(Alignment::Center);
@@ -85,8 +94,10 @@ TreeItem::TreeItem() {
     icon->set_custom_minimum_size({24, 24});
     icon->set_stretch_mode(TextureRect::StretchMode::KeepAspectCentered);
 
-    collapsed_tex = std::make_shared<VectorImage>(get_asset_dir("icons/ArrowRight.svg"));
-    expanded_tex = std::make_shared<VectorImage>(get_asset_dir("icons/ArrowDown.svg"));
+    if (context) {
+        collapsed_tex = std::make_shared<VectorImage>(context, get_asset_dir("icons/ArrowRight.svg"));
+        expanded_tex = std::make_shared<VectorImage>(context, get_asset_dir("icons/ArrowDown.svg"));
+    }
 
     collapse_button = std::make_shared<Button>();
     collapse_button->set_icon_normal(expanded_tex);
@@ -167,7 +178,12 @@ void TreeItem::propagate_input(InputEvent &event, Vec2F global_position) {
 }
 
 void TreeItem::propagate_draw_(float folding_width, uint32_t depth, float &offset_y, Vec2F global_position) {
-    auto vector_server = VectorServer::get_singleton();
+    auto context = tree ? tree->get_context() : nullptr;
+    if (!context) {
+        return;
+    }
+
+    auto vector_server = context->vector_server;
 
     float offset_x = (float)depth * folding_width;
 

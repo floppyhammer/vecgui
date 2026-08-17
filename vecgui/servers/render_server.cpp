@@ -10,10 +10,8 @@ struct RenderContextImpl {
     std::shared_ptr<Pathfinder::Queue> queue_;
 };
 
-RenderContext* RenderContext::get_singleton() {
-    static RenderContext singleton;
-    return &singleton;
-}
+RenderContext::RenderContext() = default;
+RenderContext::~RenderContext() = default;
 
 void RenderContext::init(std::shared_ptr<Pathfinder::WindowBuilder> window_builder,
                          std::shared_ptr<Pathfinder::Device> device,

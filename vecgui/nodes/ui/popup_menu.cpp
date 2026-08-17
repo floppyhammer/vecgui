@@ -2,8 +2,10 @@
 
 #include <string>
 
+#include "../../common/context.h"
 #include "../../common/utils.h"
 #include "../../resources/default_resource.h"
+#include "../../servers/vector_server.h"
 #include "../scene_tree.h"
 
 namespace vecgui {
@@ -30,11 +32,16 @@ void PopupMenu::draw() {
         return;
     }
 
-    auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto vector_server = context->vector_server;
 
     NodeUi::draw();
 
-    auto default_theme = DefaultResource::get_singleton()->get_default_theme();
+    auto default_theme = context->default_resource->get_default_theme();
 
     auto theme_bg = theme_override_bg.value_or(default_theme->popup_menu.styles["background"]);
 
@@ -93,8 +100,9 @@ void PopupMenu::set_visibility(bool visible) {
         }
 
 #ifdef VECGUI_USE_WINDOW
-        auto render_context = RenderContext::get_singleton();
-        auto window_builder = render_context->get_window_builder();
+        auto context = get_context();
+        auto render_context = context ? context->render_context : nullptr;
+        auto window_builder = render_context ? render_context->get_window_builder() : nullptr;
         if (window_builder) {
             auto window = window_builder->get_window(get_window_index());
             window_height = window.lock()->get_logical_size().y;

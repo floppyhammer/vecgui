@@ -9,11 +9,6 @@ namespace vecgui {
 
 class TextServer {
 public:
-    static TextServer *get_singleton() {
-        static TextServer singleton;
-        return &singleton;
-    }
-
     TextServer() = default;
 
     void cleanup();

@@ -9,25 +9,25 @@
 
 namespace vecgui {
 
-SceneTree::SceneTree(Vec2I primary_window_size) {
+SceneTree::SceneTree(GuiContext* context, Vec2I primary_window_size) : context(context) {
 #ifdef VECGUI_USE_WINDOW
     auto primary_window = std::make_shared<ProxyWindow>(primary_window_size, 0);
     primary_window->name = "Primary window";
     root = primary_window;
-    root->tree_ = this;
+    root->set_tree_recursive(this);
 #else
     Logger::error("You are creating a windowed scene tree without a window system!");
 #endif
 }
 
-SceneTree::SceneTree() {
+SceneTree::SceneTree(GuiContext* context) : context(context) {
     // In headless mode, we use a generic RenderTarget as the root.
     root = std::make_shared<RenderTarget>(Vec2I{1, 1});
     root->name = "Root";
-    root->tree_ = this;
+    root->set_tree_recursive(this);
 }
 
-void propagate_input(Node* node, InputEvent& event) {
+void propagate_input(GuiContext* context, Node* node, InputEvent& event) {
     if (!node->get_visibility()) {
         return;
     }
@@ -56,13 +56,13 @@ void propagate_input(Node* node, InputEvent& event) {
                     case InputEventType::MouseMotion:
                     case InputEventType::MouseButton:
                     case InputEventType::MouseScroll: {
-                        if (!active_rect.contains_point(InputServer::get_singleton()->cursor_position)) {
+                        if (!active_rect.contains_point(context->input_server->cursor_position)) {
                             // todo: send an unfocus signal
                             InputEvent dummy_event = event; // Copy
                             dummy_event.consumed = false;
                             dummy_event.type = InputEventType::MouseMotion;
                             dummy_event.args.mouse_motion.position = {-99999, -99999};
-                            propagate_input(child.get(), dummy_event);
+                            propagate_input(context, child.get(), dummy_event);
                             continue;
                         }
                     } break;
@@ -72,13 +72,13 @@ void propagate_input(Node* node, InputEvent& event) {
             }
         }
 
-        propagate_input(child.get(), event);
+        propagate_input(context, child.get(), event);
     }
 
     node->input(event);
 }
 
-void input_system(Node* root, std::vector<InputEvent>& input_queue) {
+void input_system(GuiContext* context, Node* root, std::vector<InputEvent>& input_queue) {
     std::vector<Node*> priority_nodes;
     {
         std::vector<Node*> nodes;
@@ -107,7 +107,7 @@ void input_system(Node* root, std::vector<InputEvent>& input_queue) {
                 continue;
             }
 
-            propagate_input(p_node, event);
+            propagate_input(context, p_node, event);
         }
     }
 }
@@ -148,7 +148,8 @@ void transform_system(Node* root) {
 
 // There's no transform dependency between orphan UI nodes.
 #if defined(__APPLE__) || defined(__ANDROID__)
-    std::ranges::for_each(orphan_ui_nodes, [](NodeUi* ui_node) { propagate_transform(ui_node, Pathfinder::Transform2()); });
+    std::ranges::for_each(orphan_ui_nodes,
+                          [](NodeUi* ui_node) { propagate_transform(ui_node, Pathfinder::Transform2()); });
 #else
     std::for_each(std::execution::par, orphan_ui_nodes.begin(), orphan_ui_nodes.end(), [](NodeUi* ui_node) {
         propagate_transform(ui_node, Pathfinder::Transform2());
@@ -227,17 +228,15 @@ void SceneTree::process(double dt) {
     }
 #endif
 
-    // OpenGL calls in input callbacks cannot be made from another thread.
-    input_system(root.get(), InputServer::get_singleton()->input_queue);
+    // Get pending children ready.
+    root->flush_pending_children();
 
-    // Get ready from-back-to-front.
-    std::vector<Node*> nodes;
-    dfs_preorder_ltr_traversal(root.get(), nodes);
-    for (auto& node : nodes) {
-        node->ready();
-    }
+    // OpenGL calls in input callbacks cannot be made from another thread.
+    input_system(context, root.get(), context->input_server->input_queue);
 
     // Update from-back-to-front.
+    std::vector<Node*> nodes;
+    dfs_preorder_ltr_traversal(root.get(), nodes);
     for (auto& node : nodes) {
         if (!node->ready_) {
             continue;

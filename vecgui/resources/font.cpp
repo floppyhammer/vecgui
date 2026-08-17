@@ -169,11 +169,11 @@ struct HarfBuzzData {
     }
 };
 
-std::shared_ptr<Font> Font::from_file(const std::string &path) {
+std::shared_ptr<Font> Font::from_file(const GuiContext *context, const std::string &path) {
 #ifndef __ANDROID__
     auto bytes = Pathfinder::load_file_as_bytes(path);
 #else
-    auto bytes = Pathfinder::load_asset(Engine::get_singleton()->asset_manager, path);
+    auto bytes = Pathfinder::load_asset(context->engine->asset_manager, path);
 #endif
 
     return from_memory(bytes);
@@ -302,7 +302,8 @@ Pathfinder::Path2d Font::get_glyph_path(uint16_t glyph_index, float scale) const
 
 // Not font fallback when using ICU.
 
-void Font::get_glyphs(const std::string &text,
+void Font::get_glyphs(TextServer *text_server,
+                      const std::string &text,
                       uint32_t font_size,
                       std::vector<Glyph> &glyphs,
                       std::vector<Line> &paragraphs) {
@@ -411,9 +412,9 @@ void Font::get_glyphs(const std::string &text,
 
                 Font *font_to_use = this;
                 if (allow_fallback && !glyphs_exist_in_font(run_text_u32, this)) {
-                    auto script_font = TextServer::get_singleton()->get_font_for_script(run_script);
+                    auto script_font = text_server->get_font_for_script(run_script);
                     if (!script_font) {
-                        script_font = TextServer::get_singleton()->get_font_for_script(Script::Common);
+                        script_font = text_server->get_font_for_script(Script::Common);
                     }
 
                     if (script_font) {
@@ -582,7 +583,8 @@ void Font::get_glyphs(const std::string &text,
 
     #define FRIBIDI_MAX_STR_LEN 65000
 
-void Font::get_glyphs(const std::string &text,
+void Font::get_glyphs(TextServer *text_server,
+                      const std::string &text,
                       uint32_t font_size,
                       std::vector<Glyph> &glyphs,
                       std::vector<Line> &paragraphs) {
@@ -753,9 +755,9 @@ void Font::get_glyphs(const std::string &text,
 
                 Font *font_to_use = this;
                 if (allow_fallback && !glyphs_exist_in_font(script_text_u32, this)) {
-                    auto script_font = TextServer::get_singleton()->get_font_for_script(script);
+                    auto script_font = text_server->get_font_for_script(script);
                     if (!script_font) {
-                        script_font = TextServer::get_singleton()->get_font_for_script(Script::Common);
+                        script_font = text_server->get_font_for_script(Script::Common);
                     }
 
                     if (script_font) {
@@ -925,7 +927,8 @@ void Font::get_glyphs(const std::string &text,
 
 #endif
 
-void Font::get_glyphs(const std::vector<TextSpan> &spans,
+void Font::get_glyphs(TextServer *text_server,
+                      const std::vector<TextSpan> &spans,
                       uint32_t font_size,
                       std::vector<Glyph> &glyphs,
                       std::vector<Line> &paragraphs) {
@@ -934,7 +937,7 @@ void Font::get_glyphs(const std::vector<TextSpan> &spans,
         full_text += span.text;
     }
 
-    get_glyphs(full_text, font_size, glyphs, paragraphs);
+    get_glyphs(text_server, full_text, font_size, glyphs, paragraphs);
 
     // Map glyphs back to spans.
     // We need to know the character offset of each span.

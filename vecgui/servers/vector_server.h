@@ -2,6 +2,7 @@
 
 #include <pathfinder/prelude.h>
 
+#include "../common/context.h"
 #include "../common/geometry.h"
 #include "../resources/font.h"
 #include "../resources/raster_image.h"
@@ -14,11 +15,6 @@ namespace vecgui {
 /// All visible shapes will be collected by the vector server and drawn at once.
 class VectorServer final {
 public:
-    static VectorServer *get_singleton() {
-        static VectorServer singleton;
-        return &singleton;
-    }
-
     VectorServer() = default;
 
     void init(Pathfinder::Vec2I size,
@@ -26,9 +22,9 @@ public:
               const std::shared_ptr<Pathfinder::Queue> &queue,
               Pathfinder::RenderMode mode);
 
-    void set_dst_texture(const std::shared_ptr<Pathfinder::Texture> &texture);
+    void destroy();
 
-    void cleanup();
+    void set_dst_texture(const std::shared_ptr<Pathfinder::Texture> &texture);
 
     void set_canvas_size(Vec2I new_size);
 
@@ -74,7 +70,9 @@ public:
                      float alpha = 1.0f,
                      const std::vector<Line> &lines = {});
 
-    std::shared_ptr<Pathfinder::SvgScene> load_svg(const std::string &path, bool override_with_accent_color = false);
+    std::shared_ptr<Pathfinder::SvgScene> load_svg(const GuiContext *context,
+                                                   const std::string &path,
+                                                   bool override_with_accent_color = false);
 
     std::shared_ptr<Pathfinder::Canvas> get_canvas() const;
 
@@ -88,6 +86,10 @@ public:
 private:
     // Never expose this.
     std::shared_ptr<Pathfinder::Canvas> canvas;
+
+    std::shared_ptr<Pathfinder::Device> device_;
+    std::shared_ptr<Pathfinder::Queue> queue_;
+    Pathfinder::RenderMode mode_ = Pathfinder::RenderMode::Hybrid;
 
     float global_scale_ = 1.0f;
 };

@@ -2,10 +2,12 @@
 
 #include <memory>
 
+#include "../../common/context.h"
 #include "../../common/utils.h"
 #include "../../resources/default_resource.h"
 #include "../../resources/render_image.h"
 #include "../../servers/engine.h"
+#include "../../servers/vector_server.h"
 
 namespace vecgui {
 
@@ -91,7 +93,12 @@ void TextureRect::draw() {
             } break;
         }
 
-        auto vector_server = VectorServer::get_singleton();
+        auto context = get_context();
+        if (!context) {
+            return;
+        }
+
+        auto vector_server = context->vector_server;
 
         if (texture->get_type() == ImageType::Raster) {
             auto raster_image = static_cast<RasterImage *>(texture.get());

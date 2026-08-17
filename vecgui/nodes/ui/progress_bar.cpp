@@ -1,6 +1,8 @@
 #include "progress_bar.h"
 
+#include "../../common/context.h"
 #include "../../common/geometry.h"
+#include "../../servers/vector_server.h"
 
 namespace vecgui {
 
@@ -57,7 +59,12 @@ void ProgressBar::draw() {
         return;
     }
 
-    auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto vector_server = context->vector_server;
 
     Vec2F start_pos = get_global_position();
 

@@ -4,6 +4,7 @@
 
 #include <memory>
 
+#include "../common/context.h"
 #include "../common/geometry.h"
 #include "image.h"
 
@@ -25,7 +26,7 @@ public:
     explicit VectorImage(Vec2I _size);
 
     /// Create from an SVG file.
-    VectorImage(const std::string &path, bool override_with_accent_color = false);
+    VectorImage(const GuiContext *context, const std::string &path, bool override_with_accent_color = false);
 
     /// Create empty with a specific size.
     static std::shared_ptr<VectorImage> from_empty(Vec2I _size);

@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "../common/context.h"
 #include "../common/geometry.h"
 #include "../common/utils.h"
 #include "resource.h"
@@ -14,6 +15,8 @@
 struct stbtt_fontinfo;
 
 namespace vecgui {
+
+class TextServer;
 
 template <typename T>
 void utf8_to_utf16(const std::string &source, std::basic_string<T> &result) {
@@ -329,7 +332,7 @@ class Font {
 public:
     Font() = default;
 
-    static std::shared_ptr<Font> from_file(const std::string &path);
+    static std::shared_ptr<Font> from_file(const GuiContext *context, const std::string &path);
 
     static std::shared_ptr<Font> from_memory(const std::vector<char> &bytes);
 
@@ -344,12 +347,14 @@ public:
     /// Paragraphs and lines are different concepts.
     /// Paragraphs are seperated by line breaks, while lines are produced by further layouting.
     /// A paragraph may contain one or more lines.
-    void get_glyphs(const std::vector<TextSpan> &spans,
+    void get_glyphs(TextServer *text_server,
+                    const std::vector<TextSpan> &spans,
                     uint32_t font_size,
                     std::vector<Glyph> &glyphs,
                     std::vector<Line> &paragraphs);
 
-    void get_glyphs(const std::string &text,
+    void get_glyphs(TextServer *text_server,
+                    const std::string &text,
                     uint32_t font_size,
                     std::vector<Glyph> &glyphs,
                     std::vector<Line> &paragraphs);

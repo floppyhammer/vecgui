@@ -1,6 +1,7 @@
 #include "scroll_container.h"
 
 #include "../../scene_tree.h"
+#include "../../../servers/render_server.h"
 
 using Pathfinder::clamp;
 
@@ -82,12 +83,13 @@ void ScrollContainer::input(InputEvent &event) {
         case InputEventType::MouseScroll: {
             float delta = event.args.mouse_scroll.y_delta;
 
-            if (active_rect.contains_point(InputServer::get_singleton()->cursor_position)) {
+            auto context = get_context();
+            if (context && active_rect.contains_point(context->input_server->cursor_position)) {
                 if (!event.consumed) {
                     if (hscroll_enabled && !vscroll_enabled) {
                         hscroll -= delta * scroll_speed;
                     } else {
-                        if (InputServer::get_singleton()->is_key_pressed(KeyCode::LeftShift)) {
+                        if (context->input_server->is_key_pressed(KeyCode::LeftShift)) {
                             hscroll -= delta * scroll_speed;
                         } else {
                             vscroll -= delta * scroll_speed;
@@ -195,7 +197,11 @@ void ScrollContainer::draw_scroll_bar() {
     auto content = (NodeUi *)children.front().get();
     auto content_size = content->get_size();
 
-    auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+    auto vector_server = context->vector_server;
 
     auto global_pos = get_global_position();
     auto size = get_size();
@@ -281,8 +287,13 @@ void ScrollContainer::pre_draw_children() {
 
     float dpi_scale = tree_ ? tree_->get_dpi_scale() : 1.0f;
 
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
 #ifdef VECGUI_USE_WINDOW
-    auto window_builder = RenderContext::get_singleton()->get_window_builder();
+    auto window_builder = context->render_context->get_window_builder();
     if (window_builder) {
         dpi_scale = window_builder->get_dpi_scaling_factor(get_window_index());
     }
@@ -292,7 +303,7 @@ void ScrollContainer::pre_draw_children() {
 
     auto size = get_size() * dpi_scale;
 
-    auto vector_server = VectorServer::get_singleton();
+    auto vector_server = context->vector_server;
 
     auto canvas = vector_server->get_canvas();
 
@@ -314,7 +325,12 @@ void ScrollContainer::post_draw_children() {
     auto global_pos = get_global_position();
     auto size = get_size();
 
-    auto vector_server = VectorServer::get_singleton();
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+
+    auto vector_server = context->vector_server;
 
     auto canvas = vector_server->get_canvas();
 
@@ -324,7 +340,7 @@ void ScrollContainer::post_draw_children() {
     float dpi_scale = tree_ ? tree_->get_dpi_scale() : 1.0f;
 
 #ifdef VECGUI_USE_WINDOW
-    auto window_builder = RenderContext::get_singleton()->get_window_builder();
+    auto window_builder = context->render_context->get_window_builder();
     if (window_builder) {
         dpi_scale = window_builder->get_dpi_scaling_factor(get_window_index());
     }

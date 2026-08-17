@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include "../common/context.h"
 #include "file_dialog.h"
 #include "node.h"
 #include "render_target.h"
@@ -49,9 +50,9 @@ class SceneTree {
     friend class App;
 
 public:
-    explicit SceneTree(Vec2I primary_window_size);
+    SceneTree(GuiContext* context, Vec2I primary_window_size);
 
-    SceneTree();
+    explicit SceneTree(GuiContext* context);
 
     void process(double dt);
 
@@ -69,9 +70,15 @@ public:
 
     float get_dpi_scale() const;
 
+    GuiContext* get_context() const {
+        return context;
+    }
+
 private:
     /// Primary render target (can be a window or a generic target)
     std::shared_ptr<RenderTarget> root;
+
+    GuiContext* context = nullptr;
 
     bool quited = false;
 };

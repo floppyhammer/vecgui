@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "../common/any_callable.h"
+#include "../common/context.h"
 #include "../common/utils.h"
 #include "../servers/engine.h"
 #include "../servers/input_server.h"
@@ -126,7 +127,18 @@ public:
 
     SceneTree *get_tree() const;
 
+    GuiContext *get_context() const;
+
+    void set_tree_recursive(SceneTree *tree);
+
+    void flush_pending_children();
+
 protected:
+    struct PendingChild {
+        std::shared_ptr<Node> node;
+        uint32_t index = 0xFFFFFFFF; // Max value for push_back
+    };
+
     virtual void on_ready() {
     }
 
@@ -149,6 +161,9 @@ protected:
     std::vector<std::shared_ptr<Node>> children;
 
     std::vector<std::shared_ptr<Node>> embedded_children;
+
+    std::vector<PendingChild> pending_children;
+    std::vector<std::shared_ptr<Node>> pending_embedded_children;
 
     // Don't use a shared pointer as it causes circular references.
     // Also, we must initialize it to null.

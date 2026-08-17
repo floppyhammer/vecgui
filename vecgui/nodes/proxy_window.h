@@ -17,6 +17,10 @@ public:
 
     void update(double dt) override;
 
+protected:
+    void on_ready() override;
+
+public:
     void pre_draw_propagation() override;
 
     void post_draw_propagation() override;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "theme.h"
+#include "../common/context.h"
 
 namespace vecgui {
 
@@ -10,12 +11,7 @@ class DefaultResource {
 public:
     DefaultResource() = default;
 
-    static DefaultResource *get_singleton() {
-        static DefaultResource singleton;
-        return &singleton;
-    }
-
-    void init(bool dark_mode);
+    void init(GuiContext* context, bool dark_mode);
 
     std::shared_ptr<Theme> get_default_theme() {
         return default_theme;
