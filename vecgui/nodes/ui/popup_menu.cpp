@@ -78,6 +78,51 @@ void PopupMenu::input(InputEvent &event) {
 void PopupMenu::adjust_layout() {
     size = size.max(calculated_minimum_size);
 
+    float window_height = 0;
+    if (tree_) {
+        window_height = tree_->get_view_size().y;
+    }
+
+#ifdef VECGUI_USE_WINDOW
+    auto context = get_context();
+    auto render_context = context ? context->render_context : nullptr;
+    auto window_builder = render_context ? render_context->get_window_builder() : nullptr;
+    if (window_builder) {
+        auto window = window_builder->get_window(get_window_index());
+        if (!window.expired()) {
+            window_height = window.lock()->get_logical_size().y;
+        }
+    }
+#endif
+
+    // Decide if it pops up or down based on available space.
+    auto global_position = popup_position;
+
+    float menu_width = std::max(size.x, margin_container_->get_effective_minimum_size().x);
+    float menu_top_space = global_position.y;
+    float menu_bottom_space = window_height - global_position.y - button_height;
+
+    float min_menu_height = vbox_container_->get_effective_minimum_size().y + margin_container_->get_margin().top +
+                            margin_container_->get_margin().bottom + 2;
+
+    bool drop_down = true;
+    float actual_menu_height = std::min(min_menu_height, menu_bottom_space);
+
+    if (min_menu_height > menu_bottom_space) {
+        if (menu_top_space > menu_bottom_space) {
+            drop_down = false;
+            actual_menu_height = std::min(min_menu_height, menu_top_space);
+        }
+    }
+
+    if (drop_down) {
+        set_position(popup_position + Vec2F{0, button_height});
+        size = {menu_width, actual_menu_height};
+    } else {
+        set_position(popup_position - Vec2F{0, actual_menu_height});
+        size = {menu_width, actual_menu_height};
+    }
+
     // Ensure the embedded container matches the menu's size.
     if (margin_container_) {
         margin_container_->set_size(size);
@@ -92,51 +137,8 @@ void PopupMenu::set_visibility(bool visible) {
     visible_ = visible;
 
     if (visible_) {
-        calc_minimum_size();
-
-        float window_height = 0;
-        if (tree_) {
-            window_height = tree_->get_view_size().y;
-        }
-
-#ifdef VECGUI_USE_WINDOW
-        auto context = get_context();
-        auto render_context = context ? context->render_context : nullptr;
-        auto window_builder = render_context ? render_context->get_window_builder() : nullptr;
-        if (window_builder) {
-            auto window = window_builder->get_window(get_window_index());
-            window_height = window.lock()->get_logical_size().y;
-        }
-#endif
-
-        // We updated its global position in MenuButton before calling set_visibility.
-        auto global_position = popup_position;
-
-        float menu_width = std::max(size.x, margin_container_->get_effective_minimum_size().x);
-        float menu_top_space = global_position.y;
-        float menu_bottom_space = window_height - global_position.y - button_height;
-
-        float min_menu_height = vbox_container_->get_effective_minimum_size().y + margin_container_->get_margin().top +
-                                margin_container_->get_margin().bottom + 2; // 2 comes from the glitch margin container.
-
-        bool drop_down = true;
-        float actual_menu_height = std::min(min_menu_height, menu_bottom_space);
-
-        // No enough space for dropping down.
-        if (min_menu_height > menu_bottom_space) {
-            if (menu_top_space > menu_bottom_space) {
-                drop_down = false;
-                actual_menu_height = std::min(min_menu_height, menu_top_space);
-            }
-        }
-
-        if (drop_down) {
-            set_position(popup_position + Vec2F{0, button_height});
-            set_size({menu_width, actual_menu_height});
-        } else {
-            set_position(popup_position - Vec2F{0, actual_menu_height});
-            set_size({menu_width, actual_menu_height});
-        }
+        // Trigger a relayout to handle positioning and sizing in adjust_layout().
+        queue_relayout();
     } else {
         when_popup_hide();
     }

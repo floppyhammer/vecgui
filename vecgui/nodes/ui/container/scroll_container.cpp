@@ -281,7 +281,6 @@ void ScrollContainer::pre_draw_children() {
     }
 
     if (get_size().is_any_zero()) {
-        visible_ = false;
         return;
     }
 
@@ -318,7 +317,7 @@ void ScrollContainer::pre_draw_children() {
 }
 
 void ScrollContainer::post_draw_children() {
-    if (!visible_) {
+    if (!visible_ || get_size().is_any_zero()) {
         return;
     }
 
