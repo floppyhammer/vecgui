@@ -38,7 +38,10 @@ public:
 protected:
     void reload_tab_buttons();
 
+    bool tabs_dirty = true;
+
     std::optional<uint32_t> current_tab;
+    bool current_tab_changed = false;
 
     std::shared_ptr<HBoxContainer> button_container;
     std::shared_ptr<ScrollContainer> button_scroll_container;

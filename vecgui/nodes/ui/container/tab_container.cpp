@@ -47,6 +47,16 @@ void TabContainer::adjust_layout() {
 
 void TabContainer::update(double dt) {
     Container::update(dt);
+
+    if (tabs_dirty) {
+        reload_tab_buttons();
+        tabs_dirty = false;
+    }
+
+    if (current_tab_changed && current_tab.has_value() && *current_tab < tab_buttons.size()) {
+        tab_buttons[*current_tab]->set_toggled(true);
+        current_tab_changed = false;
+    }
 }
 
 void TabContainer::calc_minimum_size() {
@@ -77,7 +87,7 @@ std::optional<uint32_t> TabContainer::get_current_tab() const {
 
 void TabContainer::set_current_tab(uint32_t index) {
     current_tab = index;
-    tab_buttons[index]->set_toggled(true);
+    current_tab_changed = true;
 }
 
 void TabContainer::draw() {
@@ -112,22 +122,12 @@ void TabContainer::draw() {
 
 void TabContainer::add_child(const std::shared_ptr<Node> &new_child) {
     Node::add_child(new_child);
-
-    reload_tab_buttons();
-
-    if (children.size() > 1) {
-        set_current_tab(0);
-    }
+    tabs_dirty = true;
 }
 
 void TabContainer::add_child_at_index(const std::shared_ptr<Node> &new_child, uint32_t index) {
     Node::add_child_at_index(new_child, index);
-
-    reload_tab_buttons();
-
-    if (children.size() > 1) {
-        set_current_tab(0);
-    }
+    tabs_dirty = true;
 }
 
 void TabContainer::reload_tab_buttons() {
@@ -151,12 +151,18 @@ void TabContainer::reload_tab_buttons() {
 
         auto callback = [this, idx](const bool toggled) {
             if (toggled) {
-                current_tab = idx;
+                set_current_tab(idx);
             }
         };
         button->connect_signal("toggled", callback);
         button->set_toggle_mode(true);
     }
+
+    if (!current_tab.has_value() && !children.empty()) {
+        set_current_tab(0);
+    }
+
+    button_container->flush_pending_children();
 }
 
 void TabContainer::set_tab_disabled(bool disabled) {
