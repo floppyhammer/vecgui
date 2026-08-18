@@ -44,6 +44,8 @@ public:
 
     void set_icon(const std::shared_ptr<Image> &image);
 
+    void set_tree(Tree *p_tree);
+
 private:
     bool collapsed = false;
     bool selected = false;
@@ -89,6 +91,9 @@ public:
     float get_item_height();
 
     void calc_minimum_size() override;
+
+protected:
+    void on_ready() override;
 
 private:
     float item_height = 32;

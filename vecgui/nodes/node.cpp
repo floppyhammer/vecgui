@@ -112,13 +112,16 @@ void dfs_postorder_rtl_traversal_skip_priority_node_and_invisible(Node *node, st
 }
 
 void Node::ready() {
-    if (ready_) {
+    if (ready_ && tree_ != nullptr) {
         return;
     }
 
-    ready_ = true;
-
-    on_ready();
+    // Call on_ready only once if tree_ is not null,
+    // or keep trying until it is not null.
+    if (!ready_ || tree_ != nullptr) {
+        ready_ = true;
+        on_ready();
+    }
 }
 
 void Node::input(InputEvent &event) {
@@ -356,6 +359,10 @@ void Node::set_tree_recursive(SceneTree *tree) {
     }
 
     tree_ = tree;
+
+    if (tree_ != nullptr) {
+        ready();
+    }
 
     for (auto &child : get_all_children()) {
         child->set_tree_recursive(tree);

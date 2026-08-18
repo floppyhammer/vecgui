@@ -41,11 +41,15 @@ void Tree::draw() {
     }
 
     float offset_y = 0;
-    root->propagate_draw_(folding_width, 0, offset_y, get_global_position());
+    if (root) {
+        root->propagate_draw_(folding_width, 0, offset_y, get_global_position());
+    }
 }
 
 void Tree::input(InputEvent &event) {
-    root->propagate_input(event, get_global_position());
+    if (root) {
+        root->propagate_input(event, get_global_position());
+    }
 
     NodeUi::input(event);
 }
@@ -55,13 +59,13 @@ std::shared_ptr<TreeItem> Tree::create_item(const std::shared_ptr<TreeItem> &par
 
     if (parent == nullptr) {
         root = std::make_shared<TreeItem>(context);
-        root->tree = this;
+        root->set_tree(this);
         root->set_text(text);
         return root;
     }
 
     auto item = std::make_shared<TreeItem>(context);
-    item->tree = this;
+    item->set_tree(this);
     item->parent = parent.get();
     item->set_text(text);
     parent->add_child(item);
@@ -78,6 +82,9 @@ float Tree::get_item_height() {
 }
 
 void Tree::calc_minimum_size() {
+    if (!root) {
+        return;
+    }
     Vec2F minimum_size;
     uint32_t uncollapsed_item_count = 0;
     root->propagate_calc_minimum_size(folding_width, 0, uncollapsed_item_count, minimum_size);
@@ -85,7 +92,15 @@ void Tree::calc_minimum_size() {
     calculated_minimum_size = {minimum_size.x, item_height * uncollapsed_item_count};
 }
 
-TreeItem::TreeItem(GuiContext* context) {
+void Tree::on_ready() {
+    NodeUi::on_ready();
+
+    if (root) {
+        root->set_tree(this);
+    }
+}
+
+TreeItem::TreeItem(GuiContext *context) {
     label = std::make_shared<Label>();
     label->container_sizing.flag_v = ContainerSizingFlag::Fill;
     label->set_vertical_alignment(Alignment::Center);
@@ -214,11 +229,11 @@ void TreeItem::propagate_draw_(float folding_width, uint32_t depth, float &offse
     container->set_size({tree->get_size().x - offset_x, item_height});
 
     // Ensure all internal nodes have their minimum sizes calculated before layout.
-    std::vector<Node*> descendants;
+    std::vector<Node *> descendants;
     dfs_postorder_ltr_traversal(container.get(), descendants);
-    for (auto& node : descendants) {
+    for (auto &node : descendants) {
         if (node->is_ui_node()) {
-            dynamic_cast<NodeUi*>(node)->calc_minimum_size();
+            dynamic_cast<NodeUi *>(node)->calc_minimum_size();
         }
     }
 
@@ -302,6 +317,38 @@ void TreeItem::set_icon(const std::shared_ptr<Image> &texture) {
     icon->set_texture(texture);
     if (tree) {
         tree->queue_relayout();
+    }
+}
+
+void TreeItem::set_tree(Tree *p_tree) {
+    tree = p_tree;
+
+    if (tree) {
+        auto tree_node = tree->get_tree();
+        if (tree_node) {
+            container->set_tree_recursive(tree_node);
+            container->flush_pending_children();
+        }
+
+        auto context = tree->get_context();
+        if (context) {
+            if (!collapsed_tex) {
+                collapsed_tex = std::make_shared<VectorImage>(context, get_asset_dir("icons/ArrowRight.svg"));
+            }
+            if (!expanded_tex) {
+                expanded_tex = std::make_shared<VectorImage>(context, get_asset_dir("icons/ArrowDown.svg"));
+            }
+
+            if (collapsed) {
+                collapse_button->set_icon_normal(collapsed_tex);
+            } else {
+                collapse_button->set_icon_normal(expanded_tex);
+            }
+        }
+    }
+
+    for (auto &child : children) {
+        child->set_tree(p_tree);
     }
 }
 
