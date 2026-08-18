@@ -178,6 +178,13 @@ void PopupMenu::create_item(const std::string &text) {
 
     items_.push_back(new_item);
     meta_.emplace_back();
+
+    // Node::add_child() only queues into pending_children, and
+    // Node::flush_pending_children() recurses into *newly added* children only.
+    // A container that is already in the tree therefore never has its pending
+    // children applied, so items added after construction would never appear.
+    // Same idiom as TabContainer::reload_tab_buttons().
+    vbox_container_->flush_pending_children();
 }
 
 void PopupMenu::set_item_meta(uint32_t item_index, std::string meta) {
