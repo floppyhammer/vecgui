@@ -168,7 +168,7 @@ void PopupMenu::create_item(const std::string &text) {
     vbox_container_->set_separation(0);
     vbox_container_->set_mouse_filter(MouseFilter::Pass);
 
-    int item_index = vbox_container_->get_children().size() - 1;
+    uint32_t item_index = items_.size();
 
     auto callback = [item_index, this] {
         set_visibility(false);
