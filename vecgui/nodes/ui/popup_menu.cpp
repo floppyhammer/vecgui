@@ -79,8 +79,10 @@ void PopupMenu::adjust_layout() {
     size = size.max(calculated_minimum_size);
 
     float window_height = 0;
+    float window_width = 0;
     if (tree_) {
         window_height = tree_->get_view_size().y;
+        window_width = tree_->get_view_size().x;
     }
 
 #ifdef VECGUI_USE_WINDOW
@@ -91,6 +93,7 @@ void PopupMenu::adjust_layout() {
         auto window = window_builder->get_window(get_window_index());
         if (!window.expired()) {
             window_height = window.lock()->get_logical_size().y;
+            window_width = window.lock()->get_logical_size().x;
         }
     }
 #endif
@@ -115,11 +118,20 @@ void PopupMenu::adjust_layout() {
         }
     }
 
+    // A popup may legitimately be wider than the button that opened it. Anchor it to
+    // the button's left edge when there is room, otherwise let it extend leftwards so
+    // it stays fully on screen - a button in a right-hand sidebar would otherwise push
+    // most of the list off the window.
+    float menu_x = popup_position.x;
+    if (window_width > 0.0f && menu_x + menu_width > window_width) {
+        menu_x = std::max(0.0f, window_width - menu_width);
+    }
+
     if (drop_down) {
-        set_position(popup_position + Vec2F{0, button_height});
+        set_position({menu_x, popup_position.y + button_height});
         size = {menu_width, actual_menu_height};
     } else {
-        set_position(popup_position - Vec2F{0, actual_menu_height});
+        set_position({menu_x, popup_position.y - actual_menu_height});
         size = {menu_width, actual_menu_height};
     }
 
