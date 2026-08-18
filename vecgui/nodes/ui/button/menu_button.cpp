@@ -39,7 +39,11 @@ std::weak_ptr<PopupMenu> MenuButton::get_popup_menu() const {
 void MenuButton::calc_minimum_size() {
     Button::calc_minimum_size();
 
-    calculated_minimum_size.x = std::max(menu->get_effective_minimum_size().x, calculated_minimum_size.x);
+    // Deliberately not widened to the popup's width. Adopting it means a single long
+    // item forces the button - and every container holding it, e.g. a sidebar - to grow
+    // to that width, even while the item is not selected. The popup keeps its own
+    // natural width and simply overhangs the button, which is how dropdowns behave
+    // elsewhere, so long entries stay fully readable without distorting the layout.
 }
 
 void MenuButton::connect_signal(const std::string& signal, const AnyCallable<void>& callback) {
