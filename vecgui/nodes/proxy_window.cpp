@@ -33,7 +33,7 @@ void ProxyWindow::on_ready() {
 
     context->input_server->initialize_window_callbacks(render_context, window_index_);
 
-    auto swap_chain = window->get_swap_chain(render_context->get_device());
+    auto swap_chain = window->get_swap_chain(render_context->get_device(), Pathfinder::PresentMode::Fifo);
 
     blit_ = std::make_shared<Pathfinder::Blit>(
         render_context->get_device(), render_context->get_queue(), swap_chain->get_surface_format());
@@ -111,7 +111,7 @@ void ProxyWindow::post_draw_propagation() {
     if (!window) {
         return;
     }
-    auto swap_chain = window->get_swap_chain(render_context->get_device());
+    auto swap_chain = window->get_swap_chain(render_context->get_device(), Pathfinder::PresentMode::Fifo);
 
     // Acquire next swap chain image.
     if (!swap_chain->acquire_image()) {
