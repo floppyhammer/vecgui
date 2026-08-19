@@ -184,51 +184,63 @@ void Node::add_embedded_child(const std::shared_ptr<Node> &new_child) {
 void Node::flush_pending_children() {
     ready();
 
-    for (auto &pending : pending_children) {
-        auto &new_child = pending.node;
+    // 1. Process pending normal children.
+    if (!pending_children.empty()) {
+        std::vector<PendingChild> currently_pending = std::move(pending_children);
+        pending_children.clear();
 
-        if (std::find(children.begin(), children.end(), new_child) != children.end()) {
-            std::cout << "Attempted to add a repeated child!" << std::endl;
-            continue;
-        }
+        for (auto &pending : currently_pending) {
+            auto &new_child = pending.node;
 
-        // Set self as the parent of the new node.
-        new_child->parent = this;
-        new_child->set_tree_recursive(tree_);
+            if (std::find(children.begin(), children.end(), new_child) != children.end()) {
+                std::cout << "Attempted to add a repeated child!" << std::endl;
+                continue;
+            }
 
-        if (pending.index >= children.size()) {
-            children.push_back(new_child);
-        } else {
-            children.insert(children.begin() + pending.index, new_child);
-        }
+            // Set self as the parent of the new node.
+            new_child->parent = this;
+            new_child->set_tree_recursive(tree_);
 
-        new_child->flush_pending_children();
+            if (pending.index >= children.size()) {
+                children.push_back(new_child);
+            } else {
+                children.insert(children.begin() + pending.index, new_child);
+            }
 
-        if (this->is_ui_node()) {
-            dynamic_cast<NodeUi *>(this)->queue_relayout();
-        }
-    }
-    pending_children.clear();
-
-    for (auto &new_child : pending_embedded_children) {
-        if (std::find(embedded_children.begin(), embedded_children.end(), new_child) != embedded_children.end()) {
-            std::cout << "Attempted to add a repeated child!" << std::endl;
-            continue;
-        }
-
-        // Set self as the parent of the new node.
-        new_child->parent = this;
-        new_child->set_tree_recursive(tree_);
-
-        embedded_children.push_back(new_child);
-
-        new_child->flush_pending_children();
-
-        if (this->is_ui_node()) {
-            dynamic_cast<NodeUi *>(this)->queue_relayout();
+            if (this->is_ui_node()) {
+                dynamic_cast<NodeUi *>(this)->queue_relayout();
+            }
         }
     }
-    pending_embedded_children.clear();
+
+    // 2. Process pending embedded children.
+    if (!pending_embedded_children.empty()) {
+        std::vector<std::shared_ptr<Node>> currently_pending_embedded = std::move(pending_embedded_children);
+        pending_embedded_children.clear();
+
+        for (auto &new_child : currently_pending_embedded) {
+            if (std::find(embedded_children.begin(), embedded_children.end(), new_child) !=
+                embedded_children.end()) {
+                std::cout << "Attempted to add a repeated embedded child!" << std::endl;
+                continue;
+            }
+
+            // Set self as the parent of the new node.
+            new_child->parent = this;
+            new_child->set_tree_recursive(tree_);
+
+            embedded_children.push_back(new_child);
+
+            if (this->is_ui_node()) {
+                dynamic_cast<NodeUi *>(this)->queue_relayout();
+            }
+        }
+    }
+
+    // 3. Recursively flush ALL children (both existing and newly added).
+    for (auto &child : get_all_children()) {
+        child->flush_pending_children();
+    }
 }
 
 void Node::add_child_at_index(const std::shared_ptr<Node> &new_child, uint32_t index) {
