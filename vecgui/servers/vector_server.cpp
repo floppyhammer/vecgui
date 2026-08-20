@@ -192,8 +192,8 @@ void VectorServer::draw_style_box(const StyleBox &style_box, Vec2F position, Vec
         const auto widths = style_box.border_widths.value();
         position.x += widths.left * 0.5f;
         position.y += widths.top * 0.5f;
-        size.x += widths.right;
-        size.y += widths.bottom;
+        size.x -= (widths.left + widths.right) * 0.5f;
+        size.y -= (widths.top + widths.bottom) * 0.5f;
     } else {
         if (style_box.border_width > 0) {
             const float border_offset = style_box.border_width;
