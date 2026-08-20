@@ -188,26 +188,26 @@ void VectorServer::draw_render_image(RenderImage &render_image, Transform2 trans
 }
 
 void VectorServer::draw_style_box(const StyleBox &style_box, Vec2F position, Vec2F size, float alpha) {
-    if (style_box.border_widths.has_value()) {
-        const auto widths = style_box.border_widths.value();
-        position.x += widths.left * 0.5f;
-        position.y += widths.top * 0.5f;
-        size.x -= (widths.left + widths.right) * 0.5f;
-        size.y -= (widths.top + widths.bottom) * 0.5f;
-    } else {
-        if (style_box.border_width > 0) {
-            const float border_offset = style_box.border_width;
-            position.x += border_offset * 0.5f;
-            position.y += border_offset * 0.5f;
-            size.x -= border_offset;
-            size.y -= border_offset;
-        }
-    }
-
     draw_style_box(style_box, Pathfinder::Transform2::from_translation(position), size, alpha);
 }
 
 void VectorServer::draw_style_box(const StyleBox &style_box, const Transform2 &transform, Vec2F size, float alpha) {
+    Vec2F stroke_offset;
+    if (style_box.border_widths.has_value()) {
+        const auto widths = style_box.border_widths.value();
+        stroke_offset.x = widths.left * 0.5f;
+        stroke_offset.y = widths.top * 0.5f;
+        size.x -= (widths.left + widths.right) * 0.5f;
+        size.y -= (widths.top + widths.bottom) * 0.5f;
+    } else {
+        if (style_box.border_width > 0) {
+            const float border_half_width = style_box.border_width * 0.5f;
+            stroke_offset = {border_half_width, border_half_width};
+            size.x -= style_box.border_width;
+            size.y -= style_box.border_width;
+        }
+    }
+
     if (size.x <= 0 || size.y <= 0) {
         return;
     }
@@ -226,11 +226,13 @@ void VectorServer::draw_style_box(const StyleBox &style_box, const Transform2 &t
 
     const auto dpi_scaling_xform = Pathfinder::Transform2::from_scale(Vec2F(global_scale_, global_scale_));
 
-    canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform);
+    canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform.translate(stroke_offset));
 
+    // Background.
     canvas->set_fill_paint(Pathfinder::Paint::from_color(style_box.bg_color.apply_alpha(alpha)));
     canvas->fill_path(path, Pathfinder::FillRule::Winding);
 
+    // Border.
     if (style_box.border_widths.has_value()) {
         const auto widths = style_box.border_widths.value();
         if (widths.left > 0) {
