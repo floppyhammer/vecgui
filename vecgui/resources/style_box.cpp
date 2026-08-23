@@ -1,7 +1,5 @@
 #include "style_box.h"
 
-#pragma once
-
 namespace vecgui {
 
 StyleBox StyleBox::from_empty() {
