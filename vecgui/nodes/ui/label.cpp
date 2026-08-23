@@ -846,7 +846,7 @@ TextStyle Label::get_text_style() const {
 
         const auto default_theme = context->default_resource->get_default_theme();
         TextStyle text_style;
-        text_style.color = default_theme->label.colors["text"];
+        text_style.set_fill_color(default_theme->label.colors["text"]);
         text_style.font_size = default_theme->font_size;
         return text_style;
     }

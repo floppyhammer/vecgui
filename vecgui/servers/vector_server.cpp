@@ -318,7 +318,19 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         return -1;
     };
 
-    text_style.color = text_style.color.apply_alpha(opacity);
+    auto apply_alpha_to_fill = [](std::variant<ColorU, Pathfinder::Gradient> &fill, float alpha) {
+        if (alpha >= 1.0f) return;
+        if (std::holds_alternative<ColorU>(fill)) {
+            std::get<ColorU>(fill) = std::get<ColorU>(fill).apply_alpha(alpha);
+        } else {
+            auto &grad = std::get<Pathfinder::Gradient>(fill);
+            for (auto &stop : grad.get_stops()) {
+                stop.color = stop.color.apply_alpha(alpha);
+            }
+        }
+    };
+
+    apply_alpha_to_fill(text_style.fill, opacity);
     text_style.stroke_color = text_style.stroke_color.apply_alpha(opacity);
     text_style.shadow_color = text_style.shadow_color.apply_alpha(opacity);
 
@@ -525,8 +537,49 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         }
 
         const auto full_transform = dpi_scaling_xform * global_transform_offset * transform * style.local_transform;
+
+        auto get_paint_for_style = [&](const TextStyle &s, float a, const RectF &bounds) {
+            Pathfinder::Paint paint;
+            std::visit(
+                [&](auto &&arg) {
+                    using T = std::decay_t<decltype(arg)>;
+                    if constexpr (std::is_same_v<T, ColorU>) {
+                        paint = Pathfinder::Paint::from_color(arg.apply_alpha(a * s.opacity));
+                    } else if constexpr (std::is_same_v<T, Pathfinder::Gradient>) {
+                        auto grad_copy = arg;
+
+                        // Local Normalization:
+                        // Map the unit square [0, 1] to the actual bounding box of the text span.
+                        auto norm_xform =
+                            Transform2::from_translation(bounds.origin()) * Transform2::from_scale(bounds.size());
+                        auto total_xform = full_transform * norm_xform;
+
+                        std::visit(
+                            [&](auto &&geom) {
+                                using GT = std::decay_t<decltype(geom)>;
+                                if constexpr (std::is_same_v<GT, Pathfinder::GradientLinear>) {
+                                    auto &lin = std::get<Pathfinder::GradientLinear>(grad_copy.geometry);
+                                    lin.line = lin.line.apply_transform(total_xform);
+                                } else if constexpr (std::is_same_v<GT, Pathfinder::GradientRadial>) {
+                                    auto &rad = std::get<Pathfinder::GradientRadial>(grad_copy.geometry);
+                                    rad.line = rad.line.apply_transform(total_xform);
+                                }
+                            },
+                            arg.geometry);
+                        for (auto &stop : grad_copy.get_stops()) {
+                            stop.color = stop.color.apply_alpha(a * s.opacity);
+                        }
+                        paint = Pathfinder::Paint::from_gradient(grad_copy);
+                    }
+                },
+                s.fill);
+            return paint;
+        };
+
         Pathfinder::Path2d combined_word_path;
         bool is_karaoke = style.karaoke_progress >= 0.0f;
+        RectF batch_bounds;
+        bool first_glyph = true;
 
         // Build a combined path for this styling run to apply gradient correctly across all letters.
         for (int k = i; k < j; k++) {
@@ -543,6 +596,15 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             }
 
             combined_word_path.add_path(glyphs[k].path, local_glyph_transform * skew_xform);
+
+            // Calculate bounding box for local normalization.
+            RectF glyph_rect = glyphs[k].box + glyph_positions[k];
+            if (first_glyph) {
+                batch_bounds = glyph_rect;
+                first_glyph = false;
+            } else {
+                batch_bounds = batch_bounds.union_rect(glyph_rect);
+            }
         }
 
         canvas->save_state();
@@ -574,19 +636,36 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             float prg = std::clamp(style.karaoke_progress, 0.0f, 1.0f);
 
             // 4-stop chain for maximum robustness across different GPU drivers.
-            gradient.add_color_stop(style.color.apply_alpha(opacity * style.opacity), prg);
-            gradient.add_color_stop(style.color.apply_alpha(opacity * style.opacity), 1.0f);
+            gradient.add_color_stop(style.get_fill_color().apply_alpha(opacity * style.opacity), prg);
+            gradient.add_color_stop(style.get_fill_color().apply_alpha(opacity * style.opacity), 1.0f);
 
             gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(opacity * style.opacity), 0.0f);
             gradient.add_color_stop(style.karaoke_reached_color.apply_alpha(opacity * style.opacity), prg);
 
             canvas->set_fill_paint(Pathfinder::Paint::from_gradient(gradient));
+            canvas->fill_path(combined_word_path, Pathfinder::FillRule::Winding);
+        } else if (style.gradient_mapping_mode == GradientMappingMode::Span) {
+            canvas->set_fill_paint(get_paint_for_style(style, opacity, batch_bounds));
+            canvas->fill_path(combined_word_path, Pathfinder::FillRule::Winding);
         } else {
-            canvas->set_fill_paint(Pathfinder::Paint::from_color(style.color.apply_alpha(opacity * style.opacity)));
-        }
+            // Per-glyph fill.
+            for (int k = i; k < j; k++) {
+                if (glyphs[k].skip_drawing || glyphs[k].emoji) continue;
+                auto baseline_xform = Transform2::from_translation({0, glyphs[k].ascent});
+                auto local_glyph_transform = Transform2::from_translation(glyph_positions[k]) * baseline_xform;
+                auto skew_xform = Transform2::from_scale({1, 1});
+                if (glyphs[k].style.italic) {
+                    skew_xform = Transform2({1, 0, std::tan(-15.f * 3.1415926f / 180.f), 1}, {});
+                }
 
-        // Draw the entire word at once.
-        canvas->fill_path(combined_word_path, Pathfinder::FillRule::Winding);
+                canvas->save_state();
+                canvas->set_transform(full_transform * local_glyph_transform * skew_xform);
+                canvas->set_fill_paint(
+                    get_paint_for_style(glyphs[k].style, opacity, glyphs[k].box + glyph_positions[k]));
+                canvas->fill_path(glyphs[k].path, Pathfinder::FillRule::Winding);
+                canvas->restore_state();
+            }
+        }
 
         // Handle Pseudo-Bold and Emojis within the batch (they don't support simple path-level gradients well).
         for (int k = i; k < j; k++) {
@@ -609,8 +688,10 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
                 canvas->get_scene()->append_scene(*(svg_scene->get_scene()), glyph_global_transform * emoji_scale);
             } else if (gk.style.bold) {
                 canvas->set_transform(glyph_global_transform * skew_xform);
-                canvas->set_stroke_paint(
-                    Pathfinder::Paint::from_color(gk.style.color.apply_alpha(opacity * style.opacity)));
+                RectF stroke_bounds = (gk.style.gradient_mapping_mode == GradientMappingMode::Span)
+                                          ? batch_bounds
+                                          : (gk.box + glyph_positions[k]);
+                canvas->set_stroke_paint(get_paint_for_style(gk.style, opacity, stroke_bounds));
                 canvas->set_line_width(STROKE_WIDTH_FOR_PSEUDO_BOLD_TEXT);
                 canvas->set_line_join(Pathfinder::LineJoin::Round);
                 canvas->stroke_path(gk.path);

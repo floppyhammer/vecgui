@@ -1,5 +1,5 @@
-#include "vecgui/resources/default_resource.h"
 #include "vecgui/app.h"
+#include "vecgui/resources/default_resource.h"
 
 using namespace vecgui;
 
@@ -21,20 +21,20 @@ class RichTextNode : public Node {
 
         // 1. Bold Red
         TextStyle style1;
-        style1.color = ColorU::red();
+        style1.set_fill_color(ColorU::red());
         style1.bold = true;
         label->add_span({"Rich ", style1});
 
         // 2. Italic Green
         TextStyle style2;
-        style2.color = ColorU::green();
+        style2.set_fill_color(ColorU::green());
         style2.italic = true;
         style2.font_size = 64;
         label->add_span({"Text", style2});
 
         // 3. Normal Blue
         TextStyle style3;
-        style3.color = ColorU::blue();
+        style3.set_fill_color(ColorU::blue());
         style3.font_size = 12;
         style3.shadow_color = ColorU::black();
         style3.shadow_strength = 1.0;
@@ -44,11 +44,10 @@ class RichTextNode : public Node {
 
         // 4. Mixed Style in Chinese
         TextStyle style_cn;
-        style_cn.color = ColorU::white();
+        style_cn.set_fill_color(ColorU::white());
         label->add_span({"你好，", style_cn});
 
-        style_cn.color = ColorU::yellow();
-        style_cn.bold = true;
+        style_cn.set_fill_color(ColorU::yellow());
         style_cn.background_color = ColorU::black();
         style_cn.background_corner_radius = 8.0;
         style_cn.background_padding = 2.0;
@@ -57,10 +56,26 @@ class RichTextNode : public Node {
 
         // 5. Stroke style
         TextStyle style_stroke;
-        style_stroke.color = ColorU::red();
+        style_stroke.set_fill_color(ColorU::red());
         style_stroke.stroke_color = ColorU::black();
-        style_stroke.stroke_width = 8.0f;
+        style_stroke.stroke_width = 6.0f;
         label->add_span({"\nStroke Style", style_stroke});
+
+        // 6. Gradient Style
+        TextStyle style_grad;
+        // Now using normalized coordinates: (0,0) to (1,0)
+        // (0,0) is top-left of the text span, (1,0) is top-right.
+        Pathfinder::Gradient grad = Pathfinder::Gradient::linear(Pathfinder::LineSegmentF({0, 0}, {1, 0}));
+        grad.add_color_stop(ColorU::red(), 0.0f);
+        grad.add_color_stop(ColorU::yellow(), 0.5f);
+        grad.add_color_stop(ColorU::blue(), 1.0f);
+        style_grad.fill = grad;
+        style_grad.font_size = 64;
+        style_grad.bold = true;
+        style_grad.stroke_color = ColorU::white();
+        style_grad.stroke_width = 2.0f;
+        style_grad.gradient_mapping_mode = GradientMappingMode::Span;
+        label->add_span({"\nGradient Text", style_grad});
 
         center_container->add_child(label);
     }

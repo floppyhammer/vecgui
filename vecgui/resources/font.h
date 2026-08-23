@@ -204,28 +204,38 @@ inline std::wstring utf8_to_ws(std::string const &utf8) {
     return result;
 }
 
+enum class GradientMappingMode {
+    Span, // Gradient mapped to the entire span/batch bounds
+    Glyph // Gradient mapped to each individual glyph's bounds
+};
+
 struct TextStyle {
-    ColorU color = ColorU::white();
+    TextStyle() = default;
+    TextStyle(ColorU color) : fill(color) {
+    }
 
     uint32_t font_size = 24u;
 
     bool italic = false;
     bool bold = false;
 
+    // Fill.
+    std::variant<ColorU, Pathfinder::Gradient> fill = ColorU::white();
+
     // Stroke.
-    ColorU stroke_color;
+    ColorU stroke_color = ColorU::transparent_black();
     float stroke_width = 0;
 
     // Shadow.
     ColorU shadow_color = ColorU::transparent_black();
-    float shadow_strength = 1.0f;
     float shadow_radius = 0;
+    float shadow_strength = 1.0f;
     Vec2F shadow_offset;
 
     // Background.
     ColorU background_color = ColorU::transparent_black();
     float background_corner_radius = 0;
-    float background_padding = 0; // 外扩距离
+    float background_expand = 0;
 
     // Karaoke.
     float karaoke_progress = -1.0f; // < 0 means disabled. 0.0 to 1.0.
@@ -233,19 +243,33 @@ struct TextStyle {
 
     Transform2 local_transform;
 
+    // Overall opacity.
     float opacity = 1.0f;
+
+    GradientMappingMode gradient_mapping_mode = GradientMappingMode::Span;
 
     bool debug = false;
 
+    ColorU get_fill_color() const {
+        if (std::holds_alternative<ColorU>(fill)) {
+            return std::get<ColorU>(fill);
+        }
+        return ColorU::white();
+    }
+
+    void set_fill_color(ColorU color) {
+        fill = color;
+    }
+
     bool operator==(const TextStyle &rhs) const {
-        return color == rhs.color && font_size == rhs.font_size && italic == rhs.italic && bold == rhs.bold &&
+        return fill == rhs.fill && font_size == rhs.font_size && italic == rhs.italic && bold == rhs.bold &&
                stroke_color == rhs.stroke_color && stroke_width == rhs.stroke_width &&
                shadow_color == rhs.shadow_color && shadow_radius == rhs.shadow_radius &&
                shadow_offset == rhs.shadow_offset && background_color == rhs.background_color &&
                background_corner_radius == rhs.background_corner_radius &&
                background_padding == rhs.background_padding && karaoke_progress == rhs.karaoke_progress &&
                karaoke_reached_color == rhs.karaoke_reached_color && local_transform == rhs.local_transform &&
-               opacity == rhs.opacity && debug == rhs.debug;
+               opacity == rhs.opacity && gradient_mapping_mode == rhs.gradient_mapping_mode && debug == rhs.debug;
     }
 };
 
