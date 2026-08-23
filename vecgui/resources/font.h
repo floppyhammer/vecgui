@@ -267,7 +267,7 @@ struct TextStyle {
                shadow_color == rhs.shadow_color && shadow_radius == rhs.shadow_radius &&
                shadow_offset == rhs.shadow_offset && background_color == rhs.background_color &&
                background_corner_radius == rhs.background_corner_radius &&
-               background_padding == rhs.background_padding && karaoke_progress == rhs.karaoke_progress &&
+               background_expand == rhs.background_expand && karaoke_progress == rhs.karaoke_progress &&
                karaoke_reached_color == rhs.karaoke_reached_color && local_transform == rhs.local_transform &&
                opacity == rhs.opacity && gradient_mapping_mode == rhs.gradient_mapping_mode && debug == rhs.debug;
     }
