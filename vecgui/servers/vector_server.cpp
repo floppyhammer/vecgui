@@ -368,7 +368,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             // Must be on the same line and have identical background styling.
             if (get_line_index(end) != current_line_idx || !(ge.style.background_color == style.background_color) ||
                 ge.style.background_corner_radius != style.background_corner_radius ||
-                ge.style.background_padding != style.background_padding) {
+                ge.style.background_expand != style.background_expand) {
                 break;
             }
 
@@ -406,8 +406,8 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform * final_bg_transform *
                                   baseline_xform);
 
-            if (style.background_padding > 0) {
-                union_rect = union_rect.dilate(style.background_padding);
+            if (style.background_expand > 0) {
+                union_rect = union_rect.dilate(style.background_expand);
             }
 
             Pathfinder::Path2d bg_path;

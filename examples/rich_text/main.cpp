@@ -50,7 +50,7 @@ class RichTextNode : public Node {
         style_cn.set_fill_color(ColorU::yellow());
         style_cn.background_color = ColorU::black();
         style_cn.background_corner_radius = 8.0;
-        style_cn.background_padding = 2.0;
+        style_cn.background_expand = 2.0;
         style_cn.font_size = 128;
         label->add_span({"世界！", style_cn});
 
