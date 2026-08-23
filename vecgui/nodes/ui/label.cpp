@@ -288,6 +288,9 @@ void Label::insert_text(uint32_t codepoint_position, const std::string &new_text
     text_u32_.insert(codepoint_position, new_text_u32);
     text_ = utf32_to_utf8(text_u32_);
 
+    spans_.clear();
+    spans_.push_back({.text = text_, .style = get_text_style()});
+
     need_to_remeasure = true;
     queue_relayout();
 }
@@ -297,6 +300,9 @@ void Label::remove_text(uint32_t codepoint_position, uint32_t count) {
 
     text_u32_.erase(codepoint_position, count);
     text_ = utf32_to_utf8(text_u32_);
+
+    spans_.clear();
+    spans_.push_back({.text = text_, .style = get_text_style()});
 
     need_to_remeasure = true;
     queue_relayout();
