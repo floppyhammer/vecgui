@@ -31,13 +31,6 @@ void VectorServer::set_canvas_size(const Vec2I new_size) {
         return;
     }
 
-    if (!canvas || (canvas->get_scene()->get_view_box().size() != new_size.to_f32())) {
-        // If canvas is null or size mismatch, try to (re)initialize.
-        if (device_ && queue_) {
-            canvas = std::make_shared<Pathfinder::Canvas>(new_size, device_, queue_, mode_);
-        }
-    }
-
     if (canvas) {
         const auto new_view_box = RectI({}, new_size).to_f32();
         canvas->get_scene()->set_bounds(new_view_box);
