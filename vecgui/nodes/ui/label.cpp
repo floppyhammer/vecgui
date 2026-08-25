@@ -253,7 +253,6 @@ void Label::set_text(const std::string &new_text) {
     utf8_to_utf32(text_, text_u32_);
 
     spans_.clear();
-    spans_.push_back({.text = text_, .style = get_text_style()});
 
     need_to_remeasure = true;
     queue_relayout();
@@ -289,7 +288,6 @@ void Label::insert_text(uint32_t codepoint_position, const std::string &new_text
     text_ = utf32_to_utf8(text_u32_);
 
     spans_.clear();
-    spans_.push_back({.text = text_, .style = get_text_style()});
 
     need_to_remeasure = true;
     queue_relayout();
@@ -302,7 +300,6 @@ void Label::remove_text(uint32_t codepoint_position, uint32_t count) {
     text_ = utf32_to_utf8(text_u32_);
 
     spans_.clear();
-    spans_.push_back({.text = text_, .style = get_text_style()});
 
     need_to_remeasure = true;
     queue_relayout();
@@ -689,7 +686,6 @@ void Label::draw() {
     auto vector_server = context->vector_server;
     auto default_theme = context->default_resource->get_default_theme();
 
-    TextStyle draw_style = get_text_style();
     auto theme_background = theme_override_bg.value_or(default_theme->label.styles["background"]);
 
     vector_server->draw_style_box(theme_background, global_transform, size, alpha);
@@ -704,7 +700,7 @@ void Label::draw() {
     //    }
 
     vector_server->draw_glyphs(
-        glyphs_, glyph_positions, draw_style, translation, clip_box, alpha, word_wrap_ ? lines_ : paragraphs_);
+        glyphs_, glyph_positions, translation, clip_box, alpha, word_wrap_ ? lines_ : paragraphs_);
 }
 
 void Label::set_horizontal_alignment(Alignment alignment) {

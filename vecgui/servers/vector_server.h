@@ -64,7 +64,6 @@ public:
      */
     void draw_glyphs(std::vector<Glyph> &glyphs,
                      std::vector<Vec2F> &glyph_positions,
-                     TextStyle text_style,
                      const Transform2 &transform,
                      const RectF &clip_box,
                      float alpha = 1.0f,

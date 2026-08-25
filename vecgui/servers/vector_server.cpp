@@ -298,7 +298,6 @@ void VectorServer::draw_style_line(const StyleLine &style_line,
 
 void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
                                std::vector<Vec2F> &glyph_positions,
-                               TextStyle text_style,
                                const Transform2 &transform,
                                const RectF &clip_box,
                                float opacity,
@@ -329,10 +328,6 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             }
         }
     };
-
-    apply_alpha_to_fill(text_style.fill, opacity);
-    text_style.stroke_color = text_style.stroke_color.apply_alpha(opacity);
-    text_style.shadow_color = text_style.shadow_color.apply_alpha(opacity);
 
     canvas->save_state();
 
