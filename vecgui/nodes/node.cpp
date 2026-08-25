@@ -3,8 +3,8 @@
 #include <ranges>
 #include <string>
 
+#include "../scene_tree.h"
 #include "proxy_window.h"
-#include "scene_tree.h"
 #include "ui/node_ui.h"
 
 namespace vecgui {

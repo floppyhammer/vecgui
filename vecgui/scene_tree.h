@@ -2,31 +2,10 @@
 
 #include <thread>
 
-#include "../common/context.h"
-#include "file_dialog.h"
-#include "node.h"
-#include "render_target.h"
-#include "timer.h"
-#include "ui/button/button.h"
-#include "ui/button/check_button.h"
-#include "ui/button/menu_button.h"
-#include "ui/button/radio_button.h"
-#include "ui/container/box_container.h"
-#include "ui/container/collapse_container.h"
-#include "ui/container/grid_container.h"
-#include "ui/container/margin_container.h"
-#include "ui/container/scroll_container.h"
-#include "ui/container/split_container.h"
-#include "ui/container/tab_container.h"
-#include "ui/label.h"
-#include "ui/panel.h"
-#include "ui/popup_menu.h"
-#include "ui/progress_bar.h"
-#include "ui/slider.h"
-#include "ui/spin_box.h"
-#include "ui/text_edit.h"
-#include "ui/texture_rect.h"
-#include "ui/tree.h"
+#include "common/context.h"
+#include "nodes/node.h"
+#include "nodes/render_target.h"
+#include "nodes/ui/button/button.h"
 
 namespace Pathfinder {
 class Window;

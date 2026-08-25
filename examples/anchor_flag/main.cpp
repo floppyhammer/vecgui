@@ -3,10 +3,6 @@
 #include <vector>
 
 #include "vecgui/app.h"
-#include "vecgui/nodes/ui/button/menu_button.h"
-#include "vecgui/nodes/ui/label.h"
-#include "vecgui/nodes/ui/panel.h"
-#include "vecgui/nodes/ui/popup_menu.h"
 
 using namespace vecgui;
 

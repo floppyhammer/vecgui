@@ -2,17 +2,17 @@
 
 #include <memory>
 
-#include "common/geometry.h"
 #include "common/context.h"
+#include "common/geometry.h"
 #include "nodes/node.h"
-#include "nodes/scene_tree.h"
+#include "resources/default_resource.h"
+#include "scene_tree.h"
 #include "servers/engine.h"
 #include "servers/input_server.h"
 #include "servers/render_server.h"
 #include "servers/text_server.h"
-#include "servers/vector_server.h"
 #include "servers/translation_server.h"
-#include "resources/default_resource.h"
+#include "servers/vector_server.h"
 
 namespace Pathfinder {
 class Device;

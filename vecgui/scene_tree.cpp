@@ -4,8 +4,9 @@
 #include <execution>
 #include <future>
 
-#include "../servers/render_server.h"
-#include "proxy_window.h"
+#include "nodes/proxy_window.h"
+#include "nodes/ui/popup_menu.h"
+#include "servers/render_server.h"
 
 namespace vecgui {
 

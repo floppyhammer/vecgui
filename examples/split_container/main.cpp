@@ -1,6 +1,3 @@
-#include <iostream>
-#include <random>
-
 #include "vecgui/app.h"
 
 using namespace vecgui;

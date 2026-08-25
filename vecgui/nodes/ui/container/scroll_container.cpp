@@ -1,6 +1,6 @@
 #include "scroll_container.h"
 
-#include "../../scene_tree.h"
+#include "../../../scene_tree.h"
 #include "../../../servers/render_server.h"
 
 using Pathfinder::clamp;

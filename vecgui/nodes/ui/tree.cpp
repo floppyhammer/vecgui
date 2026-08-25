@@ -4,8 +4,8 @@
 
 #include "../../common/context.h"
 #include "../../common/utils.h"
+#include "../../scene_tree.h"
 #include "../../servers/vector_server.h"
-#include "../scene_tree.h"
 
 namespace vecgui {
 

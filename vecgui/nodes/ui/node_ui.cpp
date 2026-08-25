@@ -3,8 +3,8 @@
 #include "../../common/context.h"
 #include "../../common/geometry.h"
 #include "../../resources/default_resource.h"
+#include "../../scene_tree.h"
 #include "../../servers/vector_server.h"
-#include "../scene_tree.h"
 
 using Pathfinder::Rect;
 
