@@ -23,46 +23,6 @@ class Button;
 
 class MarginContainer;
 
-// class MenuItem {
-//     friend class PopupMenu;
-//
-// public:
-//     MenuItem();
-//
-//     void update(Vec2F global_position, Vec2F p_size);
-//
-//     void input(InputEvent &event, Vec2F global_position);
-//
-//     void draw(Vec2F global_position);
-//
-//     void set_text(const std::string &text);
-//
-//     void set_icon(const std::shared_ptr<Image> &image);
-//
-// public:
-//     bool hovered = false;
-//
-//     // Expanded sub menu.
-//     bool expanded = false;
-//
-//     // Local position in the menu.
-//     Vec2F position;
-//
-//     Vec2F size;
-//
-//     std::shared_ptr<TextureRect> icon;
-//
-//     std::shared_ptr<Label> label;
-//
-//     std::shared_ptr<TextureRect> expand_icon;
-//
-//     std::shared_ptr<HBoxContainer> container;
-//
-//     std::shared_ptr<PopupMenu> sub_menu;
-//
-//     StyleBox theme_hovered;
-// };
-
 // TODO: we should make it flexible to change a popup menu's parent from a NodeUi to a ProxyWindow,
 // so we can have intuitive windowed popup support.
 class PopupMenu : public NodeUi {

@@ -600,6 +600,11 @@ void Label::set_font_size(uint32_t new_font_size) {
     }
     text_style_->font_size = new_font_size;
 
+    if (spans_.size() <= 1) {
+        spans_.clear();
+        spans_.push_back({.text = text_, .style = *text_style_});
+    }
+
     need_to_remeasure = true;
     queue_relayout();
 }
