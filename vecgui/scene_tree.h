@@ -15,14 +15,14 @@ namespace vecgui {
 
 class ProxyWindow;
 
-void transform_system(Node* root);
+void transform_system(Node* base);
 
-void propagate_draw(Node* node);
+void propagate_draw(Node* base);
 
 /// Run calc_minimum_size() depth-first.
-void calc_minimum_size(Node* root);
+void calc_minimum_size(Node* base);
 
-void layout_system(Node* root);
+void layout_system(Node* base);
 
 /// Processing order: Input -> Update -> Draw.
 class SceneTree {

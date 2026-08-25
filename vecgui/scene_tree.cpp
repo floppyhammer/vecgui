@@ -113,7 +113,7 @@ void input_system(GuiContext* context, Node* root, std::vector<InputEvent>& inpu
     }
 }
 
-void propagate_transform(NodeUi* node, Pathfinder::Transform2 parent_global_transform) {
+void propagate_transform(NodeUi* node, const Transform2& parent_global_transform) {
     if (node == nullptr) {
         return;
     }
@@ -128,15 +128,16 @@ void propagate_transform(NodeUi* node, Pathfinder::Transform2 parent_global_tran
     }
 }
 
-void transform_system(Node* root) {
-    if (root == nullptr) {
+void transform_system(Node* base) {
+    if (base == nullptr) {
         return;
     }
 
-    // Collect all orphan UI nodes.
     std::vector<Node*> nodes;
+    dfs_preorder_ltr_traversal(base, nodes);
+
+    // Collect all orphan UI nodes.
     std::vector<NodeUi*> orphan_ui_nodes;
-    dfs_preorder_ltr_traversal(root, nodes);
     for (auto& node : nodes) {
         if (node->is_ui_node()) {
             // Has no parent or no UI parent.
@@ -158,13 +159,17 @@ void transform_system(Node* root) {
 #endif
 }
 
-void propagate_draw(Node* node) {
-    node->draw();
+void propagate_draw(Node* base) {
+    if (base == nullptr) {
+        return;
+    }
 
-    node->pre_draw_children();
+    base->draw();
 
-    for (auto& child : node->get_all_children()) {
-        if (!node->get_visibility()) {
+    base->pre_draw_children();
+
+    for (auto& child : base->get_all_children()) {
+        if (!child->get_visibility()) {
             continue;
         }
         // Don't propagate to RenderTargets (Sub-windows) as we'll handle them differently.
@@ -178,13 +183,14 @@ void propagate_draw(Node* node) {
         propagate_draw(child.get());
     }
 
-    node->post_draw_children();
+    base->post_draw_children();
 }
 
-void calc_minimum_size(Node* root) {
-    std::vector<Node*> descendants;
-    dfs_postorder_ltr_traversal(root, descendants);
-    for (auto& node : descendants) {
+void calc_minimum_size(Node* base) {
+    std::vector<Node*> nodes;
+    dfs_postorder_ltr_traversal(base, nodes);
+
+    for (auto& node : nodes) {
         if (node->is_ui_node()) {
             auto ui_node = dynamic_cast<NodeUi*>(node);
             if (ui_node->is_layout_dirty()) {
@@ -194,9 +200,10 @@ void calc_minimum_size(Node* root) {
     }
 }
 
-void layout_system(Node* root) {
+void layout_system(Node* base) {
     std::vector<Node*> nodes;
-    dfs_preorder_ltr_traversal(root, nodes);
+    dfs_preorder_ltr_traversal(base, nodes);
+
     for (auto& node : nodes) {
         if (node->is_ui_node()) {
             auto ui_node = dynamic_cast<NodeUi*>(node);
