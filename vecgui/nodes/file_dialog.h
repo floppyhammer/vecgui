@@ -8,7 +8,7 @@ namespace vecgui {
 
 class FileDialog final : public Node {
 public:
-    std::optional<std::string> show();
+    std::optional<std::string> open();
 
     void set_default_path(const std::string& default_path);
 

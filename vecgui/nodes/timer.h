@@ -4,8 +4,6 @@
 #include <vector>
 
 #include "../common/any_callable.h"
-#include "../common/utils.h"
-#include "../servers/engine.h"
 #include "node.h"
 
 namespace vecgui {

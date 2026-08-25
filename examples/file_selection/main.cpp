@@ -45,7 +45,7 @@ class MyNode : public Node {
         std::weak_ptr file_dialog_weak = file_dialog;
         std::weak_ptr text_edit_weak = text_edit;
         auto callback = [file_dialog_weak, text_edit_weak] {
-            auto path = file_dialog_weak.lock()->show();
+            auto path = file_dialog_weak.lock()->open();
             if (path.has_value()) {
                 text_edit_weak.lock()->set_text(path.value());
             }

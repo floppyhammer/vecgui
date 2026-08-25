@@ -5,7 +5,7 @@
 
 namespace vecgui {
 
-std::optional<std::string> FileDialog::show() {
+std::optional<std::string> FileDialog::open() {
     Logger::info("Show file dialog", "vecgui");
 
     // In case of multiple files, the separator is `|`.

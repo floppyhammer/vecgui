@@ -5,8 +5,6 @@
 
 #include "../common/any_callable.h"
 #include "../common/context.h"
-#include "../common/utils.h"
-#include "../servers/engine.h"
 #include "../servers/input_server.h"
 
 namespace vecgui {
@@ -74,7 +72,7 @@ public:
 
     virtual void draw();
 
-    /// For some special nodes (e.g. ScrollContainer).
+    /// For special nodes (e.g. RenderTarget, ProxyWindow, ScrollContainer).
     virtual void pre_draw_children() {
     }
 
