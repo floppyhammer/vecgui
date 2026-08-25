@@ -32,7 +32,11 @@ std::string TranslationServer::get_translation(std::string tag) {
 void TranslationServer::load_translations(const std::string& filename) {
     std::ifstream file(filename);
 
-    rapidcsv::Document doc(filename);
+    rapidcsv::SeparatorParams sepParams;
+    sepParams.mQuotedLinebreaks = true;
+
+    rapidcsv::Document doc(filename, rapidcsv::LabelParams(), sepParams);
+
     auto row_count = doc.GetRowCount();
     auto locale_count = doc.GetColumnCount() - 1;
     auto locale_names = doc.GetColumnNames();
