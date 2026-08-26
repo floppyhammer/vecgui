@@ -144,8 +144,8 @@ set(PATHFINDER_ENABLE_COMPUTE OFF)
 target_include_directories(vecgui PUBLIC "third_party/pathfinder-cpp")
 add_subdirectory("third_party/pathfinder-cpp")
 
-target_include_directories(vecgui PUBLIC "third_party/harfbuzz-11.3.2/src")
-add_subdirectory("third_party/harfbuzz-11.3.2")
+target_include_directories(vecgui PUBLIC "third_party/harfbuzz-14.3.1/src")
+add_subdirectory("third_party/harfbuzz-14.3.1")
 
 target_include_directories(vecgui PUBLIC "third_party/rapidcsv-8.84/src")
 add_subdirectory("third_party/rapidcsv-8.84")
