@@ -30,9 +30,8 @@
 #endif
 
 #include <hb.h>
+#include <zlib/zlib.h>
 
-#include <gzip/decompress.hpp>
-#include <gzip/utils.hpp>
 #include <optional>
 
 #include "../servers/engine.h"
@@ -230,16 +229,58 @@ float Font::update_metrics(uint32_t size, float &ascent, float &descent) {
     return scale;
 }
 
+static std::string decompress_data(const char *data, size_t size) {
+    if (size < 2) return {};
+
+    z_stream zs;
+    memset(&zs, 0, sizeof(zs));
+
+    // 15 is the window bits.
+    // Adding 32 (result 47) enables automatic header detection (zlib or gzip).
+    if (inflateInit2(&zs, 32 + 15) != Z_OK) {
+        return {};
+    }
+
+    zs.next_in = (Bytef *)data;
+    zs.avail_in = (uInt)size;
+
+    int ret;
+    char outbuffer[32768];
+    std::string outstring;
+
+    do {
+        zs.next_out = reinterpret_cast<Bytef *>(outbuffer);
+        zs.avail_out = sizeof(outbuffer);
+
+        ret = inflate(&zs, Z_NO_FLUSH);
+
+        size_t have = sizeof(outbuffer) - zs.avail_out;
+        outstring.append(outbuffer, have);
+
+    } while (ret == Z_OK);
+
+    inflateEnd(&zs);
+
+    if (ret != Z_STREAM_END) {
+        return {};
+    }
+
+    return outstring;
+}
+
 std::string Font::get_glyph_svg(uint16_t glyph_index) const {
     const char *data{};
     size_t data_size = stbtt_GetGlyphSVG(stbtt_info, glyph_index, &data);
     if (data_size > 0) {
         // Check if compressed. Can check both gzip and zlib.
-        bool compressed = gzip::is_compressed(data, data_size);
+        auto d0 = static_cast<uint8_t>(data[0]);
+        auto d1 = static_cast<uint8_t>(data[1]);
 
-        if (compressed) {
-            std::string decompressed_data = gzip::decompress(data, data_size);
-            return decompressed_data;
+        bool is_zlib = (d0 == 0x78 && (d1 == 0x9C || d1 == 0x01 || d1 == 0xDA || d1 == 0x5E));
+        bool is_gzip = (d0 == 0x1F && d1 == 0x8B);
+
+        if (is_zlib || is_gzip) {
+            return decompress_data(data, data_size);
         }
 
         return {data, data + data_size};
