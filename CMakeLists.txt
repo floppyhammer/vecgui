@@ -129,31 +129,26 @@ endif ()
 # Include external and third-party headers.
 target_include_directories(vecgui PUBLIC "." "third_party")
 
-# Do this before add_subdirectory
+# Set subdirectory options before adding it.
 if (VECGUI_VULKAN)
     set(PATHFINDER_BACKEND_VULKAN ON)
 else ()
     set(PATHFINDER_BACKEND_VULKAN OFF)
 endif ()
-set(PATHFINDER_USE_D3D11 OFF)
 if (VECGUI_WINDOW)
     set(PATHFINDER_WINDOW ON)
 else ()
     set(PATHFINDER_WINDOW OFF)
 endif ()
+set(PATHFINDER_ENABLE_COMPUTE OFF)
 target_include_directories(vecgui PUBLIC "third_party/pathfinder-cpp")
 add_subdirectory("third_party/pathfinder-cpp")
 
 target_include_directories(vecgui PUBLIC "third_party/harfbuzz-11.3.2/src")
 add_subdirectory("third_party/harfbuzz-11.3.2")
 
-target_include_directories(vecgui PUBLIC "third_party/GSL-4.0.0/include")
-add_subdirectory("third_party/GSL-4.0.0")
-
 target_include_directories(vecgui PUBLIC "third_party/rapidcsv-8.84/src")
 add_subdirectory("third_party/rapidcsv-8.84")
-
-target_include_directories(vecgui PUBLIC "third_party/stduuid-1.2.3")
 
 set(ZLIB_BUILD_EXAMPLES OFF)
 add_subdirectory("third_party/zlib")
