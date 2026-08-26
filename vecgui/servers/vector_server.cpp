@@ -671,9 +671,17 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
 
             if (gk.emoji) {
                 auto svg_scene = std::make_shared<Pathfinder::SvgScene>(gk.svg, *canvas);
-                auto emoji_scale = Transform2::from_scale(gk.box.size() / svg_scene->get_size());
+                auto scene_size = svg_scene->get_size();
+                auto emoji_scale = gk.box.size();
+                if (!scene_size.is_any_zero()) {
+                    emoji_scale = gk.box.size() / svg_scene->get_size();
+                }
+
                 // TODO: Apply alpha to emoji if supported by append_scene or similar
-                canvas->get_scene()->append_scene(*(svg_scene->get_scene()), glyph_global_transform * emoji_scale);
+                if (svg_scene->get_scene()) {
+                    canvas->get_scene()->append_scene(*(svg_scene->get_scene()),
+                                                      glyph_global_transform * Transform2::from_scale(emoji_scale));
+                }
             } else if (gk.style.bold) {
                 canvas->set_transform(glyph_global_transform * skew_xform);
                 RectF stroke_bounds = (gk.style.gradient_mapping_mode == GradientMappingMode::Span)

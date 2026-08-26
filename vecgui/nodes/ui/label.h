@@ -126,7 +126,7 @@ private:
 
     /// text_u32_ is related to navigation, glyphs_ is more about rendering.
 
-    std::shared_ptr<Font> font, emoji_font;
+    std::shared_ptr<Font> font;
 
     bool clip = false;
 

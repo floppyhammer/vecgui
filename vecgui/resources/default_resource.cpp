@@ -28,6 +28,9 @@ void DefaultResource::init(GuiContext* context, const bool dark_mode) {
                                         Font::from_file(context, get_asset_dir("fonts/NotoSansBengali-Regular.ttf")));
     text_server->register_fallback_font(Script::Thai,
                                         Font::from_file(context, get_asset_dir("fonts/NotoSansThai-Regular.ttf")));
+
+    // Emoji.
+    // text_server->register_emoji_font(Font::from_file(context, get_asset_dir("fonts/NotoColorEmoji-Regular.ttf")));
 }
 
 } // namespace vecgui

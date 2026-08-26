@@ -234,15 +234,15 @@ std::string Font::get_glyph_svg(uint16_t glyph_index) const {
     const char *data{};
     size_t data_size = stbtt_GetGlyphSVG(stbtt_info, glyph_index, &data);
     if (data_size > 0) {
-        // // Check if compressed. Can check both gzip and zlib.
-        // bool compressed = gzip::is_compressed(data, data_size);
-        //
-        // if (compressed) {
-        //     std::string decompressed_data = gzip::decompress(data, data_size);
-        //     return decompressed_data;
-        // }
-        //
-        // return {data, data + data_size};
+        // Check if compressed. Can check both gzip and zlib.
+        bool compressed = gzip::is_compressed(data, data_size);
+
+        if (compressed) {
+            std::string decompressed_data = gzip::decompress(data, data_size);
+            return decompressed_data;
+        }
+
+        return {data, data + data_size};
     }
     return {};
 }

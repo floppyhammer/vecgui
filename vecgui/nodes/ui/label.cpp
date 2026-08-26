@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "../../resources/default_resource.h"
+#include "vecgui/servers/text_server.h"
 
 // See https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html for glyph conventions.
 
@@ -433,6 +434,7 @@ void Label::measure() {
     }
 
     // Add emoji data.
+    auto emoji_font = context->text_server->get_emoji_font();
     if (emoji_font && emoji_font->is_valid()) {
         for (auto &glyph : glyphs_) {
             if (glyph.codepoints.size() == 1 && glyph.index == 0) {
