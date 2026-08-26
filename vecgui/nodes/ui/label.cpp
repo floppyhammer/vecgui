@@ -17,43 +17,20 @@ namespace vecgui {
 std::vector<Pathfinder::Range> get_line_breakable_groups(const std::vector<LayoutGlyph> &glyphs, int offset) {
     std::vector<Pathfinder::Range> groups;
 
-    bool rtl = false;
+    uint32_t group_start = 0;
 
-    if (rtl) {
-        //        uint32_t group_start = glyphs.size() - 1;
-        //
-        //        for (int g_idx = glyphs.size() - 1; g_idx >= 0; g_idx--) {
-        //            auto &g = glyphs[g_idx];
-        //
-        //            if (g.line_breakable_ && g_idx != glyphs.size() - 1) {
-        //                Pathfinder::Range group = {group_start, group_start - g_idx};
-        //                group_start = g_idx;
-        //                groups.push_back(group);
-        //            }
-        //        }
-        //
-        //        Pathfinder::Range group = {group_start, group_start + 1};
-        //        groups.push_back(group);
-        //
-        //        for (auto &r : groups) {
-        //            r.begin = r.begin + 1 - r.length;
-        //        }
-    } else {
-        uint32_t group_start = 0;
+    for (int g_idx = 0; g_idx < glyphs.size(); g_idx++) {
+        auto &g = glyphs[g_idx];
 
-        for (int g_idx = 0; g_idx < glyphs.size(); g_idx++) {
-            auto &g = glyphs[g_idx];
-
-            if (g.line_breakable_ && g_idx != 0) {
-                Pathfinder::Range group = {offset + group_start, offset + static_cast<unsigned long long>(g_idx)};
-                group_start = g_idx;
-                groups.push_back(group);
-            }
+        if (g.line_breakable_ && g_idx != 0) {
+            Pathfinder::Range group = {offset + group_start, offset + static_cast<unsigned long long>(g_idx)};
+            group_start = g_idx;
+            groups.push_back(group);
         }
-
-        Pathfinder::Range group = {offset + group_start, offset + (uint32_t)glyphs.size()};
-        groups.push_back(group);
     }
+
+    Pathfinder::Range group = {offset + group_start, offset + (uint32_t)glyphs.size()};
+    groups.push_back(group);
 
     return groups;
 }
@@ -236,11 +213,7 @@ void Label::on_ready() {
     auto default_theme = context->default_resource->get_default_theme();
 
     if (!font) {
-        if (default_theme->font) {
-            font = default_theme->font;
-        } else {
-            font = context->default_resource->get_default_font();
-        }
+        font = default_theme->font ? default_theme->font : context->default_resource->get_default_font();
     }
 }
 
