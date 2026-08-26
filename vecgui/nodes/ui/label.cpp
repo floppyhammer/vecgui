@@ -436,6 +436,9 @@ void Label::measure() {
     // Add emoji data.
     auto emoji_font = context->text_server->get_emoji_font();
     if (emoji_font && emoji_font->is_valid()) {
+        float emoji_ascent, emoji_descent;
+        float emoji_scale = emoji_font->update_metrics(font_size, emoji_ascent, emoji_descent);
+
         for (auto &glyph : glyphs_) {
             if (glyph.codepoints.size() == 1 && glyph.index == 0) {
                 uint16_t glyph_index = emoji_font->find_glyph_index_by_codepoint(glyph.codepoints.front());
@@ -443,9 +446,12 @@ void Label::measure() {
                     continue;
                 }
                 glyph.emoji = true;
+                glyph.index = glyph_index;
 
-                glyph.svg = emoji_font->get_glyph_svg(glyph_index);
-                if (!glyph.svg.empty() && glyph.index == 0) {
+                // Try COLR layers.
+                emoji_font->populate_glyph_color_layers(glyph, emoji_scale);
+
+                if (!glyph.layers.empty()) {
                     glyph.x_advance = font_size;
                     glyph.box = {0, 0, (float)font_size, (float)font_size};
                 }

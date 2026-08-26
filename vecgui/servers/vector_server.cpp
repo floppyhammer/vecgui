@@ -670,17 +670,55 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             }
 
             if (gk.emoji) {
-                auto svg_scene = std::make_shared<Pathfinder::SvgScene>(gk.svg, *canvas);
-                auto scene_size = svg_scene->get_size();
-                auto emoji_scale = gk.box.size();
-                if (!scene_size.is_any_zero()) {
-                    emoji_scale = gk.box.size() / svg_scene->get_size();
-                }
+                // First try COLR layers.
+                if (!gk.layers.empty()) {
+                    canvas->save_state();
+                    canvas->set_transform(glyph_global_transform * skew_xform);
+                    for (auto &layer : gk.layers) {
+                        std::visit(
+                            [&](auto &&arg) {
+                                using T = std::decay_t<decltype(arg)>;
+                                if constexpr (std::is_same_v<T, ColorU>) {
+                                    ColorU fill_color = arg;
+                                    if (fill_color == ColorU::transparent_black()) {
+                                        // Use text foreground color.
+                                        fill_color = gk.style.get_fill_color().apply_alpha(opacity * gk.style.opacity);
+                                    } else {
+                                        fill_color = fill_color.apply_alpha(opacity * gk.style.opacity);
+                                    }
+                                    canvas->set_fill_paint(Pathfinder::Paint::from_color(fill_color));
+                                } else if constexpr (std::is_same_v<T, Pathfinder::Gradient>) {
+                                    auto grad_copy = arg;
+                                    for (auto &stop : grad_copy.get_stops()) {
+                                        stop.color = stop.color.apply_alpha(opacity * gk.style.opacity);
+                                    }
 
-                // TODO: Apply alpha to emoji if supported by append_scene or similar
-                if (svg_scene->get_scene()) {
-                    canvas->get_scene()->append_scene(*(svg_scene->get_scene()),
-                                                      glyph_global_transform * Transform2::from_scale(emoji_scale));
+                                    // Map gradient geometry to the scene space.
+                                    std::visit(
+                                        [&](auto &&geom) {
+                                            using GT = std::decay_t<decltype(geom)>;
+                                            if constexpr (std::is_same_v<GT, Pathfinder::GradientLinear>) {
+                                                auto &lin = std::get<Pathfinder::GradientLinear>(grad_copy.geometry);
+                                                lin.line =
+                                                    lin.line.apply_transform(glyph_global_transform * skew_xform);
+                                            } else if constexpr (std::is_same_v<GT, Pathfinder::GradientRadial>) {
+                                                auto &rad = std::get<Pathfinder::GradientRadial>(grad_copy.geometry);
+                                                rad.line =
+                                                    rad.line.apply_transform(glyph_global_transform * skew_xform);
+                                                // Radius scaling (approximate for non-uniform scale).
+                                                rad.radii = rad.radii * glyph_global_transform.m11();
+                                            }
+                                        },
+                                        arg.geometry);
+
+                                    canvas->set_fill_paint(Pathfinder::Paint::from_gradient(grad_copy));
+                                }
+                            },
+                            layer.fill);
+
+                        canvas->fill_path(layer.path, Pathfinder::FillRule::Winding);
+                    }
+                    canvas->restore_state();
                 }
             } else if (gk.style.bold) {
                 canvas->set_transform(glyph_global_transform * skew_xform);

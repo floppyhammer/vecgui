@@ -150,11 +150,8 @@ add_subdirectory("third_party/harfbuzz-14.3.1")
 target_include_directories(vecgui PUBLIC "third_party/rapidcsv-8.84/src")
 add_subdirectory("third_party/rapidcsv-8.84")
 
-set(ZLIB_BUILD_EXAMPLES OFF)
-add_subdirectory("third_party/zlib")
-
 if (APPLE)
-    target_link_libraries(vecgui PUBLIC pathfinder harfbuzz zlibstatic "-framework Metal" "-framework QuartzCore" "-framework CoreText"
+    target_link_libraries(vecgui PUBLIC pathfinder harfbuzz "-framework Metal" "-framework QuartzCore" "-framework CoreText"
             "-framework CoreGraphics" "-framework MetalKit" "-framework Foundation")
     target_link_options(vecgui PUBLIC "-Wl,-force_load,$<TARGET_FILE:pathfinder>")
 
@@ -162,7 +159,7 @@ if (APPLE)
         target_link_libraries(vecgui PUBLIC "-framework Cocoa")
     endif ()
 else ()
-    target_link_libraries(vecgui PUBLIC "-Wl,--whole-archive" pathfinder "-Wl,--no-whole-archive" harfbuzz zlibstatic)
+    target_link_libraries(vecgui PUBLIC "-Wl,--whole-archive" pathfinder "-Wl,--no-whole-archive" harfbuzz)
 endif ()
 
 if (LINUX)

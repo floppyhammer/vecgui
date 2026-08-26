@@ -29,8 +29,8 @@
     #include <fribidi.h>
 #endif
 
+#include <hb-ot.h>
 #include <hb.h>
-#include <zlib/zlib.h>
 
 #include <optional>
 
@@ -145,6 +145,7 @@ struct HarfBuzzData {
     hb_blob_t *blob{};
     hb_face_t *face{};
     hb_font_t *font{};
+    std::vector<ColorU> palette;
 
     HarfBuzzData() = default;
 
@@ -153,6 +154,28 @@ struct HarfBuzzData {
         blob = hb_blob_create(bytes.data(), bytes.size(), HB_MEMORY_MODE_READONLY, nullptr, nullptr);
         face = hb_face_create(blob, 0);
         font = hb_font_create(face);
+
+        // Crucial: Initialize OT functions for the font.
+        hb_ot_font_set_funcs(font);
+
+        // Check support.
+        bool has_layers = hb_ot_color_has_layers(face);
+        bool has_palettes = hb_ot_color_palette_get_count(face) > 0;
+        bool has_paint = hb_ot_color_has_paint(face);
+
+        printf("Font Analysis: COLR_v0=%d, Palettes=%d, COLR_v1=%d\n", has_layers, has_palettes, has_paint);
+
+        // Load default palette (0).
+        unsigned int count = hb_ot_color_palette_get_colors(face, 0, 0, nullptr, nullptr);
+        if (count > 0) {
+            std::vector<hb_color_t> hb_colors(count);
+            hb_ot_color_palette_get_colors(face, 0, 0, &count, hb_colors.data());
+            palette.reserve(count);
+            for (auto c : hb_colors) {
+                palette.push_back(
+                    ColorU(hb_color_get_red(c), hb_color_get_green(c), hb_color_get_blue(c), hb_color_get_alpha(c)));
+            }
+        }
     }
 
     ~HarfBuzzData() {
@@ -229,63 +252,200 @@ float Font::update_metrics(uint32_t size, float &ascent, float &descent) {
     return scale;
 }
 
-static std::string decompress_data(const char *data, size_t size) {
-    if (size < 2) return {};
+struct PaintContext {
+    const Font *font;
+    float scale;
+    std::vector<GlyphLayer> *layers;
+    std::vector<uint16_t> clip_glyph_stack;
+};
 
-    z_stream zs;
-    memset(&zs, 0, sizeof(zs));
+static void paint_color_callback(
+    hb_paint_funcs_t *funcs, void *paint_data, hb_bool_t is_foreground, hb_color_t color, void *user_data) {
+    auto *ctx = static_cast<PaintContext *>(paint_data);
+    if (ctx->clip_glyph_stack.empty()) return;
 
-    // 15 is the window bits.
-    // Adding 32 (result 47) enables automatic header detection (zlib or gzip).
-    if (inflateInit2(&zs, 32 + 15) != Z_OK) {
-        return {};
+    // In COLR v1, this is often used to fill the current clip glyph.
+    GlyphLayer layer;
+    layer.index = ctx->clip_glyph_stack.back();
+    if (is_foreground) {
+        layer.fill = ColorU::transparent_black();
+    } else {
+        layer.fill = ColorU(
+            hb_color_get_red(color), hb_color_get_green(color), hb_color_get_blue(color), hb_color_get_alpha(color));
     }
-
-    zs.next_in = (Bytef *)data;
-    zs.avail_in = (uInt)size;
-
-    int ret;
-    char outbuffer[32768];
-    std::string outstring;
-
-    do {
-        zs.next_out = reinterpret_cast<Bytef *>(outbuffer);
-        zs.avail_out = sizeof(outbuffer);
-
-        ret = inflate(&zs, Z_NO_FLUSH);
-
-        size_t have = sizeof(outbuffer) - zs.avail_out;
-        outstring.append(outbuffer, have);
-
-    } while (ret == Z_OK);
-
-    inflateEnd(&zs);
-
-    if (ret != Z_STREAM_END) {
-        return {};
-    }
-
-    return outstring;
+    layer.path = ctx->font->get_glyph_path(layer.index, ctx->scale);
+    ctx->layers->push_back(layer);
 }
 
-std::string Font::get_glyph_svg(uint16_t glyph_index) const {
-    const char *data{};
-    size_t data_size = stbtt_GetGlyphSVG(stbtt_info, glyph_index, &data);
-    if (data_size > 0) {
-        // Check if compressed. Can check both gzip and zlib.
-        auto d0 = static_cast<uint8_t>(data[0]);
-        auto d1 = static_cast<uint8_t>(data[1]);
+static void paint_fill_glyph_callback(hb_paint_funcs_t *funcs,
+                                      void *paint_data,
+                                      hb_codepoint_t glyph_id,
+                                      hb_font_t *font,
+                                      hb_bool_t is_foreground,
+                                      hb_color_t color,
+                                      void *user_data) {
+    auto *ctx = static_cast<PaintContext *>(paint_data);
+    GlyphLayer layer;
+    layer.index = glyph_id;
+    if (is_foreground) {
+        layer.fill = ColorU::transparent_black();
+    } else {
+        layer.fill = ColorU(
+            hb_color_get_red(color), hb_color_get_green(color), hb_color_get_blue(color), hb_color_get_alpha(color));
+    }
+    layer.path = ctx->font->get_glyph_path(layer.index, ctx->scale);
+    ctx->layers->push_back(layer);
+}
 
-        bool is_zlib = (d0 == 0x78 && (d1 == 0x9C || d1 == 0x01 || d1 == 0xDA || d1 == 0x5E));
-        bool is_gzip = (d0 == 0x1F && d1 == 0x8B);
+static void push_clip_glyph_callback(
+    hb_paint_funcs_t *funcs, void *paint_data, hb_codepoint_t glyph_id, hb_font_t *font, void *user_data) {
+    auto *ctx = static_cast<PaintContext *>(paint_data);
+    ctx->clip_glyph_stack.push_back((uint16_t)glyph_id);
+}
 
-        if (is_zlib || is_gzip) {
-            return decompress_data(data, data_size);
+static void pop_clip_callback(hb_paint_funcs_t *funcs, void *paint_data, void *user_data) {
+    auto *ctx = static_cast<PaintContext *>(paint_data);
+    if (!ctx->clip_glyph_stack.empty()) {
+        ctx->clip_glyph_stack.pop_back();
+    }
+}
+
+static Pathfinder::Gradient convert_hb_color_line(hb_color_line_t *color_line) {
+    unsigned int count = hb_color_line_get_color_stops(color_line, 0, nullptr, nullptr);
+    std::vector<hb_color_stop_t> hb_stops(count);
+    hb_color_line_get_color_stops(color_line, 0, &count, hb_stops.data());
+
+    Pathfinder::Gradient gradient;
+    for (const auto &s : hb_stops) {
+        ColorU stop_color(hb_color_get_red(s.color),
+                          hb_color_get_green(s.color),
+                          hb_color_get_blue(s.color),
+                          hb_color_get_alpha(s.color));
+        gradient.add_color_stop(stop_color, s.offset);
+    }
+
+    auto extend = hb_color_line_get_extend(color_line);
+    switch (extend) {
+        case HB_PAINT_EXTEND_REPEAT:
+            gradient.wrap = Pathfinder::GradientWrap::Repeat;
+            break;
+        case HB_PAINT_EXTEND_REFLECT:
+            // Pathfinder might not support reflect, fallback to repeat or clamp
+            gradient.wrap = Pathfinder::GradientWrap::Repeat;
+            break;
+        default:
+            gradient.wrap = Pathfinder::GradientWrap::Clamp;
+            break;
+    }
+
+    return gradient;
+}
+
+static void paint_linear_gradient_callback(hb_paint_funcs_t *funcs,
+                                           void *paint_data,
+                                           hb_color_line_t *color_line,
+                                           float x0,
+                                           float y0,
+                                           float x1,
+                                           float y1,
+                                           float x2,
+                                           float y2,
+                                           void *user_data) {
+    auto *ctx = static_cast<PaintContext *>(paint_data);
+    if (ctx->clip_glyph_stack.empty()) return;
+
+    auto gradient = convert_hb_color_line(color_line);
+
+    // Convert to Pathfinder Linear Geometry.
+    // Note: HarfBuzz uses Y-down, but Font class handles flip in get_glyph_path.
+    // For gradients, we need to match the font's coordinate system.
+    Vec2F p0(x0 * ctx->scale, y0 * -ctx->scale);
+    Vec2F p1(x1 * ctx->scale, y1 * -ctx->scale);
+    gradient.geometry = Pathfinder::GradientLinear{Pathfinder::LineSegmentF(p0, p1)};
+
+    GlyphLayer layer;
+    layer.index = ctx->clip_glyph_stack.back();
+    layer.fill = gradient;
+    layer.path = ctx->font->get_glyph_path(layer.index, ctx->scale);
+    ctx->layers->push_back(layer);
+}
+
+static void paint_radial_gradient_callback(hb_paint_funcs_t *funcs,
+                                           void *paint_data,
+                                           hb_color_line_t *color_line,
+                                           float x0,
+                                           float y0,
+                                           float r0,
+                                           float x1,
+                                           float y1,
+                                           float r1,
+                                           void *user_data) {
+    auto *ctx = static_cast<PaintContext *>(paint_data);
+    if (ctx->clip_glyph_stack.empty()) return;
+
+    auto gradient = convert_hb_color_line(color_line);
+
+    Vec2F c0(x0 * ctx->scale, y0 * -ctx->scale);
+    Vec2F c1(x1 * ctx->scale, y1 * -ctx->scale);
+    float radius = r1 * ctx->scale; // HarfBuzz r1 is the outer radius.
+
+    gradient.geometry =
+        Pathfinder::GradientRadial{Pathfinder::LineSegmentF(c0, c1), Vec2F(r0 * ctx->scale, r1 * ctx->scale)};
+
+    GlyphLayer layer;
+    layer.index = ctx->clip_glyph_stack.back();
+    layer.fill = gradient;
+    layer.path = ctx->font->get_glyph_path(layer.index, ctx->scale);
+    ctx->layers->push_back(layer);
+}
+
+void Font::populate_glyph_color_layers(Glyph &glyph, float scale) const {
+    if (!harfbuzz_data || !harfbuzz_data->face) return;
+
+    // Try COLR v0 first (backward compatibility).
+    unsigned int layer_count = hb_ot_color_glyph_get_layers(harfbuzz_data->face, glyph.index, 0, nullptr, nullptr);
+    if (layer_count > 0) {
+        std::vector<hb_ot_color_layer_t> hb_layers(layer_count);
+        hb_ot_color_glyph_get_layers(harfbuzz_data->face, glyph.index, 0, &layer_count, hb_layers.data());
+        glyph.layers.clear();
+        for (const auto &l : hb_layers) {
+            GlyphLayer layer;
+            layer.index = l.glyph;
+            if (l.color_index != 0xFFFF && l.color_index < harfbuzz_data->palette.size()) {
+                layer.fill = harfbuzz_data->palette[l.color_index];
+            } else {
+                layer.fill = ColorU::transparent_black();
+            }
+            layer.path = get_glyph_path(layer.index, scale);
+            glyph.layers.push_back(layer);
+        }
+        glyph.emoji = true;
+        return;
+    }
+
+    // Try COLR v1 using the Paint API.
+    if (hb_ot_color_has_paint(harfbuzz_data->face)) {
+        static hb_paint_funcs_t *paint_funcs = nullptr;
+        if (!paint_funcs) {
+            paint_funcs = hb_paint_funcs_create();
+            hb_paint_funcs_set_color_func(paint_funcs, paint_color_callback, nullptr, nullptr);
+            hb_paint_funcs_set_fill_glyph_func(paint_funcs, paint_fill_glyph_callback, nullptr, nullptr);
+            hb_paint_funcs_set_push_clip_glyph_func(paint_funcs, push_clip_glyph_callback, nullptr, nullptr);
+            hb_paint_funcs_set_pop_clip_func(paint_funcs, pop_clip_callback, nullptr, nullptr);
+            hb_paint_funcs_set_linear_gradient_func(paint_funcs, paint_linear_gradient_callback, nullptr, nullptr);
+            hb_paint_funcs_set_radial_gradient_func(paint_funcs, paint_radial_gradient_callback, nullptr, nullptr);
+            hb_paint_funcs_make_immutable(paint_funcs);
         }
 
-        return {data, data + data_size};
+        glyph.layers.clear();
+        PaintContext ctx{this, scale, &glyph.layers, {}};
+
+        hb_font_paint_glyph(harfbuzz_data->font, glyph.index, paint_funcs, &ctx, 0, 0);
+
+        if (!glyph.layers.empty()) {
+            glyph.emoji = true;
+        }
     }
-    return {};
 }
 
 Pathfinder::Path2d Font::get_glyph_path(uint16_t glyph_index, float scale) const {
@@ -586,6 +746,8 @@ void Font::get_glyphs(TextServer *text_server,
                         // }
 
                         para_width += glyph.x_advance;
+
+                        font_to_use->populate_glyph_color_layers(glyph, scale);
 
                         // Get glyph path.
                         glyph.path = font_to_use->get_glyph_path(glyph.index, scale);
@@ -934,6 +1096,8 @@ void Font::get_glyphs(TextServer *text_server,
                         // }
 
                         para_width += glyph.x_advance;
+
+                        font_to_use->populate_glyph_color_layers(glyph, scale);
 
                         // Get glyph path.
                         glyph.path = font_to_use->get_glyph_path(glyph.index, scale);

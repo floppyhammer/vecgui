@@ -19,8 +19,8 @@ class MyNode : public Node {
         margin_container->add_child(s_container);
 
         std::string text = "";
-        // text += "👍😁😂\n";                      // Emoji
-        text += "Hello world!\n";                  // English
+        text += "👍😁😂\n";                      // Emoji
+        text += "Hello world!\n";                // English
         text += "你好世界！\n";                  // Chinese
         text += "こんにちは世界！\n";            // Japanese
         text += "안녕 세계\n";                   // Korean

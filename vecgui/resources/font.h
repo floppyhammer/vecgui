@@ -291,6 +291,12 @@ enum class Script {
     Thai,
 };
 
+struct GlyphLayer {
+    uint16_t index = 0;
+    std::variant<ColorU, Pathfinder::Gradient> fill = ColorU();
+    Pathfinder::Path2d path;
+};
+
 // Text-context-dependent glyph data.
 struct Glyph {
     // Glyph index (font specific). Zero for invalid glyphs.
@@ -309,6 +315,8 @@ struct Glyph {
 
     bool emoji = false;
 
+    std::vector<GlyphLayer> layers;
+
     Script script = Script::Common;
 
     float x_offset = 0; // Offset from the origin of the glyph on baseline.
@@ -324,13 +332,6 @@ struct Glyph {
 
     // Glyph path. The points are in the glyph's baseline coordinates.
     Pathfinder::Path2d path;
-
-    // Only emojis have SVG data.
-    //
-    // The points' origin is not top-left (like normal SVG images) but the font baseline,
-    // so the points don't fall in the view box specified by the image.
-    // Therefore, we need to pass an appropriate transform when appending the SVG scene.
-    std::string svg;
 
     /// Glyph box in the baseline coordinates, which has nothing to do with the glyph position in the text paragraph.
     RectF box;
@@ -366,8 +367,6 @@ public:
 
     Pathfinder::Path2d get_glyph_path(uint16_t glyph_index, float scale) const;
 
-    std::string get_glyph_svg(uint16_t glyph_index) const;
-
     /// Paragraphs and lines are different concepts.
     /// Paragraphs are seperated by line breaks, while lines are produced by further layouting.
     /// A paragraph may contain one or more lines.
@@ -389,6 +388,10 @@ public:
 
     RectI get_glyph_bounds(uint16_t glyph_index, float scale) const;
 
+    void populate_glyph_color_layers(Glyph &glyph, float scale) const;
+
+    float update_metrics(uint32_t size, float &ascent, float &descent);
+
     std::shared_ptr<HarfBuzzData> harfbuzz_data;
 
 private:
@@ -405,8 +408,6 @@ private:
 
     // Raw font data, read directly from a file or from memory.
     std::vector<char> font_data;
-
-    float update_metrics(uint32_t size, float &ascent, float &descent);
 
     void get_tofu_metrics(float scale, float &ascent, float &descent, float &width) const;
 };
