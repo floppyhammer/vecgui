@@ -163,7 +163,7 @@ struct HarfBuzzData {
         bool has_palettes = hb_ot_color_palette_get_count(face) > 0;
         bool has_paint = hb_ot_color_has_paint(face);
 
-        printf("Font Analysis: COLR_v0=%d, Palettes=%d, COLR_v1=%d\n", has_layers, has_palettes, has_paint);
+        // printf("Font Analysis: COLR_v0=%d, Palettes=%d, COLR_v1=%d\n", has_layers, has_palettes, has_paint);
 
         // Load default palette (0).
         unsigned int count = hb_ot_color_palette_get_colors(face, 0, 0, nullptr, nullptr);
