@@ -45,6 +45,9 @@ hb_script_t to_harfbuzz_script(Script script) {
         case Script::Arabic: {
             return HB_SCRIPT_ARABIC;
         }
+        case Script::Armenian: {
+            return HB_SCRIPT_ARMENIAN;
+        }
         case Script::Hebrew: {
             return HB_SCRIPT_HEBREW;
         }
@@ -81,6 +84,8 @@ std::vector<std::pair<Script, Pathfinder::Range>> get_text_script(const std::u32
     for (auto &codepoint : utf32_text) {
         if (codepoint >= 0x0600 && codepoint <= 0x06FF) {
             scripts.push_back(Script::Arabic);
+        } else if (codepoint >= 0x0530 && codepoint <= 0x058F) {
+            scripts.push_back(Script::Armenian);
         } else if (codepoint >= 0x0981 && codepoint <= 0x09FB) {
             scripts.push_back(Script::Bengali);
         } else if (codepoint >= 0x0901 && codepoint <= 0x097F) {

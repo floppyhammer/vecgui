@@ -17,6 +17,8 @@ void DefaultResource::init(GuiContext* context, const bool dark_mode) {
     text_server->register_fallback_font(Script::Common, ns);
     text_server->register_fallback_font(Script::Arabic,
                                         Font::from_file(context, get_asset_dir("fonts/NotoSansArabic-Regular.ttf")));
+    text_server->register_fallback_font(Script::Armenian,
+                                        Font::from_file(context, get_asset_dir("fonts/NotoSansArmenian-Regular.ttf")));
     text_server->register_fallback_font(Script::Hangul,
                                         Font::from_file(context, get_asset_dir("fonts/NotoSansKR-Regular.ttf")));
     text_server->register_fallback_font(Script::Han,

@@ -281,6 +281,7 @@ struct TextSpan {
 enum class Script {
     Common = 0,
     Arabic,
+    Armenian,
     Bengali,
     Devanagari,
     Hebrew,
