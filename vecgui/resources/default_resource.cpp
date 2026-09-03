@@ -31,6 +31,21 @@ void DefaultResource::init(GuiContext* context, const bool dark_mode) {
     text_server->register_fallback_font(Script::Thai,
                                         Font::from_file(context, get_asset_dir("fonts/NotoSansThai-Regular.ttf")));
 
+    // text_server->register_fallback_font(Script::Georgian,
+    //                                 Font::from_file(context, get_asset_dir("fonts/NotoSansGeorgian-Regular.ttf")));
+    // text_server->register_fallback_font(Script::Gujarati,
+    //                                     Font::from_file(context, get_asset_dir("fonts/NotoSansGujarati-Regular.ttf")));
+    // text_server->register_fallback_font(Script::Kannada,
+    //                                 Font::from_file(context, get_asset_dir("fonts/NotoSansKannada-Regular.ttf")));
+    // text_server->register_fallback_font(Script::Khmer,
+    //                                     Font::from_file(context, get_asset_dir("fonts/NotoSansKhmer-Regular.ttf")));
+    // text_server->register_fallback_font(Script::Malayalam,
+    //                                 Font::from_file(context, get_asset_dir("fonts/NotoSansMalayalam-Regular.ttf")));
+    // text_server->register_fallback_font(Script::Tamil,
+    //                                     Font::from_file(context, get_asset_dir("fonts/NotoSansTamil-Regular.ttf")));
+    // text_server->register_fallback_font(Script::Ethiopic,
+    //                                 Font::from_file(context, get_asset_dir("fonts/NotoSansEthiopic-Regular.ttf")));
+
     // Emoji.
     text_server->register_emoji_font(Font::from_file(context, get_asset_dir("fonts/NotoColorEmoji-Regular.ttf")));
 }

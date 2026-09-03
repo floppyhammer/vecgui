@@ -269,11 +269,10 @@ struct TextStyle {
                stroke_color == rhs.stroke_color && stroke_width == rhs.stroke_width &&
                shadow_color == rhs.shadow_color && shadow_radius == rhs.shadow_radius &&
                shadow_offset == rhs.shadow_offset && background_color == rhs.background_color &&
-               background_corner_radius == rhs.background_corner_radius &&
-               background_expand == rhs.background_expand && karaoke_progress == rhs.karaoke_progress &&
-               karaoke_reached_color == rhs.karaoke_reached_color && clipping_progress == rhs.clipping_progress &&
-               local_transform == rhs.local_transform && opacity == rhs.opacity &&
-               gradient_mapping_mode == rhs.gradient_mapping_mode && debug == rhs.debug;
+               background_corner_radius == rhs.background_corner_radius && background_expand == rhs.background_expand &&
+               karaoke_progress == rhs.karaoke_progress && karaoke_reached_color == rhs.karaoke_reached_color &&
+               clipping_progress == rhs.clipping_progress && local_transform == rhs.local_transform &&
+               opacity == rhs.opacity && gradient_mapping_mode == rhs.gradient_mapping_mode && debug == rhs.debug;
     }
 };
 
@@ -294,6 +293,13 @@ enum class Script {
     Hiragana,
     Katakana,
     Thai,
+    Georgian,
+    Gujarati,
+    Kannada,
+    Khmer,
+    Malayalam,
+    Tamil,
+    Ethiopic,
 };
 
 struct GlyphLayer {
