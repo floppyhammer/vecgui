@@ -241,6 +241,9 @@ struct TextStyle {
     float karaoke_progress = -1.0f; // < 0 means disabled. 0.0 to 1.0.
     ColorU karaoke_reached_color;
 
+    // Clipping.
+    float clipping_progress = -1.0f; // < 0 means disabled. 0.0 to 1.0.
+
     Transform2 local_transform;
 
     // Overall opacity.
@@ -268,8 +271,9 @@ struct TextStyle {
                shadow_offset == rhs.shadow_offset && background_color == rhs.background_color &&
                background_corner_radius == rhs.background_corner_radius &&
                background_expand == rhs.background_expand && karaoke_progress == rhs.karaoke_progress &&
-               karaoke_reached_color == rhs.karaoke_reached_color && local_transform == rhs.local_transform &&
-               opacity == rhs.opacity && gradient_mapping_mode == rhs.gradient_mapping_mode && debug == rhs.debug;
+               karaoke_reached_color == rhs.karaoke_reached_color && clipping_progress == rhs.clipping_progress &&
+               local_transform == rhs.local_transform && opacity == rhs.opacity &&
+               gradient_mapping_mode == rhs.gradient_mapping_mode && debug == rhs.debug;
     }
 };
 

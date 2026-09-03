@@ -455,6 +455,28 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         // The combined_shadow_path already has local transforms baked in.
         canvas->set_transform(dpi_scaling_xform * global_transform_offset * transform);
 
+        if (style.clipping_progress >= 0.0f) {
+            float word_min_x = 1e9f;
+            float word_max_x = -1e9f;
+            for (int k = i; k < j; k++) {
+                word_min_x = std::min(word_min_x, glyph_positions[k].x);
+                word_max_x = std::max(word_max_x, glyph_positions[k].x + glyphs[k].x_advance);
+            }
+            float prg = std::clamp(style.clipping_progress, 0.0f, 1.0f);
+            float clip_width = (word_max_x - word_min_x) * prg;
+
+            RectF clip_rect;
+            if (glyphs[i].script == Script::Arabic || glyphs[i].script == Script::Hebrew) {
+                clip_rect = RectF(word_max_x - clip_width, -10000, word_max_x, 10000);
+            } else {
+                clip_rect = RectF(word_min_x, -10000, word_min_x + clip_width, 10000);
+            }
+
+            Pathfinder::Path2d clip_path;
+            clip_path.add_rect(clip_rect, 0);
+            canvas->clip_path(clip_path, Pathfinder::FillRule::Winding);
+        }
+
         if (style.shadow_color.is_visible()) {
             canvas->set_shadow_color(style.shadow_color.apply_alpha(opacity * style.opacity));
             canvas->set_shadow_strength(style.shadow_strength);
@@ -472,39 +494,86 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
     }
 
     // 2. Draw glyph strokes. The strokes go below the fills.
-    for (int i = 0; i < glyphs.size(); i++) {
-        auto &g = glyphs[i];
-        auto &p = glyph_positions[i];
-
+    for (int i = 0; i < glyphs.size();) {
+        auto& g = glyphs[i];
         if (g.emoji || g.skip_drawing || g.style.opacity * opacity <= 0.0f) {
+            i++;
             continue;
         }
 
         TextStyle style = g.style;
-        style.stroke_color = style.stroke_color.apply_alpha(opacity * style.opacity);
+        int current_line_idx = get_line_index(i);
 
-        auto baseline_xform = Transform2::from_translation({0, g.ascent});
-
-        auto glyph_global_transform = dpi_scaling_xform * global_transform_offset * transform * style.local_transform *
-                                      Transform2::from_translation(p) * baseline_xform;
-
-        auto skew_xform = Transform2::from_scale({1, 1});
-        if (style.italic) {
-            skew_xform = Transform2({1, 0, std::tan(-15.f * 3.1415926f / 180.f), 1}, {});
+        // Batch glyphs with identical stroke style and on the same line.
+        int j = i + 1;
+        while (j < glyphs.size() && glyphs[j].style.stroke_color == style.stroke_color &&
+               glyphs[j].style.stroke_width == style.stroke_width &&
+               glyphs[j].style.local_transform == style.local_transform &&
+               glyphs[j].style.opacity == style.opacity && glyphs[j].style.italic == style.italic &&
+               glyphs[j].style.bold == style.bold &&
+               glyphs[j].style.clipping_progress == style.clipping_progress &&
+               get_line_index(j) == current_line_idx) {
+            j++;
         }
 
-        canvas->set_transform(glyph_global_transform * skew_xform);
+        canvas->save_state();
+        const auto base_transform = dpi_scaling_xform * global_transform_offset * transform;
+        canvas->set_transform(base_transform);
 
-        // Add stroke if needed.
-        canvas->set_stroke_paint(
-            Pathfinder::Paint::from_color(style.stroke_color.apply_alpha(opacity * style.opacity)));
-        float stroke_width = style.stroke_width;
-        if (style.bold) {
-            stroke_width += STROKE_WIDTH_FOR_PSEUDO_BOLD_TEXT;
+        if (style.clipping_progress >= 0.0f) {
+            float word_min_x = 1e9f;
+            float word_max_x = -1e9f;
+            for (int k = i; k < j; k++) {
+                word_min_x = std::min(word_min_x, glyph_positions[k].x);
+                word_max_x = std::max(word_max_x, glyph_positions[k].x + glyphs[k].x_advance);
+            }
+            float prg = std::clamp(style.clipping_progress, 0.0f, 1.0f);
+            float clip_width = (word_max_x - word_min_x) * prg;
+
+            RectF clip_rect;
+            if (glyphs[i].script == Script::Arabic || glyphs[i].script == Script::Hebrew) {
+                clip_rect = RectF(word_max_x - clip_width, -10000, word_max_x, 10000);
+            } else {
+                clip_rect = RectF(word_min_x, -10000, word_min_x + clip_width, 10000);
+            }
+
+            Pathfinder::Path2d clip_path;
+            clip_path.add_rect(clip_rect, 0);
+            canvas->clip_path(clip_path, Pathfinder::FillRule::Winding);
         }
-        canvas->set_line_width(stroke_width);
-        canvas->set_line_join(Pathfinder::LineJoin::Round);
-        canvas->stroke_path(g.path);
+
+        const auto full_transform = base_transform * style.local_transform;
+        canvas->set_transform(full_transform);
+
+        for (int k = i; k < j; k++) {
+            auto& gk = glyphs[k];
+            if (gk.emoji || gk.skip_drawing) continue;
+
+            auto baseline_xform = Transform2::from_translation({0, gk.ascent});
+            auto local_glyph_transform = Transform2::from_translation(glyph_positions[k]) * baseline_xform;
+
+            auto skew_xform = Transform2::from_scale({1, 1});
+            if (gk.style.italic) {
+                skew_xform = Transform2({1, 0, std::tan(-15.f * 3.1415926f / 180.f), 1}, {});
+            }
+
+            canvas->save_state();
+            canvas->set_transform(full_transform * local_glyph_transform * skew_xform);
+
+            canvas->set_stroke_paint(
+                Pathfinder::Paint::from_color(style.stroke_color.apply_alpha(opacity * style.opacity)));
+            float stroke_width = style.stroke_width;
+            if (style.bold) {
+                stroke_width += STROKE_WIDTH_FOR_PSEUDO_BOLD_TEXT;
+            }
+            canvas->set_line_width(stroke_width);
+            canvas->set_line_join(Pathfinder::LineJoin::Round);
+            canvas->stroke_path(gk.path);
+            canvas->restore_state();
+        }
+
+        canvas->restore_state();
+        i = j;
     }
 
     // 3. Draw glyph fills (Batched for Styles & Karaoke).
@@ -596,6 +665,31 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
         }
 
         canvas->save_state();
+        const auto base_transform = dpi_scaling_xform * global_transform_offset * transform;
+        canvas->set_transform(base_transform);
+
+        if (style.clipping_progress >= 0.0f) {
+            float word_min_x = 1e9f;
+            float word_max_x = -1e9f;
+            for (int k = i; k < j; k++) {
+                word_min_x = std::min(word_min_x, glyph_positions[k].x);
+                word_max_x = std::max(word_max_x, glyph_positions[k].x + glyphs[k].x_advance);
+            }
+            float prg = std::clamp(style.clipping_progress, 0.0f, 1.0f);
+            float clip_width = (word_max_x - word_min_x) * prg;
+
+            RectF clip_rect;
+            if (glyphs[i].script == Script::Arabic || glyphs[i].script == Script::Hebrew) {
+                clip_rect = RectF(word_max_x - clip_width, -10000, word_max_x, 10000);
+            } else {
+                clip_rect = RectF(word_min_x, -10000, word_min_x + clip_width, 10000);
+            }
+
+            Pathfinder::Path2d clip_path;
+            clip_path.add_rect(clip_rect, 0);
+            canvas->clip_path(clip_path, Pathfinder::FillRule::Winding);
+        }
+
         canvas->set_transform(full_transform);
 
         if (is_karaoke) {
