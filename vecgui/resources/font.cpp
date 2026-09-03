@@ -73,6 +73,27 @@ hb_script_t to_harfbuzz_script(Script script) {
         case Script::Katakana: {
             return HB_SCRIPT_KATAKANA;
         }
+        case Script::Georgian: {
+            return HB_SCRIPT_GEORGIAN;
+        }
+        case Script::Gujarati: {
+            return HB_SCRIPT_GUJARATI;
+        }
+        case Script::Kannada: {
+            return HB_SCRIPT_KANNADA;
+        }
+        case Script::Khmer: {
+            return HB_SCRIPT_KHMER;
+        }
+        case Script::Malayalam: {
+            return HB_SCRIPT_MALAYALAM;
+        }
+        case Script::Tamil: {
+            return HB_SCRIPT_TAMIL;
+        }
+        case Script::Ethiopic: {
+            return HB_SCRIPT_ETHIOPIC;
+        }
         default: {
             return HB_SCRIPT_COMMON;
         }
@@ -108,6 +129,21 @@ std::vector<std::pair<Script, Pathfinder::Range>> get_text_script(const std::u32
             scripts.push_back(Script::Katakana);
         } else if (codepoint >= 0x0E00 && codepoint <= 0x0E7F) {
             scripts.push_back(Script::Thai);
+        } else if ((codepoint >= 0x10A0 && codepoint <= 0x10FF) || (codepoint >= 0x2D00 && codepoint <= 0x2D2F)) {
+            scripts.push_back(Script::Georgian);
+        } else if (codepoint >= 0x0A80 && codepoint <= 0x0AFF) {
+            scripts.push_back(Script::Gujarati);
+        } else if (codepoint >= 0x0C80 && codepoint <= 0x0CFF) {
+            scripts.push_back(Script::Kannada);
+        } else if (codepoint >= 0x1780 && codepoint <= 0x17FF) {
+            scripts.push_back(Script::Khmer);
+        } else if (codepoint >= 0x0D00 && codepoint <= 0x0D7F) {
+            scripts.push_back(Script::Malayalam);
+        } else if (codepoint >= 0x0B80 && codepoint <= 0x0BFF) {
+            scripts.push_back(Script::Tamil);
+        } else if ((codepoint >= 0x1200 && codepoint <= 0x139F) || (codepoint >= 0x2D80 && codepoint <= 0x2DDF) ||
+                   (codepoint >= 0xAB00 && codepoint <= 0xAB2F)) {
+            scripts.push_back(Script::Ethiopic);
         } else {
             scripts.push_back(Script::Common);
         }

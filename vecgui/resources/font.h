@@ -266,6 +266,13 @@ enum class Script {
     Hiragana,
     Katakana,
     Thai,
+    Georgian,
+    Gujarati,
+    Kannada,
+    Khmer,
+    Malayalam,
+    Tamil,
+    Ethiopic,
 };
 
 // Text-context-dependent glyph data.
