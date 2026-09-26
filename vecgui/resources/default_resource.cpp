@@ -4,6 +4,10 @@
 #include "opensans_regular_ttf.h"
 #include "vecgui/servers/text_server.h"
 
+#if defined(__APPLE__)
+    #include <TargetConditionals.h>
+#endif
+
 namespace vecgui {
 
 void DefaultResource::init(GuiContext* context, const bool dark_mode) {
@@ -12,6 +16,8 @@ void DefaultResource::init(GuiContext* context, const bool dark_mode) {
     default_font = Font::from_memory(std::vector<char>(std::begin(DEFAULT_FONT_DATA), std::end(DEFAULT_FONT_DATA)));
     assert(default_font);
 
+    // We load fallback fonts differently on iOS.
+#if !(defined(__APPLE__) && TARGET_OS_IPHONE)
     auto text_server = context->text_server;
     auto ns = Font::from_file(context, get_asset_dir("fonts/NotoSans-Regular.ttf"));
     text_server->register_fallback_font(Script::Common, ns);
@@ -34,7 +40,8 @@ void DefaultResource::init(GuiContext* context, const bool dark_mode) {
     // text_server->register_fallback_font(Script::Georgian,
     //                                 Font::from_file(context, get_asset_dir("fonts/NotoSansGeorgian-Regular.ttf")));
     // text_server->register_fallback_font(Script::Gujarati,
-    //                                     Font::from_file(context, get_asset_dir("fonts/NotoSansGujarati-Regular.ttf")));
+    //                                     Font::from_file(context,
+    //                                     get_asset_dir("fonts/NotoSansGujarati-Regular.ttf")));
     // text_server->register_fallback_font(Script::Kannada,
     //                                 Font::from_file(context, get_asset_dir("fonts/NotoSansKannada-Regular.ttf")));
     // text_server->register_fallback_font(Script::Khmer,
@@ -48,6 +55,7 @@ void DefaultResource::init(GuiContext* context, const bool dark_mode) {
 
     // Emoji.
     text_server->register_emoji_font(Font::from_file(context, get_asset_dir("fonts/NotoColorEmoji-Regular.ttf")));
+#endif
 }
 
 } // namespace vecgui
