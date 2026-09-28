@@ -450,11 +450,29 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
             if (get_line_index(j) == current_line_idx && g.style.shadow_color == style.shadow_color &&
                 g.style.shadow_radius == style.shadow_radius && g.style.shadow_offset == style.shadow_offset &&
                 g.style.shadow_strength == style.shadow_strength && g.style.local_transform == style.local_transform &&
-                g.style.clipping_progress == style.clipping_progress && g.style.opacity == style.opacity) {
+                g.style.clipping_progress == style.clipping_progress && g.style.opacity == style.opacity &&
+                g.style.underline == style.underline) {
                 add_glyph_to_shadow_path(j);
                 j++;
             } else {
                 break;
+            }
+        }
+
+        if (style.underline) {
+            float min_x = 1e9f;
+            float max_x = -1e9f;
+            for (int k = i; k < j; k++) {
+                if (glyphs[k].skip_drawing) continue;
+                min_x = std::min(min_x, glyph_positions[k].x);
+                max_x = std::max(max_x, glyph_positions[k].x + glyphs[k].x_advance);
+            }
+            if (min_x <= max_x) {
+                float y = glyph_positions[i].y + glyphs[i].ascent + style.shadow_offset.y + std::max(2.0f, style.font_size * 0.08f);
+                float thickness = std::max(1.0f, style.font_size / 16.0f);
+                Pathfinder::Path2d underline_shadow_path;
+                underline_shadow_path.add_rect(RectF(min_x + style.shadow_offset.x, y, max_x + style.shadow_offset.x, y + thickness), 0);
+                combined_shadow_path.add_path(underline_shadow_path, style.local_transform);
             }
         }
 
@@ -520,6 +538,7 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
                glyphs[j].style.local_transform == style.local_transform &&
                glyphs[j].style.opacity == style.opacity && glyphs[j].style.italic == style.italic &&
                glyphs[j].style.bold == style.bold &&
+               glyphs[j].style.underline == style.underline &&
                glyphs[j].style.clipping_progress == style.clipping_progress &&
                get_line_index(j) == current_line_idx) {
             j++;
@@ -553,6 +572,28 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
 
         const auto full_transform = base_transform * style.local_transform;
         canvas->set_transform(full_transform);
+
+        if (style.underline && style.stroke_color.is_visible() && style.stroke_width > 0) {
+            float min_x = 1e9f;
+            float max_x = -1e9f;
+            for (int k = i; k < j; k++) {
+                if (glyphs[k].skip_drawing) continue;
+                min_x = std::min(min_x, glyph_positions[k].x);
+                max_x = std::max(max_x, glyph_positions[k].x + glyphs[k].x_advance);
+            }
+            if (min_x <= max_x) {
+                float y = glyph_positions[i].y + glyphs[i].ascent + std::max(2.0f, style.font_size * 0.08f);
+                float thickness = std::max(1.0f, style.font_size / 16.0f);
+                Pathfinder::Path2d underline_path;
+                underline_path.add_rect(RectF(min_x, y, max_x, y + thickness), 0);
+
+                canvas->set_stroke_paint(
+                    Pathfinder::Paint::from_color(style.stroke_color.apply_alpha(opacity * style.opacity)));
+                canvas->set_line_width(style.stroke_width);
+                canvas->set_line_join(Pathfinder::LineJoin::Round);
+                canvas->stroke_path(underline_path);
+            }
+        }
 
         for (int k = i; k < j; k++) {
             auto& gk = glyphs[k];
@@ -755,6 +796,32 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
                     get_paint_for_style(glyphs[k].style, opacity, glyphs[k].box + glyph_positions[k]));
                 canvas->fill_path(glyphs[k].path, Pathfinder::FillRule::Winding);
                 canvas->restore_state();
+            }
+        }
+
+        if (style.underline) {
+            float min_x = 1e9f;
+            float max_x = -1e9f;
+            for (int k = i; k < j; k++) {
+                if (glyphs[k].skip_drawing) continue;
+                min_x = std::min(min_x, glyph_positions[k].x);
+                max_x = std::max(max_x, glyph_positions[k].x + glyphs[k].x_advance);
+            }
+            if (min_x <= max_x) {
+                float y = glyph_positions[i].y + glyphs[i].ascent + std::max(2.0f, style.font_size * 0.08f);
+                float thickness = std::max(1.0f, style.font_size / 16.0f);
+                Pathfinder::Path2d underline_path;
+                underline_path.add_rect(RectF(min_x, y, max_x, y + thickness), 0);
+
+                if (is_karaoke) {
+                    canvas->fill_path(underline_path, Pathfinder::FillRule::Winding);
+                } else if (style.gradient_mapping_mode == GradientMappingMode::Span) {
+                    canvas->set_fill_paint(get_paint_for_style(style, opacity, batch_bounds));
+                    canvas->fill_path(underline_path, Pathfinder::FillRule::Winding);
+                } else {
+                    canvas->set_fill_paint(get_paint_for_style(style, opacity, RectF(min_x, y, max_x, y + thickness)));
+                    canvas->fill_path(underline_path, Pathfinder::FillRule::Winding);
+                }
             }
         }
 

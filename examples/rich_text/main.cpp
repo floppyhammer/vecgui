@@ -72,6 +72,7 @@ class RichTextNode : public Node {
         style_grad.fill = grad;
         style_grad.font_size = 64;
         style_grad.bold = true;
+        style_grad.underline = true;
         style_grad.stroke_color = ColorU::white();
         style_grad.stroke_width = 2.0f;
         style_grad.gradient_mapping_mode = GradientMappingMode::Span;

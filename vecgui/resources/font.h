@@ -218,6 +218,7 @@ struct TextStyle {
 
     bool italic = false;
     bool bold = false;
+    bool underline = false;
 
     // Fill.
     std::variant<ColorU, Pathfinder::Gradient> fill = ColorU::white();
@@ -266,6 +267,7 @@ struct TextStyle {
 
     bool operator==(const TextStyle &rhs) const {
         return fill == rhs.fill && font_size == rhs.font_size && italic == rhs.italic && bold == rhs.bold &&
+               underline == rhs.underline &&
                stroke_color == rhs.stroke_color && stroke_width == rhs.stroke_width &&
                shadow_color == rhs.shadow_color && shadow_radius == rhs.shadow_radius &&
                shadow_offset == rhs.shadow_offset && background_color == rhs.background_color &&
