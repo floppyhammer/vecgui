@@ -39,8 +39,6 @@ public:
 
     void add_child_at_index(const std::shared_ptr<Node> &new_child, uint32_t index) override;
 
-    void set_tab_direction();
-
     void set_tab_height(float height);
 
     void set_tab_alignment(TabAlignment alignment);
