@@ -18,10 +18,13 @@ void GridContainer::adjust_layout() {
     if (col_num == 0) col_num = 1;
     uint32_t row_num = (ui_children.size() + col_num - 1) / col_num;
 
-    std::vector<float> col_widths(col_num, min_col_width);
-    std::vector<float> row_heights(row_num, min_row_height);
+    std::vector<float> col_min_widths(col_num, min_col_width);
+    std::vector<float> row_min_heights(row_num, min_row_height);
 
-    // 1. Calculate max width for each column and max height for each row
+    std::vector<bool> col_expanding(col_num, false);
+    std::vector<bool> row_expanding(row_num, false);
+
+    // 1. Calculate min widths for columns, min heights for rows, and expansion flags
     for (int child_idx = 0; child_idx < ui_children.size(); child_idx++) {
         auto &child = ui_children[child_idx];
         if (!child->get_visibility() || !child->is_ui_node()) {
@@ -32,11 +35,97 @@ void GridContainer::adjust_layout() {
         int col_idx = child_idx % col_num;
 
         auto child_min_size = child->get_effective_minimum_size();
-        col_widths[col_idx] = std::max(col_widths[col_idx], child_min_size.x);
-        row_heights[row_idx] = std::max(row_heights[row_idx], child_min_size.y);
+        col_min_widths[col_idx] = std::max(col_min_widths[col_idx], child_min_size.x);
+        row_min_heights[row_idx] = std::max(row_min_heights[row_idx], child_min_size.y);
+
+        if (child->container_sizing.expand_h()) {
+            col_expanding[col_idx] = true;
+        }
+        if (child->container_sizing.expand_v()) {
+            row_expanding[row_idx] = true;
+        }
     }
 
-    // 2. Position and size each child within its cell based on container_sizing
+    float min_total_w = 0;
+    for (float w : col_min_widths) min_total_w += w;
+    if (col_num > 1) min_total_w += separation * (col_num - 1);
+
+    float min_total_h = 0;
+    for (float h : row_min_heights) min_total_h += h;
+    if (row_num > 1) min_total_h += separation * (row_num - 1);
+
+    Vec2F effective_min_size = {min_total_w, min_total_h};
+    float available_w = size.x - effective_min_size.x;
+    float available_h = size.y - effective_min_size.y;
+    size = size.max(effective_min_size);
+
+    // 2. Distribute available_w to expanding columns using water-level algorithm
+    std::vector<float> col_widths = col_min_widths;
+    std::vector<float> expanding_col_min_widths;
+    std::vector<int> expanding_col_indices;
+    for (int c = 0; c < col_num; c++) {
+        if (col_expanding[c]) {
+            expanding_col_min_widths.push_back(col_min_widths[c]);
+            expanding_col_indices.push_back(c);
+        }
+    }
+
+    if (!expanding_col_min_widths.empty() && available_w > 0) {
+        std::vector<float> sorted_mins = expanding_col_min_widths;
+        std::sort(sorted_mins.begin(), sorted_mins.end());
+        float running_sum = 0;
+        float target_size = sorted_mins[0];
+        for (size_t k = 0; k < sorted_mins.size(); ++k) {
+            running_sum += sorted_mins[k];
+            float t = (running_sum + available_w) / (float)(k + 1);
+            if (k + 1 < sorted_mins.size()) {
+                if (t <= sorted_mins[k + 1]) {
+                    target_size = t;
+                    break;
+                }
+            } else {
+                target_size = t;
+            }
+        }
+        for (int c : expanding_col_indices) {
+            col_widths[c] = std::max(col_min_widths[c], target_size);
+        }
+    }
+
+    // 3. Distribute available_h to expanding rows using water-level algorithm
+    std::vector<float> row_heights = row_min_heights;
+    std::vector<float> expanding_row_min_heights;
+    std::vector<int> expanding_row_indices;
+    for (int r = 0; r < row_num; r++) {
+        if (row_expanding[r]) {
+            expanding_row_min_heights.push_back(row_min_heights[r]);
+            expanding_row_indices.push_back(r);
+        }
+    }
+
+    if (!expanding_row_min_heights.empty() && available_h > 0) {
+        std::vector<float> sorted_mins = expanding_row_min_heights;
+        std::sort(sorted_mins.begin(), sorted_mins.end());
+        float running_sum = 0;
+        float target_size = sorted_mins[0];
+        for (size_t k = 0; k < sorted_mins.size(); ++k) {
+            running_sum += sorted_mins[k];
+            float t = (running_sum + available_h) / (float)(k + 1);
+            if (k + 1 < sorted_mins.size()) {
+                if (t <= sorted_mins[k + 1]) {
+                    target_size = t;
+                    break;
+                }
+            } else {
+                target_size = t;
+            }
+        }
+        for (int r : expanding_row_indices) {
+            row_heights[r] = std::max(row_min_heights[r], target_size);
+        }
+    }
+
+    // 4. Position and size each child within its cell based on container_sizing
     for (int child_idx = 0; child_idx < ui_children.size(); child_idx++) {
         auto &child = ui_children[child_idx];
         if (!child->get_visibility() || !child->is_ui_node()) {
@@ -112,7 +201,7 @@ void GridContainer::adjust_layout() {
         child->set_size({final_w, final_h});
     }
 
-    // Set container self size
+    // Set container self size (or keep allocated size if expanding)
     float total_w = 0;
     for (float w : col_widths) total_w += w;
     if (col_num > 1) total_w += separation * (col_num - 1);
@@ -137,8 +226,8 @@ void GridContainer::calc_minimum_size() {
     if (col_num == 0) col_num = 1;
     uint32_t row_num = (ui_children.size() + col_num - 1) / col_num;
 
-    std::vector<float> col_widths(col_num, min_col_width);
-    std::vector<float> row_heights(row_num, min_row_height);
+    std::vector<float> col_min_widths(col_num, min_col_width);
+    std::vector<float> row_min_heights(row_num, min_row_height);
 
     for (int child_idx = 0; child_idx < ui_children.size(); child_idx++) {
         auto ui_child = ui_children[child_idx];
@@ -150,16 +239,16 @@ void GridContainer::calc_minimum_size() {
         int col_idx = child_idx % col_num;
 
         auto child_min_size = ui_child->get_effective_minimum_size();
-        col_widths[col_idx] = std::max(col_widths[col_idx], child_min_size.x);
-        row_heights[row_idx] = std::max(row_heights[row_idx], child_min_size.y);
+        col_min_widths[col_idx] = std::max(col_min_widths[col_idx], child_min_size.x);
+        row_min_heights[row_idx] = std::max(row_min_heights[row_idx], child_min_size.y);
     }
 
     float total_w = 0;
-    for (float w : col_widths) total_w += w;
+    for (float w : col_min_widths) total_w += w;
     if (col_num > 1) total_w += separation * (col_num - 1);
 
     float total_h = 0;
-    for (float h : row_heights) total_h += h;
+    for (float h : row_min_heights) total_h += h;
     if (row_num > 1) total_h += separation * (row_num - 1);
 
     calculated_minimum_size = {total_w, total_h};
