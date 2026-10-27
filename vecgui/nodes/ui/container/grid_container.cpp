@@ -6,11 +6,15 @@ namespace vecgui {
 
 void GridContainer::adjust_layout() {
     if (children.empty() || col_limit == 0) {
+        cached_col_widths.clear();
+        cached_row_heights.clear();
         return;
     }
 
     std::vector<NodeUi *> ui_children = get_visible_ui_children();
     if (ui_children.empty()) {
+        cached_col_widths.clear();
+        cached_row_heights.clear();
         return;
     }
 
@@ -125,6 +129,9 @@ void GridContainer::adjust_layout() {
         }
     }
 
+    cached_col_widths = col_widths;
+    cached_row_heights = row_heights;
+
     // 4. Position and size each child within its cell based on container_sizing
     for (int child_idx = 0; child_idx < ui_children.size(); child_idx++) {
         auto &child = ui_children[child_idx];
@@ -201,7 +208,7 @@ void GridContainer::adjust_layout() {
         child->set_size({final_w, final_h});
     }
 
-    // Set container self size (or keep allocated size if expanding)
+    // Set container self size
     float total_w = 0;
     for (float w : col_widths) total_w += w;
     if (col_num > 1) total_w += separation * (col_num - 1);
@@ -254,6 +261,62 @@ void GridContainer::calc_minimum_size() {
     calculated_minimum_size = {total_w, total_h};
 }
 
+void GridContainer::draw() {
+    Container::draw();
+
+    if (!visible_ || !show_grid_lines || separation <= 0) {
+        return;
+    }
+
+    auto context = get_context();
+    if (!context) {
+        return;
+    }
+    auto vector_server = context->vector_server;
+    auto global_pos = get_global_position();
+
+    uint32_t col_num = cached_col_widths.size();
+    uint32_t row_num = cached_row_heights.size();
+
+    // Draw vertical divider lines between columns in the separation gap
+    float current_x = global_pos.x;
+    for (size_t c = 0; c + 1 < col_num; c++) {
+        current_x += cached_col_widths[c];
+        float line_x = current_x + separation * 0.5f;
+
+        float total_h = 0;
+        for (float h : cached_row_heights) total_h += h;
+        if (row_num > 1) total_h += separation * (row_num - 1);
+
+        vector_server->draw_line(
+            {line_x, global_pos.y},
+            {line_x, global_pos.y + total_h},
+            grid_line_width,
+            grid_line_color
+        );
+        current_x += separation;
+    }
+
+    // Draw horizontal divider lines between rows in the separation gap
+    float current_y = global_pos.y;
+    for (size_t r = 0; r + 1 < row_num; r++) {
+        current_y += cached_row_heights[r];
+        float line_y = current_y + separation * 0.5f;
+
+        float total_w = 0;
+        for (float w : cached_col_widths) total_w += w;
+        if (col_num > 1) total_w += separation * (col_num - 1);
+
+        vector_server->draw_line(
+            {global_pos.x, line_y},
+            {global_pos.x + total_w, line_y},
+            grid_line_width,
+            grid_line_color
+        );
+        current_y += separation;
+    }
+}
+
 void GridContainer::set_separation(float new_separation) {
     if (separation == new_separation) {
         return;
@@ -267,6 +330,18 @@ void GridContainer::set_column_limit(uint32_t new_limit) {
 
 void GridContainer::set_item_shrinking(bool new_shrinking) {
     shrinking = new_shrinking;
+}
+
+void GridContainer::set_show_grid_lines(bool show) {
+    show_grid_lines = show;
+}
+
+void GridContainer::set_grid_line_color(ColorU color) {
+    grid_line_color = color;
+}
+
+void GridContainer::set_grid_line_width(float width) {
+    grid_line_width = width;
 }
 
 } // namespace vecgui
