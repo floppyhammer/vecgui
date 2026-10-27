@@ -37,9 +37,11 @@ public:
 
     void add_child(const std::shared_ptr<Node>& new_child) override;
 
-    void add_child_at_index(const std::shared_ptr<Node> &new_child, uint32_t index) override;
+    void add_child_at_index(const std::shared_ptr<Node>& new_child, uint32_t index) override;
 
     void set_tab_height(float height);
+
+    void set_tab_width(float width);
 
     void set_tab_alignment(TabAlignment alignment);
 
@@ -61,6 +63,7 @@ protected:
 
     std::shared_ptr<HBoxContainer> button_container;
     std::shared_ptr<ScrollContainer> button_scroll_container;
+    std::optional<float> tab_button_min_width;
 
     std::shared_ptr<ToggleButtonGroup> tab_button_group;
 

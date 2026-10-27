@@ -113,7 +113,7 @@ void TabContainer::draw() {
 
     auto theme_bg = theme_override_bg.value_or(default_theme->tab_container.styles["background"]);
 
-    vs->draw_style_box(theme_bg, global_pos, size);
+    vs->draw_style_box(theme_bg, global_pos + Vec2F{0, tab_button_height}, size - Vec2F{0, tab_button_height});
     vs->draw_style_box(theme_tab_bg, global_pos, {size.x, tab_button_height});
 
     for (const auto &btn : tab_buttons) {
@@ -141,6 +141,9 @@ void TabContainer::reload_tab_buttons() {
     for (int idx = 0; idx < children.size(); idx++) {
         auto button = std::make_shared<Button>();
         button->set_pressed_style_to_toggled(true);
+        if (tab_button_min_width.has_value()) {
+            button->set_custom_minimum_size({tab_button_min_width.value(), 0});
+        }
 
         if (children[idx]->name.empty()) {
             button->set_text("TAB");
@@ -176,6 +179,20 @@ void TabContainer::set_tab_disabled(bool disabled) {
 
 void TabContainer::set_tab_height(float height) {
     button_container->set_custom_minimum_size({0, height});
+}
+
+void TabContainer::set_tab_width(float width) {
+    if (width <= 0) {
+        return;
+    }
+
+    tab_button_min_width = width;
+
+    for (auto child : button_container->get_children()) {
+        if (this->is_ui_node()) {
+            dynamic_cast<NodeUi *>(this)->set_custom_minimum_size({width, 0});
+        }
+    }
 }
 
 void TabContainer::set_tab_alignment(TabAlignment alignment) {
