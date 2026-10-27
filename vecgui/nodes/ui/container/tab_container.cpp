@@ -172,7 +172,10 @@ void TabContainer::set_tab_disabled(bool disabled) {
 }
 
 void TabContainer::set_tab_direction() {
+}
 
+void TabContainer::set_tab_height(float height) {
+    button_container->set_custom_minimum_size({0, height});
 }
 
 } // namespace vecgui

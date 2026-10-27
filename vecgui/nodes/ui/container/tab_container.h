@@ -33,6 +33,8 @@ public:
 
     void set_tab_direction();
 
+    void set_tab_height(float height);
+
     std::optional<StyleBox> theme_override_tab_bg;
 
     std::optional<StyleBox> theme_override_bg;
