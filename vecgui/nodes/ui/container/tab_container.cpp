@@ -171,4 +171,8 @@ void TabContainer::set_tab_disabled(bool disabled) {
     }
 }
 
+void TabContainer::set_tab_direction() {
+
+}
+
 } // namespace vecgui

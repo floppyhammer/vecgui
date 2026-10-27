@@ -31,6 +31,8 @@ public:
 
     void add_child_at_index(const std::shared_ptr<Node> &new_child, uint32_t index) override;
 
+    void set_tab_direction();
+
     std::optional<StyleBox> theme_override_tab_bg;
 
     std::optional<StyleBox> theme_override_bg;
