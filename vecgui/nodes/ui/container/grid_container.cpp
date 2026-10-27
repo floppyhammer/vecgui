@@ -273,12 +273,27 @@ void GridContainer::draw() {
         return;
     }
     auto vector_server = context->vector_server;
+    auto canvas = vector_server->get_canvas();
+    if (!canvas) {
+        return;
+    }
+
     auto global_pos = get_global_position();
+    Vec2F mouse_pos = context->input_server->cursor_position;
+
+    // Scale mouse position by global_scale to match canvas coordinate space
+    float global_scale = vector_server->get_global_scale();
+    Vec2F scaled_mouse_pos = mouse_pos * global_scale;
+    Vec2F adjusted_mouse_pos = vector_server->global_transform_offset * scaled_mouse_pos;
+
+    float glow_radius = 200.0f;
 
     uint32_t col_num = cached_col_widths.size();
     uint32_t row_num = cached_row_heights.size();
 
-    // Draw vertical divider lines between columns in the separation gap
+    Pathfinder::Path2d grid_path;
+
+    // Add vertical divider lines
     float current_x = global_pos.x;
     for (size_t c = 0; c + 1 < col_num; c++) {
         current_x += cached_col_widths[c];
@@ -288,16 +303,12 @@ void GridContainer::draw() {
         for (float h : cached_row_heights) total_h += h;
         if (row_num > 1) total_h += separation * (row_num - 1);
 
-        vector_server->draw_line(
-            {line_x, global_pos.y},
-            {line_x, global_pos.y + total_h},
-            grid_line_width,
-            grid_line_color
-        );
+        grid_path.add_line({line_x, global_pos.y}, {line_x, global_pos.y + total_h});
+
         current_x += separation;
     }
 
-    // Draw horizontal divider lines between rows in the separation gap
+    // Add horizontal divider lines
     float current_y = global_pos.y;
     for (size_t r = 0; r + 1 < row_num; r++) {
         current_y += cached_row_heights[r];
@@ -307,14 +318,28 @@ void GridContainer::draw() {
         for (float w : cached_col_widths) total_w += w;
         if (col_num > 1) total_w += separation * (col_num - 1);
 
-        vector_server->draw_line(
-            {global_pos.x, line_y},
-            {global_pos.x + total_w, line_y},
-            grid_line_width,
-            grid_line_color
-        );
+        grid_path.add_line({global_pos.x, line_y}, {global_pos.x + total_w, line_y});
+
         current_y += separation;
     }
+
+    // Create radial gradient centered at adjusted mouse position
+    auto gradient = Pathfinder::Gradient::radial(
+        Pathfinder::LineSegmentF(adjusted_mouse_pos, adjusted_mouse_pos),
+        Vec2F(0.0f, glow_radius)
+    );
+    gradient.add_color_stop(ColorU{255, 255, 255, 240}, 0.0f);
+    gradient.add_color_stop(ColorU{255, 255, 255, 100}, 0.4f);
+    gradient.add_color_stop(grid_line_color, 1.0f);
+
+    auto dpi_scaling_xform = Pathfinder::Transform2::from_scale(Vec2F(global_scale, global_scale));
+
+    canvas->save_state();
+    canvas->set_transform(dpi_scaling_xform * vector_server->global_transform_offset);
+    canvas->set_stroke_paint(Pathfinder::Paint::from_gradient(gradient));
+    canvas->set_line_width(grid_line_width);
+    canvas->stroke_path(grid_path);
+    canvas->restore_state();
 }
 
 void GridContainer::set_separation(float new_separation) {
