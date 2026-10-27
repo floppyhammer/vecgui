@@ -28,6 +28,9 @@ void TabContainer::adjust_layout() {
     button_scroll_container->set_position({0, 0});
     button_scroll_container->set_size({size.x, tab_button_height});
 
+    float button_container_width = std::max(button_container->get_effective_minimum_size().x, size.x);
+    button_container->set_size({button_container_width, tab_button_height});
+
     for (int i = 0; i < (int)children.size(); i++) {
         if (!children[i]->is_ui_node()) {
             continue;
@@ -176,6 +179,30 @@ void TabContainer::set_tab_direction() {
 
 void TabContainer::set_tab_height(float height) {
     button_container->set_custom_minimum_size({0, height});
+}
+
+void TabContainer::set_tab_alignment(TabAlignment alignment) {
+    if (tab_alignment == alignment) {
+        return;
+    }
+
+    tab_alignment = alignment;
+    switch (tab_alignment) {
+        case TabAlignment::Left:
+            button_container->set_alignment(BoxContainerAlignment::Begin);
+            break;
+        case TabAlignment::Center:
+            button_container->set_alignment(BoxContainerAlignment::Center);
+            break;
+        case TabAlignment::Right:
+            button_container->set_alignment(BoxContainerAlignment::End);
+            break;
+    }
+    queue_relayout();
+}
+
+TabAlignment TabContainer::get_tab_alignment() const {
+    return tab_alignment;
 }
 
 } // namespace vecgui

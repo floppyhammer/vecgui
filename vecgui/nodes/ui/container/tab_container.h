@@ -9,6 +9,14 @@ namespace vecgui {
 
 class ScrollContainer;
 
+enum class TabAlignment {
+    Left,
+    Center,
+    Right,
+    Begin = Left,
+    End = Right,
+};
+
 class TabContainer : public Container {
 public:
     TabContainer();
@@ -35,6 +43,10 @@ public:
 
     void set_tab_height(float height);
 
+    void set_tab_alignment(TabAlignment alignment);
+
+    TabAlignment get_tab_alignment() const;
+
     std::optional<StyleBox> theme_override_tab_bg;
 
     std::optional<StyleBox> theme_override_bg;
@@ -46,6 +58,8 @@ protected:
 
     std::optional<uint32_t> current_tab;
     bool current_tab_changed = false;
+
+    TabAlignment tab_alignment = TabAlignment::Left;
 
     std::shared_ptr<HBoxContainer> button_container;
     std::shared_ptr<ScrollContainer> button_scroll_container;
