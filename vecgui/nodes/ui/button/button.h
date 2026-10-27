@@ -33,6 +33,8 @@ public:
 
     std::string get_text() const;
 
+    void set_horizontal_alignment(Alignment alignment);
+
     void set_icon_normal(const std::shared_ptr<Image> &icon);
 
     void set_icon_pressed(const std::shared_ptr<Image> &icon);

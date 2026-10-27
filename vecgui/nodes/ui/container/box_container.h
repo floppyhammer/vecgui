@@ -6,6 +6,7 @@ namespace vecgui {
 
 enum struct BoxContainerAlignment {
     Begin,
+    Center,
     End,
 };
 

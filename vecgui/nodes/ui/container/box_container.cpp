@@ -81,8 +81,12 @@ void BoxContainer::adjust_layout() {
     // --- 算法结束 ---
 
     float pos_shift = 0;
-    if (expanding_child_count == 0 && alignment == BoxContainerAlignment::End) {
-        pos_shift = available_space_for_expanding;
+    if (expanding_child_count == 0) {
+        if (alignment == BoxContainerAlignment::End) {
+            pos_shift = available_space_for_expanding;
+        } else if (alignment == BoxContainerAlignment::Center) {
+            pos_shift = available_space_for_expanding * 0.5f;
+        }
     }
 
     for (auto &ui_child : ui_children) {

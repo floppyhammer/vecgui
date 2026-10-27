@@ -27,6 +27,7 @@ Button::Button() {
     hbox_container->add_child(icon_rect);
     hbox_container->add_child(label);
     hbox_container->set_separation(2);
+    hbox_container->set_alignment(BoxContainerAlignment::Center);
     hbox_container->set_mouse_filter(MouseFilter::Ignore);
 
     margin_container = std::make_shared<MarginContainer>();
@@ -256,31 +257,63 @@ void Button::set_text(const std::string &text) {
     if (text.empty()) {
         label->set_text("");
         label->set_visibility(false);
+        icon_rect->container_sizing.flag_h = ContainerSizingFlag::Fill;
+        queue_relayout();
         return;
     }
 
     label->set_text(text);
     label->set_visibility(true);
+    icon_rect->container_sizing.flag_h = icon_expand_ ? ContainerSizingFlag::Fill : ContainerSizingFlag::NoExpand;
+    queue_relayout();
 }
 
 std::string Button::get_text() const {
     return label->get_text();
 }
 
+void Button::set_horizontal_alignment(Alignment alignment) {
+    label->set_horizontal_alignment(alignment);
+    if (alignment == Alignment::Center) {
+        hbox_container->set_alignment(BoxContainerAlignment::Center);
+    } else if (alignment == Alignment::End) {
+        hbox_container->set_alignment(BoxContainerAlignment::End);
+    } else {
+        hbox_container->set_alignment(BoxContainerAlignment::Begin);
+    }
+    queue_relayout();
+}
+
 void Button::set_icon_normal(const std::shared_ptr<Image> &icon) {
     icon_normal_ = icon;
+    if (!pressed && !toggled) {
+        icon_rect->set_texture(icon_normal_);
+    } else if (!icon_pressed_) {
+        icon_rect->set_texture(icon_normal_);
+    }
+    queue_relayout();
 }
 
 void Button::set_icon_pressed(const std::shared_ptr<Image> &icon) {
     icon_pressed_ = icon;
+    if (pressed || (toggle_mode && toggled)) {
+        icon_rect->set_texture(icon_pressed_);
+    }
+    queue_relayout();
 }
 
 void Button::set_icon_expand(bool enable) {
-    if (enable) {
+    icon_expand_ = enable;
+    if (label->get_text().empty()) {
         icon_rect->container_sizing.flag_h = ContainerSizingFlag::Fill;
     } else {
-        icon_rect->container_sizing.flag_h = ContainerSizingFlag::NoExpand;
+        if (enable) {
+            icon_rect->container_sizing.flag_h = ContainerSizingFlag::Fill;
+        } else {
+            icon_rect->container_sizing.flag_h = ContainerSizingFlag::NoExpand;
+        }
     }
+    queue_relayout();
 }
 
 void Button::set_toggle_mode(bool enable) {
