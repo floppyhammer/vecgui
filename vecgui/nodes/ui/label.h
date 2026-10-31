@@ -166,6 +166,7 @@ private:
     BidiAlignment bidi_alignment_ = BidiAlignment::Auto;
 
     std::optional<TextStyle> text_style_;
+    uint32_t font_size_ = 0;
 
     float max_atomic_group_width_ = 0.0f;
 };

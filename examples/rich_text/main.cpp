@@ -29,18 +29,16 @@ class RichTextNode : public Node {
         TextStyle style2;
         style2.set_fill_color(ColorU::green());
         style2.italic = true;
-        style2.font_size = 64;
-        label->add_span({"Text", style2});
+        label->add_span({"Text", style2, 64});
 
         // 3. Normal Blue
         TextStyle style3;
         style3.set_fill_color(ColorU::blue());
-        style3.font_size = 12;
         style3.shadow_color = ColorU::black();
         style3.shadow_strength = 1.0;
         style3.shadow_radius = 8.0;
         style3.shadow_offset = Vec2F(4.0, 4.0);
-        label->add_span({" Label\n", style3});
+        label->add_span({" Label\n", style3, 12});
 
         // 4. Mixed Style in Chinese
         TextStyle style_cn;
@@ -51,8 +49,7 @@ class RichTextNode : public Node {
         style_cn.background_color = ColorU::black();
         style_cn.background_corner_radius = 8.0;
         style_cn.background_expand = 2.0;
-        style_cn.font_size = 128;
-        label->add_span({"世界！", style_cn});
+        label->add_span({"世界！", style_cn, 128});
 
         // 5. Stroke style
         TextStyle style_stroke;
@@ -70,13 +67,12 @@ class RichTextNode : public Node {
         grad.add_color_stop(ColorU::yellow(), 0.5f);
         grad.add_color_stop(ColorU::blue(), 1.0f);
         style_grad.fill = grad;
-        style_grad.font_size = 64;
         style_grad.bold = true;
         style_grad.underline = true;
         style_grad.stroke_color = ColorU::white();
         style_grad.stroke_width = 2.0f;
         style_grad.gradient_mapping_mode = GradientMappingMode::Span;
-        label->add_span({"\nGradient Text", style_grad});
+        label->add_span({"\nGradient Text", style_grad, 64});
 
         center_container->add_child(label);
     }

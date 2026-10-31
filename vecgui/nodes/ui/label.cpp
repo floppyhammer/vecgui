@@ -518,14 +518,14 @@ void Label::make_layout() {
         float min_descent = 0;
         for (int i = range.start; i < range.end; i++) {
             const auto &g = glyphs_[i];
-            max_font_size_in_line = std::max(max_font_size_in_line, g.style.font_size);
+            max_font_size_in_line = std::max(max_font_size_in_line, g.font_size);
             min_descent = std::min(min_descent, g.descent);
         }
 
         for (int i = range.start; i < range.end; i++) {
             const auto &g = glyphs_[i];
 
-            uint32_t current_font_size = g.style.font_size;
+            uint32_t current_font_size = g.font_size;
 
             // Aligns baselines by compensating for different descender depths.
             // Since descent is negative, (g.descent - min_descent) is the positive distance
@@ -574,25 +574,19 @@ void Label::set_font(const std::shared_ptr<Font> &new_font) {
 }
 
 void Label::set_font_size(uint32_t new_font_size) {
-    if (get_font_size() == new_font_size) {
+    if (font_size_ == new_font_size) {
         return;
     }
-    // Reuse old text style if there is any.
-    if (!text_style_.has_value()) {
-        text_style_ = get_text_style();
-    }
-    text_style_->font_size = new_font_size;
-
-    if (spans_.size() <= 1) {
-        spans_.clear();
-        spans_.push_back({.text = text_, .style = *text_style_});
-    }
-
+    font_size_ = new_font_size;
+    spans_.clear();
     need_to_remeasure = true;
     queue_relayout();
 }
 
 uint32_t Label::get_font_size() const {
+    if (font_size_ > 0) {
+        return font_size_;
+    }
     auto context = get_context();
     if (!context) {
         return 24;
@@ -600,7 +594,7 @@ uint32_t Label::get_font_size() const {
 
     auto default_theme = context->default_resource->get_default_theme();
 
-    return text_style_.has_value() ? text_style_->font_size : default_theme->font_size;
+    return default_theme->font_size;
 }
 
 void Label::set_word_wrap(bool word_wrap) {
@@ -830,21 +824,19 @@ float Label::get_glyph_right_edge_position(int32_t glyph_index) {
 }
 
 TextStyle Label::get_text_style() const {
-    // Apply theme color if not overridden.
-    if (!text_style_.has_value()) {
-        auto context = get_context();
-        if (!context) {
-            return {};
-        }
-
-        const auto default_theme = context->default_resource->get_default_theme();
-        TextStyle text_style;
-        text_style.set_fill_color(default_theme->label.colors["text"]);
-        text_style.font_size = default_theme->font_size;
-        return text_style;
+    if (text_style_.has_value()) {
+        return *text_style_;
     }
 
-    return *text_style_;
+    auto context = get_context();
+    if (!context) {
+        return {};
+    }
+
+    const auto default_theme = context->default_resource->get_default_theme();
+    TextStyle text_style;
+    text_style.set_fill_color(default_theme->label.colors["text"]);
+    return text_style;
 }
 
 float Label::get_glyph_left_edge_position(int32_t glyph_index) {

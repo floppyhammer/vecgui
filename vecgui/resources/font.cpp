@@ -1213,10 +1213,12 @@ void Font::get_glyphs(TextServer *text_server,
         for (int i = spans.size() - 1; i >= 0; --i) {
             if (glyph.start >= span_offsets[i]) {
                 glyph.style = spans[i].style;
+                uint32_t span_font_size = spans[i].font_size.value_or(font_size);
+                glyph.font_size = span_font_size;
 
                 // Local font size.
-                if (spans[i].style.font_size != font_size) {
-                    float scale = (float)spans[i].style.font_size / (float)font_size;
+                if (span_font_size != font_size) {
+                    float scale = (float)span_font_size / (float)font_size;
 
                     glyph.bbox = glyph.bbox * scale;
                     glyph.box = glyph.box * scale;

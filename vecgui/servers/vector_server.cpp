@@ -468,8 +468,8 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
                 max_x = std::max(max_x, glyph_positions[k].x + glyphs[k].x_advance);
             }
             if (min_x <= max_x) {
-                float y = glyph_positions[i].y + glyphs[i].ascent + style.shadow_offset.y + std::max(2.0f, style.font_size * 0.08f);
-                float thickness = std::max(1.0f, style.font_size / 16.0f);
+                float y = glyph_positions[i].y + glyphs[i].ascent + style.shadow_offset.y + std::max(2.0f, glyphs[i].font_size * 0.08f);
+                float thickness = std::max(1.0f, glyphs[i].font_size / 16.0f);
                 Pathfinder::Path2d underline_shadow_path;
                 underline_shadow_path.add_rect(RectF(min_x + style.shadow_offset.x, y, max_x + style.shadow_offset.x, y + thickness), 0);
                 combined_shadow_path.add_path(underline_shadow_path, style.local_transform);
@@ -582,8 +582,8 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
                 max_x = std::max(max_x, glyph_positions[k].x + glyphs[k].x_advance);
             }
             if (min_x <= max_x) {
-                float y = glyph_positions[i].y + glyphs[i].ascent + std::max(2.0f, style.font_size * 0.08f);
-                float thickness = std::max(1.0f, style.font_size / 16.0f);
+                float y = glyph_positions[i].y + glyphs[i].ascent + std::max(2.0f, glyphs[i].font_size * 0.08f);
+                float thickness = std::max(1.0f, glyphs[i].font_size / 16.0f);
                 Pathfinder::Path2d underline_path;
                 underline_path.add_rect(RectF(min_x, y, max_x, y + thickness), 0);
 
@@ -808,8 +808,8 @@ void VectorServer::draw_glyphs(std::vector<Glyph> &glyphs,
                 max_x = std::max(max_x, glyph_positions[k].x + glyphs[k].x_advance);
             }
             if (min_x <= max_x) {
-                float y = glyph_positions[i].y + glyphs[i].ascent + std::max(2.0f, style.font_size * 0.08f);
-                float thickness = std::max(1.0f, style.font_size / 16.0f);
+                float y = glyph_positions[i].y + glyphs[i].ascent + std::max(2.0f, glyphs[i].font_size * 0.08f);
+                float thickness = std::max(1.0f, glyphs[i].font_size / 16.0f);
                 Pathfinder::Path2d underline_path;
                 underline_path.add_rect(RectF(min_x, y, max_x, y + thickness), 0);
 

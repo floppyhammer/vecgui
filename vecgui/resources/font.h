@@ -214,8 +214,6 @@ struct TextStyle {
     TextStyle(ColorU color) : fill(color) {
     }
 
-    uint32_t font_size = 24u;
-
     bool italic = false;
     bool bold = false;
     bool underline = false;
@@ -266,7 +264,7 @@ struct TextStyle {
     }
 
     bool operator==(const TextStyle &rhs) const {
-        return fill == rhs.fill && font_size == rhs.font_size && italic == rhs.italic && bold == rhs.bold &&
+        return fill == rhs.fill && italic == rhs.italic && bold == rhs.bold &&
                underline == rhs.underline &&
                stroke_color == rhs.stroke_color && stroke_width == rhs.stroke_width &&
                shadow_color == rhs.shadow_color && shadow_radius == rhs.shadow_radius &&
@@ -281,6 +279,7 @@ struct TextStyle {
 struct TextSpan {
     std::string text;
     TextStyle style;
+    std::optional<uint32_t> font_size;
 };
 
 enum class Script {
@@ -342,6 +341,8 @@ struct Glyph {
     float descent = 0;
 
     bool skip_drawing = false;
+
+    uint32_t font_size = 24u;
 
     // Glyph path. The points are in the glyph's baseline coordinates.
     Pathfinder::Path2d path;
