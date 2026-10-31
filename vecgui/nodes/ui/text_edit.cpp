@@ -91,7 +91,7 @@ void TextEdit::input(InputEvent &event) {
             if (!event.consumed && active_rect.contains_point(args.position)) {
                 if (args.pressed) {
                     // Decide which codepoint the caret is at.
-                    auto local_mouse_pos_to_label = args.position - label->get_global_position();
+                    auto local_mouse_pos_to_label = args.position - label->get_global_position() - label->get_alignment_shift();
                     current_caret_index = calculate_caret_index(local_mouse_pos_to_label);
                     selection_start_index = current_caret_index;
 
@@ -114,7 +114,8 @@ void TextEdit::input(InputEvent &event) {
             }
 
             if (is_pressed_inside) {
-                current_caret_index = calculate_caret_index(get_local_mouse_position());
+                auto local_mouse_pos_to_label = args.position - label->get_global_position() - label->get_alignment_shift();
+                current_caret_index = calculate_caret_index(local_mouse_pos_to_label);
                 caret_blink_timer = 0;
 
                 Logger::verbose("Caret position: current " + std::to_string(current_caret_index) + ", selected " +
@@ -301,14 +302,8 @@ void TextEdit::draw() {
     if (focused && editable) {
         theme_caret.color.a_ = 255.0f * std::ceil(std::sin(caret_blink_timer * 5.0f));
 
-        float current_codepoint_right_edge = 0;
-        if (current_caret_index > 0) {
-            current_codepoint_right_edge = label->get_codepoint_right_edge_position(current_caret_index - 1);
-        } else {
-            current_codepoint_right_edge = 0;
-        }
-
-        auto start = label->get_global_position() + Vec2F(current_codepoint_right_edge, 3);
+        auto caret_pos = calculate_caret_position(current_caret_index);
+        auto start = label->get_global_position() + caret_pos + Vec2F(0, 3);
         auto end = start + Vec2F(0, label->get_font_size() - 6);
         vector_server->draw_style_line(theme_caret, start, end);
     }
@@ -351,11 +346,13 @@ uint32_t TextEdit::calculate_caret_index(Vec2F local_cursor_position_to_label) {
 }
 
 Vec2F TextEdit::calculate_caret_position(int32_t target_caret_index) {
+    float x = 0;
     if (target_caret_index > 0) {
-        return {label->get_codepoint_right_edge_position(target_caret_index - 1), 0};
+        x = label->get_codepoint_right_edge_position(target_caret_index - 1);
     }
 
-    return {0, 0};
+    auto alignment_shift = label->get_alignment_shift();
+    return {alignment_shift.x + x, alignment_shift.y};
 }
 
 void TextEdit::grab_focus() {

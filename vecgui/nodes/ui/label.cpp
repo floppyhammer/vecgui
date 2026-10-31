@@ -489,6 +489,11 @@ void Label::make_layout() {
 
     glyph_positions.resize(glyphs_.size());
 
+    if (effective_line_ranges.empty()) {
+        layout_box = RectF(0, 0, 0, (float)get_font_size());
+        return;
+    }
+
     // Build layout.
     for (const auto &line : effective_line_ranges) {
         const auto &range = line.glyph_ranges;
